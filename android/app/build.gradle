@@ -35,10 +35,13 @@ android {
             if (file('../key.properties').exists()) {
                 Properties properties = new Properties()
                 properties.load(file('../key.properties').newDataInputStream())
-                storeFile = file(properties['storeFile'])
-                storePassword = properties['storePassword']
-                keyPassword = properties['keyPassword']
-                keyAlias = properties['keyAlias']
+                def storeFilePath = properties['storeFile']
+                if (storeFilePath != null && !storeFilePath.isEmpty()) {
+                    storeFile = file(storeFilePath)
+                    storePassword = properties['storePassword']
+                    keyPassword = properties['keyPassword']
+                    keyAlias = properties['keyAlias']
+                }
             }
         }
     }
