@@ -42,5 +42,17 @@ jobs:
       - name: 🔍 Analyze
         run: flutter analyze --no-fatal-infos
 
-      - name: 🧪 Run tests
-        run: flutter test
+      - name: 🧪 Run tests with coverage
+        run: flutter test --coverage
+
+      - name: 📊 Generate coverage report
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lcov
+          genhtml coverage/lcov.info -o coverage/html
+          lcov --summary coverage/lcov.info
+
+      - name: 📤 Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/html/
