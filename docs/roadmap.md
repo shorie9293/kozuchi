@@ -62,10 +62,10 @@
 - [x] プライバシーポリシー（privacy-policy.md 79行）✅
 - [x] ストア説明文（ja-JP title/short/full）✅
 - [x] fastlane設定（Fastfile + Appfile）✅
-- [ ] 画像素材（スクリーンショット・フィーチャーグラフィック・アイコン）
+- [x] 画像素材（スクリーンショット・フィーチャーグラフィック・アイコン）
 - [ ] Gemfile + Pluginfile（bundle exec fastlane用）
 - [ ] Play Console実登録（GOOGLE_PLAY_JSON_KEY設定）
 
 ---
 
-**次回自律サイクル**: 開顕準備 一部完了（署名鍵✅・プライバシーポリシー✅・ストアテキスト✅）。残件: 画像素材（スクリーンショット・フィーチャーグラフィック・アイコン）生成、Gemfile作成、Play Console実登録（GOOGLE_PLAY_JSON_KEY設定要）
+**次回自律サイクル**: 開顕準備 一部完了（署名鍵✅・プライバシーポリシー✅・ストアテキスト✅・画像素材✅）。残件: Gemfile作成、Play Console実登録（GOOGLE_PLAY_JSON_KEY設定要）
