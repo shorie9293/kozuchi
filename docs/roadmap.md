@@ -57,6 +57,15 @@
 - [x] tsundoku-questの蔵書追加で弁財天ボーナス（tsundoku: TsundokuBookEventExporter + book_data_provider配線、Kozuchi: BenzaitenBookBonusService + MainScreen配線）
 - コミット: rpg-task `039ca52` / Kozuchi `bcd174a` / tsundoku `4a43a61`
 
+### 🟡 開顕準備（一部完了）
+- [x] 署名鍵生成 + .gitignore（key.properties + upload-keystore.jks）✅
+- [x] プライバシーポリシー（privacy-policy.md 79行）✅
+- [x] ストア説明文（ja-JP title/short/full）✅
+- [x] fastlane設定（Fastfile + Appfile）✅
+- [ ] 画像素材（スクリーンショット・フィーチャーグラフィック・アイコン）
+- [ ] Gemfile + Pluginfile（bundle exec fastlane用）
+- [ ] Play Console実登録（GOOGLE_PLAY_JSON_KEY設定）
+
 ---
 
-**次回自律サイクル**: 全拡張完了。✅ CI/CDパイプライン・カバレッジ計測基盤完備（令和八年水無月十四日）。次は開顕準備（署名鍵・Play Console・ストア素材）。
+**次回自律サイクル**: 開顕準備 一部完了（署名鍵✅・プライバシーポリシー✅・ストアテキスト✅）。残件: 画像素材（スクリーンショット・フィーチャーグラフィック・アイコン）生成、Gemfile作成、Play Console実登録（GOOGLE_PLAY_JSON_KEY設定要）
