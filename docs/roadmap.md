@@ -63,7 +63,7 @@
 - [x] ストア説明文（ja-JP title/short/full）✅
 - [x] fastlane設定（Fastfile + Appfile）✅
 - [x] 画像素材（スクリーンショット・フィーチャーグラフィック・アイコン）
-- [ ] Gemfile + Pluginfile（bundle exec fastlane用）
+- [x] Gemfile + Pluginfile（bundle exec fastlane用）✅ — Pluginfile不要（全現世不在）。Gemfile作成済（commit `34ef7f7`）
 - [ ] Play Console実登録（GOOGLE_PLAY_JSON_KEY設定）
 
 ---
