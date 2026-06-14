@@ -2,8 +2,8 @@
 
 **制定**: 令和八年皐月十二日
 **元神想書**: `shinsho/kozuchi-concept.md`
-**試験**: 173/173通過 ✅ / dart analyze clean ✅
-**改訂**: 令和八年皐月三十日 午後 — 試験数実測 173に更新（widget_test非同期ロード待ち修正で171→173）
+**試験**: 213/213通過 ✅ / dart analyze clean ✅
+**改訂**: 令和八年水無月十四日 午後 — 試験数実測 213に更新（CI/CDパイプライン・カバレッジ計測基盤完備）
 
 ---
 
@@ -20,6 +20,8 @@
 | 開眼三段階（初転法輪→縁起→空） | ✅ 基本実装 |
 | LLM守護神AI講評 | ✅ DeepSeek API連携・四天個別プロンプト・SATORI倍率動的調整 |
 | レシート撮影（拡張2） | ✅ ReceiptScannerScreen + OCR + 金額・店名自動抽出 |
+| CI/CDパイプライン | ✅ GitHub Actions flutter-ci.yml + deploy.yml完備 |
+| カバレッジ計測基盤 | ✅ scripts/coverage.sh + lcov/genhtml完備・.gitignore coverage/設定済み |
 
 ---
 
@@ -57,4 +59,4 @@
 
 ---
 
-**次回自律サイクル**: 全拡張完了。✅ 蔵書追加イベントの共有ストレージ連携完了（tsundoku-quest-flutter 側 TsundokuBookEventExporter を BookDataNotifier.addUserBook に配線、令和八年水無月十二日 夜）。次は試験強化・カバレッジ向上。
+**次回自律サイクル**: 全拡張完了。✅ CI/CDパイプライン・カバレッジ計測基盤完備（令和八年水無月十四日）。次は開顕準備（署名鍵・Play Console・ストア素材）。
