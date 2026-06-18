@@ -34,7 +34,7 @@ android {
         release {
             if (file('../key.properties').exists()) {
                 Properties properties = new Properties()
-                properties.load(file('../key.properties').newDataInputStream())
+                properties.load(file('../key.properties').newInputStream())
                 def storeFilePath = properties['storeFile']
                 if (storeFilePath != null && !storeFilePath.isEmpty()) {
                     storeFile = file(storeFilePath)
