@@ -55,11 +55,17 @@ jobs:
 
       - name: 🔐 Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64_KOZUCHI }}" | tr -d '\n\r\t %' | base64 -d > android/upload-keystore.jks
+          echo "${{ secrets.KEYSTORE_BASE64_KOZUCHI }}" | base64 -d > android/upload-keystore.jks
+          ls -la android/upload-keystore.jks
+          echo "Keystore decoded: $(stat -c%s android/upload-keystore.jks) bytes"
 
       - name: 📝 Create key.properties
         run: |
-          echo "${{ secrets.KEY_PROPERTIES_KOZUCHI }}" > android/key.properties
+          cat > android/key.properties << 'PROPEOF'
+          ${{ secrets.KEY_PROPERTIES_KOZUCHI }}
+          PROPEOF
+          echo "--- key.properties content (masked) ---"
+          sed 's/Password=.*/Password=***/' android/key.properties
 
       - name: 🔨 Build App Bundle
         run: flutter build appbundle --release
