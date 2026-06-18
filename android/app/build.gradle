@@ -33,7 +33,7 @@ android {
         versionName = flutter.versionName
     }
 
-    def keystorePropertiesFile = file('key.properties')
+    def keystorePropertiesFile = rootProject.file('key.properties')
     def keystoreProperties = new Properties()
     if (keystorePropertiesFile.exists()) {
         keystoreProperties.load(new FileInputStream(keystorePropertiesFile))

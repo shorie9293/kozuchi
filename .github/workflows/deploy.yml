@@ -54,26 +54,12 @@ jobs:
         run: flutter pub get
 
       - name: 🔐 Decode Keystore
-        env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64_KOZUCHI }}
         run: |
-          echo "$KEYSTORE_B64" | base64 -d > android/app/upload-keystore.jks
-          echo "Keystore size: $(stat -c%s android/app/upload-keystore.jks) bytes"
+          echo "${{ secrets.KEYSTORE_BASE64_KOZUCHI }}" | tr -d '\n\r\t %' | base64 -d > android/upload-keystore.jks
 
       - name: 📝 Create key.properties
-        env:
-          KPASS: ${{ secrets.KEYSTORE_PASS_KOZUCHI }}
         run: |
-          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=upload\nstoreFile=upload-keystore.jks\n' "$KPASS" "$KPASS" > android/app/key.properties
-          echo "--- key.properties (masked) ---"
-          sed 's/=.*/=***/' android/app/key.properties
-
-      - name: 🔍 Verify signing files
-        run: |
-          echo "=== android/app/ ==="
-          ls -la android/app/key.properties android/app/upload-keystore.jks 2>&1
-          echo "=== keytool verify ==="
-          keytool -list -keystore android/app/upload-keystore.jks -storepass "$(grep '^storePassword=' android/app/key.properties | cut -d= -f2)" 2>&1 | head -3
+          echo "${{ secrets.KEY_PROPERTIES_KOZUCHI }}" > android/key.properties
 
       - name: 🔨 Build App Bundle
         run: flutter build appbundle --release
