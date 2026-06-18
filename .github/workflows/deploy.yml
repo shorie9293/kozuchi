@@ -55,14 +55,19 @@ jobs:
 
       - name: 🔐 Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\n\r\t %' | base64 -d > android/upload-keystore.jks
+          echo "${{ secrets.KEYSTORE_BASE64_KOZUCHI }}" | tr -d '\n\r\t %' | base64 -d > android/upload-keystore.jks
 
       - name: 📝 Create key.properties
         run: |
-          echo "${{ secrets.KEY_PROPERTIES }}" > android/key.properties
+          echo "${{ secrets.KEY_PROPERTIES_KOZUCHI }}" > android/key.properties
 
       - name: 🔨 Build App Bundle
         run: flutter build appbundle --release
+
+      - name: 🔍 Verify AAB exists
+        run: |
+          ls -la build/app/outputs/bundle/release/app-release.aab
+          echo "AAB size: $(stat -c%s build/app/outputs/bundle/release/app-release.aab) bytes"
 
       - name: 💎 Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -77,7 +82,8 @@ jobs:
           GOOGLE_PLAY_JSON_KEY: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
         run: |
           TRACK="${{ github.event.inputs.track || 'internal' }}"
-          bundle exec fastlane deploy track:${TRACK}
+          set -x
+          bundle exec fastlane deploy track:${TRACK} --verbose
 
       - name: 📤 Upload AAB artifact
         uses: actions/upload-artifact@v4

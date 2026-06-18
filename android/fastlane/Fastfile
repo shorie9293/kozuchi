@@ -10,7 +10,7 @@ platform :android do
       package_name: "com.shorie.kozuchi",
       aab: "../build/app/outputs/bundle/release/app-release.aab",
       json_key_data: ENV["GOOGLE_PLAY_JSON_KEY"],
-      skip_upload_metadata: false,
+      skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
     )

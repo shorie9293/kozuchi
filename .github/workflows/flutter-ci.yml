@@ -1,23 +1,20 @@
-name: 🧪 Flutter CI
+name: Flutter CI
 
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - '.github/workflows/deploy.yml'
+    branches:
+      - main
   pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  analyze-and-test:
-    name: Analyze & Test
+  flutter-ci:
+    name: 'Flutter CI'
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: 📦 Setup local packages
@@ -29,30 +26,21 @@ jobs:
           cp -r /tmp/takamagahara/packages/takamagahara_ui ../../packages/
           rm -rf /tmp/takamagahara
 
-      - name: 🦋 Setup Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.4'
+          flutter-version: '3.27.x'
           channel: 'stable'
           cache: true
 
-      - name: 📦 Get dependencies
+      - name: Verify Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: 🔍 Analyze
+      - name: Run static analysis (flutter analyze)
         run: flutter analyze --no-fatal-infos
 
-      - name: 🧪 Run tests with coverage
-        run: flutter test --coverage
-
-      - name: 📊 Generate coverage report
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq lcov
-          genhtml coverage/lcov.info -o coverage/html
-          lcov --summary coverage/lcov.info
-
-      - name: 📤 Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/html/
+      - name: Run tests
+        run: flutter test --no-pub
