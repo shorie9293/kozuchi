@@ -4,7 +4,7 @@ import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/features/receipt_scanner/data/receipt_ocr_service.dart';
 import 'package:kozuchi/features/receipt_scanner/presentation/screens/receipt_scanner_screen.dart';
 
-/// 喜捨入力結果
+/// 支出入力結果
 class OfferingResult {
   final int amount;
   final String purpose;
@@ -21,7 +21,7 @@ class OfferingResult {
   });
 }
 
-/// 喜捨入力画面
+/// 支出入力画面
 ///
 /// 金額＋用途＋一言メモを入力する。
 /// 拡張2: レシート撮影による自動入力に対応。
@@ -109,7 +109,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('喜捨の記録')),
+      appBar: AppBar(title: const Text('支出の記録')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -126,11 +126,11 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                 ),
                 child: Row(
                   children: [
-                    Text(widget.quest.guardianDeity.emoji, style: const TextStyle(fontSize: 24)),
+                    Text(widget.quest.advisor.emoji, style: const TextStyle(fontSize: 24)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '喜捨（キシャ）とは、執着を手放す布施の行なり。'
+                        '支出（キシャ）とは、執着を手放す布施の行なり。'
                         '使った金は消えるのではなく、誰かの元へ「縁」として巡る。',
                         style: TextStyle(fontSize: 12, color: colorScheme.onPrimaryContainer),
                       ),
@@ -164,7 +164,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: '喜捨金額（円）',
+                  labelText: '支出金額（円）',
                   prefixText: '¥ ',
                   border: const OutlineInputBorder(),
                   hintText: '例: ${widget.quest.suggestedOffering}',
@@ -173,7 +173,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                   if (value == null || value.isEmpty) return '金額を入力せよ';
                   final amount = int.tryParse(value);
                   if (amount == null || amount <= 0) return '有効な金額を入力せよ';
-                  if (amount > widget.player.hp) return '残高（¥${widget.player.hp}）を超える喜捨はできぬ';
+                  if (amount > widget.player.hp) return '残高（¥${widget.player.hp}）を超える支出はできぬ';
                   return null;
                 },
               ),
@@ -217,7 +217,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                       '¥${widget.player.hp}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: widget.player.isGakiState
+                        color: widget.player.isPinchState
                             ? colorScheme.error
                             : colorScheme.onSurface,
                       ),
@@ -234,7 +234,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('喜捨を実行する'),
+                  child: const Text('支出を実行する'),
                 ),
               ),
             ],

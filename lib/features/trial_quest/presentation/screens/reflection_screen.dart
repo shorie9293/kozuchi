@@ -3,8 +3,8 @@ import 'package:kozuchi/domain/models/trial_quest.dart';
 
 /// 振り返り入力画面
 ///
-/// 喜捨を実行した後の振り返り文を入力する。
-/// 内省の深さがSATORI増加量に影響する。
+/// 支出を実行した後の振り返り文を入力する。
+/// 内省の深さがEXP増加量に影響する。
 class ReflectionScreen extends StatefulWidget {
   final TrialQuest quest;
 
@@ -58,14 +58,14 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
                 ),
                 child: Row(
                   children: [
-                    Text(widget.quest.guardianDeity.emoji, style: const TextStyle(fontSize: 24)),
+                    Text(widget.quest.advisor.emoji, style: const TextStyle(fontSize: 24)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${widget.quest.guardianDeity.label}の問い',
+                            '${widget.quest.advisor.label}の問い',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: colorScheme.onSecondaryContainer,
@@ -73,7 +73,7 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'その喜捨は、お主の心に何を残したか？'
+                            'その支出は、お主の心に何を残したか？'
                             '金が巡った先に思いを馳せ、素直に綴れ。',
                             style: TextStyle(
                               fontSize: 12,
@@ -87,7 +87,7 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              // 喜捨情報
+              // 支出情報
               if (widget.quest.offeringAmount != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -99,7 +99,7 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '今回の喜捨',
+                        '今回の支出',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.outline,
@@ -145,7 +145,7 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '深い内省ほど多くのSATORIを得られる',
+                        '深い内省ほど多くのEXPを得られる',
                         style: TextStyle(fontSize: 12, color: colorScheme.tertiary),
                       ),
                     ),

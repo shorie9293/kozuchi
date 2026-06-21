@@ -5,7 +5,7 @@ import 'package:kozuchi/features/tutorial/data/kozuchi_tutorial_service.dart';
 void main() {
   group('KozuchiTutorialService', () {
     setUp(() {
-      // SharedPreferences のモック初期値を空に設定
+      // SharedPreferences のモック初期値をレベルMAXに設定
       SharedPreferences.setMockInitialValues({});
     });
 

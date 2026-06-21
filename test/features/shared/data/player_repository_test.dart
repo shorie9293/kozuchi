@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 import 'package:kozuchi/features/shared/data/player_repository.dart';
 
 void main() {
@@ -22,8 +22,8 @@ void main() {
     test('savePlayer → loadPlayer 往復で同一のPlayerModelが復元されること', () async {
       final player = PlayerModel(
         hp: 50000,
-        satori: 42,
-        guardianDeity: GuardianDeity.bishamonten,
+        exp: 42,
+        advisor: Advisor.investmentMentor,
       );
 
       await repository.savePlayer(player);
@@ -32,8 +32,8 @@ void main() {
 
       expect(loaded, isNotNull);
       expect(loaded!.hp, 50000);
-      expect(loaded.satori, 42);
-      expect(loaded.guardianDeity, GuardianDeity.bishamonten);
+      expect(loaded.exp, 42);
+      expect(loaded.advisor, Advisor.investmentMentor);
     });
 
     // ──────────────────────────────────────────────
@@ -64,7 +64,7 @@ void main() {
         title: 'コンビニ誘惑を断て',
         description: '3日間コンビニで無駄遣いしない',
         suggestedOffering: 500,
-        guardianDeity: GuardianDeity.daikokuten,
+        advisor: Advisor.lifePlanner,
         offeringAmount: 300,
         offeringPurpose: '食費節約',
         offeringNote: 'おにぎりだけ買った',
@@ -81,7 +81,7 @@ void main() {
       expect(loaded!.title, 'コンビニ誘惑を断て');
       expect(loaded.description, '3日間コンビニで無駄遣いしない');
       expect(loaded.suggestedOffering, 500);
-      expect(loaded.guardianDeity, GuardianDeity.daikokuten);
+      expect(loaded.advisor, Advisor.lifePlanner);
       expect(loaded.offeringAmount, 300);
       expect(loaded.offeringPurpose, '食費節約');
       expect(loaded.offeringNote, 'おにぎりだけ買った');
@@ -102,12 +102,12 @@ void main() {
     // 6. clearAll: 全削除後に両方null
     // ──────────────────────────────────────────────
     test('clearAll: savePlayer + saveQuest → clearAll → 両方null', () async {
-      final player = PlayerModel(hp: 99999, satori: 10);
+      final player = PlayerModel(hp: 99999, exp: 10);
       final quest = TrialQuest(
         title: '試練',
         description: 'テスト',
         suggestedOffering: 100,
-        guardianDeity: GuardianDeity.kisshoten,
+        advisor: Advisor.wellnessAdvisor,
       );
 
       await repository.savePlayer(player);
@@ -130,15 +130,15 @@ void main() {
     test('savePlayer → saveQuest → loadPlayerでquestデータが混入しないこと', () async {
       final player = PlayerModel(
         hp: 77777,
-        satori: 7,
-        guardianDeity: GuardianDeity.benzaiten,
+        exp: 7,
+        advisor: Advisor.careerCoach,
       );
 
       final quest = TrialQuest(
         title: '混入テスト用クエスト',
         description: 'このデータがPlayerに混ざってはいけない',
         suggestedOffering: 999,
-        guardianDeity: GuardianDeity.bishamonten,
+        advisor: Advisor.investmentMentor,
       );
 
       await repository.savePlayer(player);
@@ -149,8 +149,8 @@ void main() {
       // PlayerModelとして正しく復元され、questのデータは混入していない
       expect(loaded, isNotNull);
       expect(loaded!.hp, 77777);
-      expect(loaded.satori, 7);
-      expect(loaded.guardianDeity, GuardianDeity.benzaiten);
+      expect(loaded.exp, 7);
+      expect(loaded.advisor, Advisor.careerCoach);
 
       // quest側も正しく保存されていることを確認
       final loadedQuest = await repository.loadQuest();

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 
 void main() {
   group('TrialQuest', () {
@@ -9,20 +9,20 @@ void main() {
         title: '誰かと食事を共にせよ',
         description: '友人や家族と食事をし、会計を済ませよ',
         suggestedOffering: 3000,
-        guardianDeity: GuardianDeity.daikokuten,
+        advisor: Advisor.lifePlanner,
       );
       expect(quest.title, '誰かと食事を共にせよ');
       expect(quest.suggestedOffering, 3000);
-      expect(quest.guardianDeity, GuardianDeity.daikokuten);
+      expect(quest.advisor, Advisor.lifePlanner);
       expect(quest.isCompleted, isFalse);
     });
 
-    test('喜捨を記録できる', () {
+    test('支出を記録できる', () {
       final quest = TrialQuest(
         title: '本を買って智慧を得よ',
         description: '本を一冊購入せよ',
         suggestedOffering: 2000,
-        guardianDeity: GuardianDeity.benzaiten,
+        advisor: Advisor.careerCoach,
       );
       final updated = quest.recordOffering(
         amount: 2500,
@@ -40,7 +40,7 @@ void main() {
         title: '誰かに贈り物をせよ',
         description: '大切な人に贈り物をせよ',
         suggestedOffering: 5000,
-        guardianDeity: GuardianDeity.kisshoten,
+        advisor: Advisor.wellnessAdvisor,
       );
       final updated = quest.recordReflection(
         '相手がとても喜んでくれて、自分も幸せな気持ちになった',
@@ -49,12 +49,12 @@ void main() {
       expect(updated.isReflectionRecorded, isTrue);
     });
 
-    test('喜捨と振り返りの両方が完了するとクエスト完了', () {
+    test('支出と振り返りの両方が完了するとクエスト完了', () {
       final quest = TrialQuest(
         title: '己への投資を使え',
         description: '自分への投資に金を使え',
         suggestedOffering: 10000,
-        guardianDeity: GuardianDeity.bishamonten,
+        advisor: Advisor.investmentMentor,
       );
       var updated = quest.recordOffering(amount: 12000, purpose: 'ジム入会', note: '健康への投資');
       updated = updated.recordReflection('自己投資の大切さを実感した');
@@ -69,7 +69,7 @@ void main() {
           'title': '誰かと食事を共にせよ',
           'description': '友人や家族と食事をし、会計を済ませよ',
           'suggestedOffering': 3000,
-          'guardianDeity': 'daikokuten',
+          'advisor': 'lifePlanner',
           'offeringAmount': 2500,
           'offeringPurpose': '技術書を購入',
           'offeringNote': 'Flutterの本',
@@ -81,7 +81,7 @@ void main() {
         expect(quest.title, '誰かと食事を共にせよ');
         expect(quest.description, '友人や家族と食事をし、会計を済ませよ');
         expect(quest.suggestedOffering, 3000);
-        expect(quest.guardianDeity, GuardianDeity.daikokuten);
+        expect(quest.advisor, Advisor.lifePlanner);
         expect(quest.offeringAmount, 2500);
         expect(quest.offeringPurpose, '技術書を購入');
         expect(quest.offeringNote, 'Flutterの本');
@@ -96,7 +96,7 @@ void main() {
         expect(quest.title, '');
         expect(quest.description, '');
         expect(quest.suggestedOffering, 0);
-        expect(quest.guardianDeity, GuardianDeity.daikokuten);
+        expect(quest.advisor, Advisor.lifePlanner);
         expect(quest.offeringAmount, isNull);
         expect(quest.offeringPurpose, isNull);
         expect(quest.offeringNote, isNull);
@@ -105,15 +105,15 @@ void main() {
         expect(quest.receiptImagePath, isNull);
       });
 
-      test('存在しない守護神名は大黒天にフォールバックする', () {
+      test('存在しないアドバイザー名はライフプランナーにフォールバックする', () {
         final json = {
           'title': '試練',
           'description': '説明',
           'suggestedOffering': 1000,
-          'guardianDeity': 'nonexistent_deity',
+          'advisor': 'nonexistent_deity',
         };
         final quest = TrialQuest.fromJson(json);
-        expect(quest.guardianDeity, GuardianDeity.daikokuten);
+        expect(quest.advisor, Advisor.lifePlanner);
       });
     });
 
@@ -123,7 +123,7 @@ void main() {
           title: '本を買って智慧を得よ',
           description: '本を一冊購入せよ',
           suggestedOffering: 2000,
-          guardianDeity: GuardianDeity.benzaiten,
+          advisor: Advisor.careerCoach,
           offeringAmount: 2500,
           offeringPurpose: '技術書',
           offeringNote: 'メモ',
@@ -135,7 +135,7 @@ void main() {
         expect(json['title'], '本を買って智慧を得よ');
         expect(json['description'], '本を一冊購入せよ');
         expect(json['suggestedOffering'], 2000);
-        expect(json['guardianDeity'], 'benzaiten');
+        expect(json['advisor'], 'careerCoach');
         expect(json['offeringAmount'], 2500);
         expect(json['offeringPurpose'], '技術書');
         expect(json['offeringNote'], 'メモ');
@@ -149,7 +149,7 @@ void main() {
           title: '試練',
           description: '説明',
           suggestedOffering: 1000,
-          guardianDeity: GuardianDeity.kisshoten,
+          advisor: Advisor.wellnessAdvisor,
         );
         final json = quest.toJson();
         // キーは存在するが値がnull
@@ -166,7 +166,7 @@ void main() {
           title: '誰かに贈り物をせよ',
           description: '大切な人に贈り物をせよ',
           suggestedOffering: 5000,
-          guardianDeity: GuardianDeity.kisshoten,
+          advisor: Advisor.wellnessAdvisor,
           offeringAmount: 4500,
           offeringPurpose: '花束',
           offeringNote: '母の日',
@@ -180,7 +180,7 @@ void main() {
         expect(reviewed.title, quest.title);
         expect(reviewed.description, quest.description);
         expect(reviewed.suggestedOffering, quest.suggestedOffering);
-        expect(reviewed.guardianDeity, quest.guardianDeity);
+        expect(reviewed.advisor, quest.advisor);
         expect(reviewed.offeringAmount, quest.offeringAmount);
         expect(reviewed.offeringPurpose, quest.offeringPurpose);
         expect(reviewed.offeringNote, quest.offeringNote);
@@ -192,12 +192,12 @@ void main() {
     });
 
     group('recordOffering', () {
-      test('receiptImagePathを指定して喜捨を記録できる', () {
+      test('receiptImagePathを指定して支出を記録できる', () {
         final quest = TrialQuest(
           title: '誰かと食事を共にせよ',
           description: '友人や家族と食事をし、会計を済ませよ',
           suggestedOffering: 3000,
-          guardianDeity: GuardianDeity.daikokuten,
+          advisor: Advisor.lifePlanner,
         );
         final updated = quest.recordOffering(
           amount: 2500,
@@ -217,7 +217,7 @@ void main() {
           title: '試練',
           description: '説明',
           suggestedOffering: 1000,
-          guardianDeity: GuardianDeity.daikokuten,
+          advisor: Advisor.lifePlanner,
           receiptImagePath: '/tmp/existing.png',
         );
         final updated = quest.recordOffering(
@@ -234,7 +234,7 @@ void main() {
         title: '試練',
         description: '説明',
         suggestedOffering: 1000,
-        guardianDeity: GuardianDeity.daikokuten,
+        advisor: Advisor.lifePlanner,
         offeringAmount: 0,
       );
       // 0はnullではないのでisOfferingRecordedはtrue

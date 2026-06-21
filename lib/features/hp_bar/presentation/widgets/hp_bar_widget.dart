@@ -4,7 +4,7 @@ import 'package:kozuchi/domain/models/player_model.dart';
 /// HPバー（残高）表示Widget
 ///
 /// 現在の残高（HP）と生活防衛ラインを表示する。
-/// 餓鬼状態（残高≦30,000円）の場合は警告を表示する。
+/// ピンチ状態（残高≦30,000円）の場合は警告を表示する。
 class HpBarWidget extends StatelessWidget {
   final PlayerModel player;
 
@@ -60,7 +60,7 @@ class HpBarWidget extends StatelessWidget {
                             gradient: LinearGradient(
                               colors: [
                                 colorScheme.primary,
-                                player.isGakiState ? colorScheme.error : colorScheme.tertiary,
+                                player.isPinchState ? colorScheme.error : colorScheme.tertiary,
                               ],
                             ),
                           ),
@@ -100,9 +100,9 @@ class HpBarWidget extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              if (player.isGakiState)
+              if (player.isPinchState)
                 Text(
-                  '⚠️ 餓鬼状態 — 執着の餓えに気をつけよ',
+                  '⚠️ ピンチ状態 — 執着の餓えに気をつけよ',
                   style: TextStyle(
                     fontSize: 12,
                     color: colorScheme.error,

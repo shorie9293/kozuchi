@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 import 'package:kozuchi/features/trial_quest/data/deepseek_review_service.dart';
 
 /// テスト用のFake HTTPクライアント
@@ -53,7 +53,7 @@ void main() {
             'choices': [
               {
                 'message': {
-                  'content': '汝の内省は深い。よく励んだぞ。SATORI: 1.5',
+                  'content': '汝の内省は深い。よく励んだぞ。EXP: 1.5',
                 },
               },
             ],
@@ -63,7 +63,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -80,7 +80,7 @@ void main() {
             'choices': [
               {
                 'message': {
-                  'content': '汝の内省は深い。よく励んだぞ。SATORI: 1.5',
+                  'content': '汝の内省は深い。よく励んだぞ。EXP: 1.5',
                 },
               },
             ],
@@ -90,7 +90,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -107,7 +107,7 @@ void main() {
             'choices': [
               {
                 'message': {
-                  'content': '汝の内省は深い。よく励んだぞ。SATORI: 1.5',
+                  'content': '汝の内省は深い。よく励んだぞ。EXP: 1.5',
                 },
               },
             ],
@@ -117,7 +117,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -132,13 +132,13 @@ void main() {
         expect((body['messages'] as List).length, greaterThanOrEqualTo(2));
       });
 
-      test('ユーザーメッセージに振り返り文と喜捨情報が含まれる', () async {
+      test('ユーザーメッセージに振り返り文と支出情報が含まれる', () async {
         responses[apiUrl] = http.Response(
           jsonEncode({
             'choices': [
               {
                 'message': {
-                  'content': '汝の内省は深い。よく励んだぞ。SATORI: 1.5',
+                  'content': '汝の内省は深い。よく励んだぞ。EXP: 1.5',
                 },
               },
             ],
@@ -148,7 +148,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -169,13 +169,13 @@ void main() {
     });
 
     group('応答パース', () {
-      test('SATORI倍率をレスポンスからパースする', () async {
+      test('EXP倍率をレスポンスからパースする', () async {
         responses[apiUrl] = http.Response(
           jsonEncode({
             'choices': [
               {
                 'message': {
-                  'content': '大黒天「よくぞ内省した。その気づきこそが福の種ぞ。SATORI: 1.5」',
+                  'content': 'ライフプランナー「よくぞ内省した。その気づきこそが福の種ぞ。EXP: 1.5」',
                 },
               },
             ],
@@ -185,22 +185,22 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
         );
 
-        expect(result.satoriMultiplier, 1.5);
+        expect(result.expMultiplier, 1.5);
       });
 
-      test('SATORI倍率が1.0の時も正しくパースする', () async {
+      test('EXP倍率が1.0の時も正しくパースする', () async {
         responses[apiUrl] = http.Response(
           jsonEncode({
             'choices': [
               {
                 'message': {
-                  'content': 'ふむ、悪くない。SATORI: 1.0',
+                  'content': 'ふむ、悪くない。EXP: 1.0',
                 },
               },
             ],
@@ -210,22 +210,22 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
         );
 
-        expect(result.satoriMultiplier, 1.0);
+        expect(result.expMultiplier, 1.0);
       });
 
-      test('SATORI倍率が2.0の時も正しくパースする', () async {
+      test('EXP倍率が2.0の時も正しくパースする', () async {
         responses[apiUrl] = http.Response(
           jsonEncode({
             'choices': [
               {
                 'message': {
-                  'content': '見事な内省だ！SATORI: 2.0',
+                  'content': '見事な内省だ！EXP: 2.0',
                 },
               },
             ],
@@ -235,24 +235,24 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '深く内省しました',
           offeringAmount: 5000,
           offeringPurpose: '自己投資',
         );
 
-        expect(result.satoriMultiplier, 2.0);
+        expect(result.expMultiplier, 2.0);
       });
 
       test('講評文が正しく抽出される', () async {
-        final reviewText = '大黒天「うむ、その内省の中に確かな悟りの灯を見た。'
-            '喜捨の痛みは執着の手放しに他ならぬ。よく励んだぞ。」';
+        final reviewText = 'ライフプランナー「うむ、その内省の中に確かな悟りの灯を見た。'
+            '支出の痛みは執着の手放しに他ならぬ。よく励んだぞ。」';
         responses[apiUrl] = http.Response(
           jsonEncode({
             'choices': [
               {
                 'message': {
-                  'content': '$reviewText SATORI: 1.2',
+                  'content': '$reviewText EXP: 1.2',
                 },
               },
             ],
@@ -262,7 +262,7 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -276,15 +276,15 @@ void main() {
       test('ネットワークエラー時にフォールバック講評を返す', () async {
         // レスポンスを設定しない → 404エラー
         final result = await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
         );
 
         expect(result.reviewText, isNotEmpty);
-        expect(result.reviewText, contains('大黒天'));
-        expect(result.satoriMultiplier, 1.0);
+        expect(result.reviewText, contains('ライフプランナー'));
+        expect(result.expMultiplier, 1.0);
       });
 
       test('JSONパースエラー時にフォールバック講評を返す', () async {
@@ -295,15 +295,15 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: GuardianDeity.daikokuten,
+          deity: Advisor.lifePlanner,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
         );
 
         expect(result.reviewText, isNotEmpty);
-        expect(result.reviewText, contains('大黒天'));
-        expect(result.satoriMultiplier, 1.0);
+        expect(result.reviewText, contains('ライフプランナー'));
+        expect(result.expMultiplier, 1.0);
       });
     });
   });

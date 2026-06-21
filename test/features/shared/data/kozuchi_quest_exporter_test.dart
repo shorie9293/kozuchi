@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 import 'package:kozuchi/features/shared/data/kozuchi_quest_exporter.dart';
 
 void main() {
@@ -27,7 +27,7 @@ void main() {
         title: 'コンビニ誘惑を断て',
         description: '3日間コンビニで無駄遣いせず、必要なものだけ買う',
         suggestedOffering: 500,
-        guardianDeity: GuardianDeity.bishamonten,
+        advisor: Advisor.investmentMentor,
       );
 
       final exporter = KozuchiQuestExporter(filePath: filePath);
@@ -41,16 +41,16 @@ void main() {
       expect(json['title'], 'コンビニ誘惑を断て');
       expect(json['description'], '3日間コンビニで無駄遣いせず、必要なものだけ買う');
       expect(json['suggestedOffering'], 500);
-      expect(json['guardianDeity'], 'bishamonten');
+      expect(json['advisor'], 'investmentMentor');
       expect(json['isCompleted'], false);
     });
 
-    test('guardianDeityが正しい文字列キーで出力されること（全4種）', () async {
+    test('advisorが正しい文字列キーで出力されること（全4種）', () async {
       final deities = {
-        GuardianDeity.daikokuten: 'daikokuten',
-        GuardianDeity.benzaiten: 'benzaiten',
-        GuardianDeity.bishamonten: 'bishamonten',
-        GuardianDeity.kisshoten: 'kisshoten',
+        Advisor.lifePlanner: 'lifePlanner',
+        Advisor.careerCoach: 'careerCoach',
+        Advisor.investmentMentor: 'investmentMentor',
+        Advisor.wellnessAdvisor: 'wellnessAdvisor',
       };
 
       for (final entry in deities.entries) {
@@ -58,7 +58,7 @@ void main() {
           title: 'テスト',
           description: 'テスト',
           suggestedOffering: 100,
-          guardianDeity: entry.key,
+          advisor: entry.key,
         );
 
         final filePath2 = '${tempDir.path}/${entry.value}.json';
@@ -67,7 +67,7 @@ void main() {
 
         final content = await File(filePath2).readAsString();
         final json = jsonDecode(content) as Map<String, dynamic>;
-        expect(json['guardianDeity'], entry.value);
+        expect(json['advisor'], entry.value);
       }
     });
 
@@ -77,7 +77,7 @@ void main() {
         title: '深いパス',
         description: 'テスト',
         suggestedOffering: 100,
-        guardianDeity: GuardianDeity.daikokuten,
+        advisor: Advisor.lifePlanner,
       );
 
       final exporter = KozuchiQuestExporter(filePath: deepPath);
@@ -95,7 +95,7 @@ void main() {
         title: 'テスト',
         description: '未完了の試練',
         suggestedOffering: 100,
-        guardianDeity: GuardianDeity.daikokuten,
+        advisor: Advisor.lifePlanner,
       );
 
       final exporter = KozuchiQuestExporter(filePath: filePath);
@@ -111,7 +111,7 @@ void main() {
         title: 'テスト',
         description: '完了した試練',
         suggestedOffering: 100,
-        guardianDeity: GuardianDeity.daikokuten,
+        advisor: Advisor.lifePlanner,
       ).recordOffering(amount: 500, purpose: '寄付')
        .recordReflection('よく頑張った');
 

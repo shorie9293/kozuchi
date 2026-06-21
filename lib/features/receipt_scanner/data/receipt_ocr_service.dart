@@ -37,7 +37,7 @@ abstract class ReceiptOcrService {
 class MockReceiptOcrService implements ReceiptOcrService {
   final ReceiptAmountExtractor _extractor = ReceiptAmountExtractor();
 
-  /// モック用の固定テキスト（nullの場合は空文字列として扱う）
+  /// モック用の固定テキスト（nullの場合はレベルMAX文字列として扱う）
   final String? mockText;
 
   MockReceiptOcrService({this.mockText});

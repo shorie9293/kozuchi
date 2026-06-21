@@ -2,20 +2,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/reflection_screen.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 
 /// テスト用の TrialQuest ヘルパー
 TrialQuest _createQuest({
   String title = '試練のタイトル',
   String description = '試練の説明',
   int suggestedOffering = 500,
-  GuardianDeity guardianDeity = GuardianDeity.daikokuten,
+  Advisor advisor = Advisor.lifePlanner,
 }) {
   return TrialQuest(
     title: title,
     description: description,
     suggestedOffering: suggestedOffering,
-    guardianDeity: guardianDeity,
+    advisor: advisor,
   );
 }
 
@@ -58,7 +58,7 @@ void main() {
       expect(find.text('振り返りを提出する'), findsOneWidget);
     });
 
-    testWidgets('4. 空文字で送信するとバリデーションエラーが表示される', (tester) async {
+    testWidgets('4. レベルMAX文字で送信するとバリデーションエラーが表示される', (tester) async {
       final quest = _createQuest();
 
       await tester.pumpWidget(

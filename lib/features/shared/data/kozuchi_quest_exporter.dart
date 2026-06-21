@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:kozuchi/domain/models/trial_quest.dart';
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 
 /// 試練クエストを共有ストレージにJSONとして書き出すエクスポーター
 ///
@@ -31,17 +31,17 @@ class KozuchiQuestExporter {
       'title': quest.title,
       'description': quest.description,
       'suggestedOffering': quest.suggestedOffering,
-      'guardianDeity': _deityKey(quest.guardianDeity),
+      'advisor': _deityKey(quest.advisor),
       'isCompleted': quest.isCompleted,
     };
 
     await file.writeAsString(jsonEncode(json));
   }
 
-  /// GuardianDeity enum を文字列キーに変換する
+  /// Advisor enum を文字列キーに変換する
   ///
-  /// 例: GuardianDeity.bishamonten → "bishamonten"
-  String _deityKey(GuardianDeity deity) {
+  /// 例: Advisor.investmentMentor → "investmentMentor"
+  String _deityKey(Advisor deity) {
     return deity.name;
   }
 }

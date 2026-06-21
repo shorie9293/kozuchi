@@ -7,7 +7,7 @@ import 'package:kozuchi/features/trial_quest/domain/ai_review_service.dart';
 
 /// 試練クエスト画面
 ///
-/// 試練受注 → 喜捨入力 → 振り返り → 守護神講評 の基本ループを実装する。
+/// 試練受注 → 支出入力 → 振り返り → アドバイザー講評 の基本ループを実装する。
 ///
 /// [aiReviewService] が null の場合はモック講評を使用する。
 class TrialQuestScreen extends StatefulWidget {
@@ -80,30 +80,30 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
         final aiReviewService = widget.aiReviewService;
         if (aiReviewService != null) {
           final aiResult = await aiReviewService.generateReview(
-            deity: updatedQuest.guardianDeity,
+            deity: updatedQuest.advisor,
             reflection: result,
             offeringAmount: updatedQuest.offeringAmount ?? 0,
             offeringPurpose: updatedQuest.offeringPurpose ?? '',
           );
           updatedQuest = updatedQuest.withReview(aiResult.reviewText);
-          final satoriGain = _calculateSatoriGain(
+          final expGain = _calculateExpGain(
             updatedQuest,
-            aiResult.satoriMultiplier,
+            aiResult.expMultiplier,
           );
-          _updateQuest(updatedQuest, _player.addSatori(satoriGain));
+          _updateQuest(updatedQuest, _player.addExp(expGain));
         } else {
           updatedQuest = updatedQuest.withReview(
             _generateMockReview(updatedQuest),
           );
-          final satoriGain = _calculateSatoriGain(updatedQuest);
-          _updateQuest(updatedQuest, _player.addSatori(satoriGain));
+          final expGain = _calculateExpGain(updatedQuest);
+          _updateQuest(updatedQuest, _player.addExp(expGain));
         }
       } catch (_) {
         updatedQuest = updatedQuest.withReview(
           _generateMockReview(updatedQuest),
         );
-        final satoriGain = _calculateSatoriGain(updatedQuest);
-        _updateQuest(updatedQuest, _player.addSatori(satoriGain));
+        final expGain = _calculateExpGain(updatedQuest);
+        _updateQuest(updatedQuest, _player.addExp(expGain));
       } finally {
         _hideLoadingIndicator();
       }
@@ -118,22 +118,22 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  int _calculateSatoriGain(TrialQuest quest, [double multiplier = 1.0]) {
+  int _calculateExpGain(TrialQuest quest, [double multiplier = 1.0]) {
     if (quest.offeringAmount == null) return 0;
     final base = 5 + (quest.offeringAmount! / 1000).floor();
     return (base * multiplier).round();
   }
 
   String _generateMockReview(TrialQuest quest) {
-    final deity = quest.guardianDeity;
+    final deity = quest.advisor;
     final reflection = quest.reflection ?? '';
     final hasInsight = reflection.length > 20;
 
     if (hasInsight) {
       return '${deity.label}「うむ、その内省の中に確かな悟りの灯を見た。'
-          '喜捨の痛みは執着の手放しに他ならぬ。よく励んだ。」';
+          '支出の痛みは執着の手放しに他ならぬ。よく励んだ。」';
     }
-    return '${deity.label}「喜捨の行は善きかな。されど振り返りが浅い。'
+    return '${deity.label}「支出の行は善きかな。されど振り返りが浅い。'
         'もう一度、その金が巡った先に想いを馳せよ。」';
   }
 
@@ -155,7 +155,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 守護神表示
+                  // アドバイザー表示
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -169,12 +169,12 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _quest.guardianDeity.emoji,
+                          _quest.advisor.emoji,
                           style: const TextStyle(fontSize: 20),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _quest.guardianDeity.label,
+                          _quest.advisor.label,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onPrimaryContainer,
@@ -193,7 +193,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // 喜捨目安
+                  // 支出目安
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -203,7 +203,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
                     child: Row(
                       children: [
                         const Text(
-                          '💰 喜捨目安: ',
+                          '💰 支出目安: ',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
@@ -225,7 +225,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _openOfferingInput,
                         icon: const Icon(Icons.paid),
-                        label: const Text('喜捨を記録する'),
+                        label: const Text('支出を記録する'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
@@ -279,7 +279,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '✅ 喜捨記録済み',
+            '✅ 支出記録済み',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: colorScheme.secondary,
@@ -314,12 +314,12 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
           Row(
             children: [
               Text(
-                '📜 守護神講評',
+                '📜 アドバイザー講評',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const Spacer(),
               Text(
-                '解脱への一歩',
+                'ゴール達成への一歩',
                 style: TextStyle(fontSize: 12, color: colorScheme.outline),
               ),
             ],

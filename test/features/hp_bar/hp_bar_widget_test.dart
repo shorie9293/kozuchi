@@ -30,7 +30,7 @@ void main() {
       expect(find.text('生活防衛ライン ¥30,000'), findsOneWidget);
     });
 
-    testWidgets('餓鬼状態（HP低下時）に警告が表示される', (tester) async {
+    testWidgets('ピンチ状態（HP低下時）に警告が表示される', (tester) async {
       final player = PlayerModel(hp: 25000);
       await tester.pumpWidget(
         MaterialApp(
@@ -39,10 +39,10 @@ void main() {
           ),
         ),
       );
-      expect(find.text('⚠️ 餓鬼状態 — 執着の餓えに気をつけよ'), findsOneWidget);
+      expect(find.text('⚠️ ピンチ状態 — 執着の餓えに気をつけよ'), findsOneWidget);
     });
 
-    testWidgets('通常時は餓鬼警告が表示されない', (tester) async {
+    testWidgets('通常時はピンチ警告が表示されない', (tester) async {
       final player = PlayerModel(hp: 50000);
       await tester.pumpWidget(
         MaterialApp(
@@ -51,7 +51,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('⚠️ 餓鬼状態 — 執着の餓えに気をつけよ'), findsNothing);
+      expect(find.text('⚠️ ピンチ状態 — 執着の餓えに気をつけよ'), findsNothing);
     });
 
     testWidgets('WidgetKeyが設定されている', (tester) async {
@@ -98,7 +98,7 @@ void main() {
       expect(widget.widthFactor, closeTo(0.3, 0.01));
     });
 
-    testWidgets('HP bar shows danger/gaki state when HP <= 25%', (tester) async {
+    testWidgets('HP bar shows danger/pinch state when HP <= 25%', (tester) async {
       final player = PlayerModel(hp: 15000);
       await tester.pumpWidget(
         MaterialApp(
@@ -107,13 +107,13 @@ void main() {
           ),
         ),
       );
-      // hpRatio = 15000 / 100000 = 0.15, and isGakiState = true
+      // hpRatio = 15000 / 100000 = 0.15, and isPinchState = true
       final fractionBoxes = find.byType(FractionallySizedBox);
       final hpBarBox = fractionBoxes.at(0);
       final FractionallySizedBox widget = tester.widget(hpBarBox);
       expect(widget.widthFactor, closeTo(0.15, 0.01));
-      // Gaki warning should show
-      expect(find.text('⚠️ 餓鬼状態 — 執着の餓えに気をつけよ'), findsOneWidget);
+      // Pinch warning should show
+      expect(find.text('⚠️ ピンチ状態 — 執着の餓えに気をつけよ'), findsOneWidget);
     });
 
     testWidgets('HP bar shows minimum width when HP is 0', (tester) async {

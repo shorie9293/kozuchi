@@ -9,9 +9,9 @@ void main() {
         KozuchiTutorialStep.values,
         containsAllInOrder([
           KozuchiTutorialStep.welcome,
-          KozuchiTutorialStep.guardian,
+          KozuchiTutorialStep.advisor,
           KozuchiTutorialStep.offering,
-          KozuchiTutorialStep.satori,
+          KozuchiTutorialStep.exp,
           KozuchiTutorialStep.complete,
         ]),
       );
@@ -25,23 +25,23 @@ void main() {
         );
       });
 
-      test('guardian should have correct label', () {
+      test('advisor should have correct label', () {
         expect(
-          KozuchiTutorialStep.guardian.label,
-          equals('守護神との契約'),
+          KozuchiTutorialStep.advisor.label,
+          equals('アドバイザーとの契約'),
         );
       });
 
       test('offering should have correct label', () {
         expect(
           KozuchiTutorialStep.offering.label,
-          equals('喜捨の理'),
+          equals('支出の理'),
         );
       });
 
-      test('satori should have correct label', () {
+      test('exp should have correct label', () {
         expect(
-          KozuchiTutorialStep.satori.label,
+          KozuchiTutorialStep.exp.label,
           equals('悟りへの道'),
         );
       });
@@ -63,30 +63,30 @@ void main() {
     });
 
     group('next progression chain', () {
-      test('welcome.next should be guardian', () {
+      test('welcome.next should be advisor', () {
         expect(
           KozuchiTutorialStep.welcome.next,
-          equals(KozuchiTutorialStep.guardian),
+          equals(KozuchiTutorialStep.advisor),
         );
       });
 
-      test('guardian.next should be offering', () {
+      test('advisor.next should be offering', () {
         expect(
-          KozuchiTutorialStep.guardian.next,
+          KozuchiTutorialStep.advisor.next,
           equals(KozuchiTutorialStep.offering),
         );
       });
 
-      test('offering.next should be satori', () {
+      test('offering.next should be exp', () {
         expect(
           KozuchiTutorialStep.offering.next,
-          equals(KozuchiTutorialStep.satori),
+          equals(KozuchiTutorialStep.exp),
         );
       });
 
-      test('satori.next should be complete', () {
+      test('exp.next should be complete', () {
         expect(
-          KozuchiTutorialStep.satori.next,
+          KozuchiTutorialStep.exp.next,
           equals(KozuchiTutorialStep.complete),
         );
       });

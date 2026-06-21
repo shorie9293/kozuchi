@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/offering_input_screen.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 
 void main() {
   group('OfferingInputScreen', () {
@@ -11,18 +11,18 @@ void main() {
       title: '誰かと食事を共にせよ',
       description: '友人や家族と食事をし、会計を済ませよ',
       suggestedOffering: 3000,
-      guardianDeity: GuardianDeity.daikokuten,
+      advisor: Advisor.lifePlanner,
     );
-    final player = PlayerModel(hp: 100000, satori: 30);
+    final player = PlayerModel(hp: 100000, exp: 30);
 
-    testWidgets('喜捨入力画面が表示される（AppBarあり）', (tester) async {
+    testWidgets('支出入力画面が表示される（AppBarあり）', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: OfferingInputScreen(quest: quest, player: player),
         ),
       );
 
-      expect(find.text('喜捨の記録'), findsOneWidget);
+      expect(find.text('支出の記録'), findsOneWidget);
       expect(find.byType(AppBar), findsOneWidget);
     });
 
@@ -50,7 +50,7 @@ void main() {
       expect(find.byType(TextFormField), findsNWidgets(3));
     });
 
-    testWidgets('金額が空で送信するとバリデーションエラーが表示される',
+    testWidgets('金額がレベルMAXで送信するとバリデーションエラーが表示される',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -66,7 +66,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 送信ボタンをタップ
-      await tester.tap(find.text('喜捨を実行する'));
+      await tester.tap(find.text('支出を実行する'));
       await tester.pumpAndSettle();
 
       expect(find.text('金額を入力せよ'), findsOneWidget);
@@ -99,7 +99,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // OfferingInputScreen が表示されていることを確認
-      expect(find.text('喜捨の記録'), findsOneWidget);
+      expect(find.text('支出の記録'), findsOneWidget);
 
       // 金額フィールドに値を入力
       final amountField = find.widgetWithText(TextFormField, '3000');
@@ -127,11 +127,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // 送信ボタンをタップ
-      await tester.tap(find.text('喜捨を実行する'));
+      await tester.tap(find.text('支出を実行する'));
       await tester.pumpAndSettle();
 
       // OfferingInputScreen がポップされた（画面が閉じた）ことを確認
-      expect(find.text('喜捨の記録'), findsNothing);
+      expect(find.text('支出の記録'), findsNothing);
 
       // OfferingResult が正しく返されたことを確認
       expect(capturedResult, isNotNull);

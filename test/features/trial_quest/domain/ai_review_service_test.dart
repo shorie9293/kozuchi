@@ -5,15 +5,15 @@ void main() {
   group('AiReviewResult', () {
     test('コンストラクタで全フィールドが正しく設定される', () {
       const reviewText = '素晴らしい行いです。その慈悲の心を忘れずに。';
-      const satoriMultiplier = 1.5;
+      const expMultiplier = 1.5;
 
       final result = AiReviewResult(
         reviewText: reviewText,
-        satoriMultiplier: satoriMultiplier,
+        expMultiplier: expMultiplier,
       );
 
       expect(result.reviewText, reviewText);
-      expect(result.satoriMultiplier, satoriMultiplier);
+      expect(result.expMultiplier, expMultiplier);
     });
   });
 }

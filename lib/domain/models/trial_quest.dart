@@ -1,9 +1,9 @@
-import 'package:kozuchi/domain/models/guardian_deity.dart';
+import 'package:kozuchi/domain/models/advisor.dart';
 
 /// 試練クエスト（週間試練）
 ///
-/// 守護神から発行される週間試練。
-/// 受注 → 喜捨実行 → 振り返り → 守護神講評 のサイクルで進行する。
+/// アドバイザーから発行される週間試練。
+/// 受注 → 支出実行 → 振り返り → アドバイザー講評 のサイクルで進行する。
 class TrialQuest {
   /// 試練のタイトル
   final String title;
@@ -11,25 +11,25 @@ class TrialQuest {
   /// 試練の説明
   final String description;
 
-  /// 喜捨金額の目安（円）
+  /// 支出金額の目安（円）
   final int suggestedOffering;
 
-  /// 発行した守護神
-  final GuardianDeity guardianDeity;
+  /// 発行したアドバイザー
+  final Advisor advisor;
 
-  /// 実際の喜捨金額（記録後）
+  /// 実際の支出金額（記録後）
   final int? offeringAmount;
 
-  /// 喜捨の用途
+  /// 支出の用途
   final String? offeringPurpose;
 
-  /// 喜捨の一言メモ
+  /// 支出の一言メモ
   final String? offeringNote;
 
   /// 振り返り文
   final String? reflection;
 
-  /// 守護神の講評（モック）
+  /// アドバイザーの講評（モック）
   final String? review;
 
   /// レシート画像のパス（拡張2: レシート撮影）
@@ -39,7 +39,7 @@ class TrialQuest {
     required this.title,
     required this.description,
     required this.suggestedOffering,
-    required this.guardianDeity,
+    required this.advisor,
     this.offeringAmount,
     this.offeringPurpose,
     this.offeringNote,
@@ -54,9 +54,9 @@ class TrialQuest {
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       suggestedOffering: json['suggestedOffering'] as int? ?? 0,
-      guardianDeity: GuardianDeity.values.firstWhere(
-        (d) => d.name == json['guardianDeity'],
-        orElse: () => GuardianDeity.daikokuten,
+      advisor: Advisor.values.firstWhere(
+        (d) => d.name == json['advisor'],
+        orElse: () => Advisor.lifePlanner,
       ),
       offeringAmount: json['offeringAmount'] as int?,
       offeringPurpose: json['offeringPurpose'] as String?,
@@ -73,7 +73,7 @@ class TrialQuest {
       'title': title,
       'description': description,
       'suggestedOffering': suggestedOffering,
-      'guardianDeity': guardianDeity.name,
+      'advisor': advisor.name,
       'offeringAmount': offeringAmount,
       'offeringPurpose': offeringPurpose,
       'offeringNote': offeringNote,
@@ -83,16 +83,16 @@ class TrialQuest {
     };
   }
 
-  /// 喜捨が記録済みか
+  /// 支出が記録済みか
   bool get isOfferingRecorded => offeringAmount != null;
 
   /// 振り返りが記録済みか
   bool get isReflectionRecorded => reflection != null && reflection!.isNotEmpty;
 
-  /// クエスト完了状態（喜捨と振り返りの両方が完了）
+  /// クエスト完了状態（支出と振り返りの両方が完了）
   bool get isCompleted => isOfferingRecorded && isReflectionRecorded;
 
-  /// 喜捨を記録する
+  /// 支出を記録する
   TrialQuest recordOffering({
     required int amount,
     required String purpose,
@@ -103,7 +103,7 @@ class TrialQuest {
       title: title,
       description: description,
       suggestedOffering: suggestedOffering,
-      guardianDeity: guardianDeity,
+      advisor: advisor,
       offeringAmount: amount,
       offeringPurpose: purpose,
       offeringNote: note,
@@ -119,7 +119,7 @@ class TrialQuest {
       title: title,
       description: description,
       suggestedOffering: suggestedOffering,
-      guardianDeity: guardianDeity,
+      advisor: advisor,
       offeringAmount: offeringAmount,
       offeringPurpose: offeringPurpose,
       offeringNote: offeringNote,
@@ -129,13 +129,13 @@ class TrialQuest {
     );
   }
 
-  /// 守護神の講評を設定する（モック）
+  /// アドバイザーの講評を設定する（モック）
   TrialQuest withReview(String mockReview) {
     return TrialQuest(
       title: title,
       description: description,
       suggestedOffering: suggestedOffering,
-      guardianDeity: guardianDeity,
+      advisor: advisor,
       offeringAmount: offeringAmount,
       offeringPurpose: offeringPurpose,
       offeringNote: offeringNote,
