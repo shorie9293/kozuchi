@@ -2,8 +2,8 @@
 
 **制定**: 令和八年皐月十二日
 **元神想書**: `shinsho/kozuchi-concept.md`
-**試験**: 213/213通過 ✅ / dart analyze clean ✅
-**改訂**: 令和八年水無月二十二日（2026年6月22日）— 版番突合更新（v1.0.1+17→v1.0.1+19、AGP upgrade + rebrand to mild household account book RPG）
+**試験**: 214/214通過 ✅ / dart analyze clean ✅
+**改訂**: 令和八年水無月二十二日（2026年6月22日）— 版番突合更新（v1.0.1+17→v1.0.2+20、AGP upgrade + rebrand to mild household account book RPG + theme readability fix）
 
 ---
 
