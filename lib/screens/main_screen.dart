@@ -322,8 +322,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     // データ読み込み中はローディング表示
     if (_isLoading) {
@@ -337,60 +336,8 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         title: const Text('打ち出の小槌'),
         centerTitle: true,
-        backgroundColor: _isUraMode
-            ? colorScheme.surface
-            : null,
-        foregroundColor: _isUraMode
-            ? colorScheme.onSurface
-            : null,
-        actions: [
-          if (widget.onToggleTheme != null)
-            IconButton(
-              key: const Key('themeToggleButton'),
-              icon: Icon(widget.themeIcon),
-              tooltip: switch (widget.themeMode) {
-                ThemeMode.light => 'ライトモード（タップでダークに切替）',
-                ThemeMode.dark => 'ダークモード（タップで自動に切替）',
-                ThemeMode.system => '自動（システム連動・タップでライトに切替）',
-              },
-              onPressed: widget.onToggleTheme,
-            ),
-          IconButton(
-            key: const Key('achievementListButton'),
-            icon: const Icon(Icons.emoji_events),
-            tooltip: '実績一覧',
-            onPressed: _openAchievementList,
-          ),
-          IconButton(
-            key: const Key('budgetSettingsButton'),
-            icon: const Icon(Icons.savings),
-            tooltip: '月間予算設定',
-            onPressed: _openBudgetSettings,
-          ),
-          IconButton(
-            key: const Key('incomeButton'),
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: '収入を記録',
-            onPressed: _openIncomeInput,
-          ),
-          if (_player.advisor != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    '${_player.advisor!.emoji} ${_player.advisor!.label}',
-                    style: TextStyle(fontSize: 12, color: colorScheme.onPrimaryContainer),
-                  ),
-                ),
-              ),
-            ),
-        ],
+        backgroundColor: _isUraMode ? colorScheme.surface : null,
+        foregroundColor: _isUraMode ? colorScheme.onSurface : null,
       ),
       body: WashiBackground(
         child: PinchZoneOverlay(
@@ -400,58 +347,380 @@ class _MainScreenState extends State<MainScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ピンチゾーン警告バナー
-                if (_player.isPinchState) PinchZoneWarningBanner(player: _player),
-                // HPバー（裏面モード時はフェードアウト）
-                AnimatedOpacity(
-                  opacity: (_isUraMode && _canUseUraMode) ? 0.3 : 1.0,
-                  duration: const Duration(milliseconds: 600),
-                  child: HpBarWidget(player: _player),
-                ),
-                // 裏面モード時のみ支出可視化ツリーを表示
-                if (_isUraMode && _canUseUraMode) ...[
+                // HP/EXPコンパクト表示
+                _buildHpExpCompactRow(colorScheme),
+                // ピンチゾーン警告バナー（HPバー直下）
+                if (_player.isPinchState) ...[
                   const SizedBox(height: 8),
-                  AnalysisChartWidget(
-                    key: const Key('analysisChart'),
-                    isVisible: true,
-                  ),
-                  const SizedBox(height: 16),
-                  const PeriodComparisonSummary(
-                    key: Key('periodComparisonSummary'),
-                  ),
+                  PinchZoneWarningBanner(player: _player),
                 ],
-                const SizedBox(height: 24),
-                // EXPゲージ
-                ExpGaugeWidget(player: _player),
-                const SizedBox(height: 24),
-                // 開眼段階バッジ
-                _buildLevelBadge(colorScheme),
-                const SizedBox(height: 24),
-                // マスター領域ラベル（裏面モード時）
-                if (_isUraMode && _canUseUraMode)
-                  Padding(
-                    key: const Key('kuuWorldLabel'),
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Center(
-                      child: Text(
-                        '🌌 マスター領域',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber.withValues(alpha: 0.8),
-                          letterSpacing: 4,
-                        ),
-                      ),
-                    ),
-                  ),
-                // 現在の試練セクション
-                _buildCurrentTrialSection(colorScheme),
+                const SizedBox(height: 16),
+                // 3カードグリッド（収入/試練/加護）
+                _buildCardGrid(colorScheme),
               ],
             ),
           ),
         ),
       ),
       floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  /// HPバーとEXPゲージを横並びのコンパクトなRowで表示
+  Widget _buildHpExpCompactRow(ColorScheme colorScheme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: AnimatedOpacity(
+            opacity: (_isUraMode && _canUseUraMode) ? 0.3 : 1.0,
+            duration: const Duration(milliseconds: 600),
+            child: HpBarWidget(player: _player),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ExpGaugeWidget(player: _player),
+        ),
+      ],
+    );
+  }
+
+  /// 3カードグリッド：収入カード / 試練カード / 加護カード
+  Widget _buildCardGrid(ColorScheme colorScheme) {
+    return Column(
+      children: [
+        // 1行目：収入カード + 試練カード
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _buildIncomeCard(colorScheme)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildTrialCard(colorScheme)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // 2行目：加護カード（全幅）
+        _buildProtectionCard(colorScheme),
+      ],
+    );
+  }
+
+  /// 💰 収入カード
+  Widget _buildIncomeCard(ColorScheme colorScheme) {
+    final buff = _player.goldLuckBuff;
+    final hasActiveBuff = buff?.isActive == true;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('💰 収入',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _openIncomeInput,
+                icon: const Icon(Icons.add_circle_outline, size: 18),
+                label: const Text('収入を記録'),
+              ),
+            ),
+            if (hasActiveBuff) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Text('✨', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '金運${buff!.multiplier.toInt()}倍! ${buff.remainingDisplay}',
+                        style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                InkWell(
+                  onTap: _openBudgetSettings,
+                  child: const Text('💵 予算', style: TextStyle(fontSize: 11)),
+                ),
+                InkWell(
+                  onTap: _openAchievementList,
+                  child: const Text('🏆 実績', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 📜 試練カード
+  Widget _buildTrialCard(ColorScheme colorScheme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Text('📜 試練',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Spacer(),
+                if (_currentQuest?.isCompleted == true)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '完了',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onPrimaryContainer),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_player.advisor == null) ...[
+              Text(
+                'まだアドバイザーと契約していない',
+                style: TextStyle(color: colorScheme.outline, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _openAdvisorSelection,
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: const Text('契約する'),
+                ),
+              ),
+            ] else ...[
+              if (_currentQuest != null) ...[
+                Text(
+                  _currentQuest!.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: colorScheme.onSurface,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _currentQuest!.description,
+                  style: TextStyle(
+                      color: colorScheme.onSurfaceVariant, fontSize: 11),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(_currentQuest!.advisor.emoji,
+                        style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _currentQuest!.advisor.label,
+                        style: TextStyle(
+                            color: colorScheme.outline, fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_currentQuest!.suggestedOffering > 0)
+                      Text(
+                        '¥${_currentQuest!.suggestedOffering}',
+                        style: TextStyle(
+                            color: colorScheme.outline, fontSize: 11),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _openTrialQuest,
+                    icon: const Icon(Icons.arrow_forward, size: 16),
+                    label: Text(
+                      _currentQuest!.isCompleted ? '講評を確認' : '試練に臨む',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 🛡️ 加護カード（アドバイザー情報 + 開眼段階 + 裏面モード切替）
+  Widget _buildProtectionCard(ColorScheme colorScheme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // タイトル行（テーマ切替 + 裏面モード切替）
+            Row(
+              children: [
+                const Text('🛡️ 加護',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Spacer(),
+                if (widget.onToggleTheme != null)
+                  IconButton(
+                    icon: Icon(widget.themeIcon, size: 20),
+                    tooltip: 'テーマ切替',
+                    onPressed: widget.onToggleTheme,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                if (_canUseUraMode)
+                  IconButton(
+                    icon: Icon(
+                      _isUraMode ? Icons.wb_sunny : Icons.nights_stay,
+                      size: 20,
+                    ),
+                    tooltip:
+                        _isUraMode ? '表モードに戻る' : '裏モードに切替',
+                    onPressed: _toggleUraMode,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // アドバイザー情報
+            if (_player.advisor != null)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${_player.advisor!.emoji} ${_player.advisor!.label}',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onPrimaryContainer),
+                ),
+              )
+            else
+              TextButton.icon(
+                onPressed: _openAdvisorSelection,
+                icon: const Icon(Icons.auto_awesome, size: 16),
+                label: const Text('アドバイザーと契約'),
+              ),
+            const SizedBox(height: 12),
+            // 開眼段階バッジ（コンパクト版）
+            _buildLevelBadgeCompact(colorScheme),
+            // 裏面モード時の分析チャート・期間比較（加護カード内に収納）
+            if (_isUraMode && _canUseUraMode) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Center(
+                  child: Text(
+                    '🌌 マスター領域',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber.withValues(alpha: 0.8),
+                      letterSpacing: 4,
+                    ),
+                  ),
+                ),
+              ),
+              const AnalysisChartWidget(
+                key: Key('analysisChart'),
+                isVisible: true,
+              ),
+              const SizedBox(height: 12),
+              const PeriodComparisonSummary(
+                key: Key('periodComparisonSummary'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 開眼段階バッジ（コンパクト版）
+  Widget _buildLevelBadgeCompact(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colorScheme.secondaryContainer,
+            colorScheme.tertiaryContainer,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Text('🧘', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '開眼段階: ${_player.levelStage.label}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: colorScheme.onSecondaryContainer,
+                  ),
+                ),
+                Text(
+                  _player.levelStage.description,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color:
+                        colorScheme.onSecondaryContainer.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -474,147 +743,6 @@ class _MainScreenState extends State<MainScreen> {
       onPressed: _toggleUraMode,
       backgroundColor: Colors.indigo.shade800,
       child: const Icon(Icons.nights_stay, color: Colors.white70),
-    );
-  }
-
-  Widget _buildLevelBadge(ColorScheme colorScheme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colorScheme.secondaryContainer,
-            colorScheme.tertiaryContainer,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Text('🧘', style: TextStyle(fontSize: 24)),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '開眼段階: ${_player.levelStage.label}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSecondaryContainer,
-                ),
-              ),
-              Text(
-                _player.levelStage.description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSecondaryContainer.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurrentTrialSection(ColorScheme colorScheme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('📜 現在の試練', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const Spacer(),
-              if (_currentQuest?.isCompleted == true)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '完了',
-                    style: TextStyle(fontSize: 12, color: colorScheme.onPrimaryContainer),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (_player.advisor == null) ...[
-            // アドバイザー未契約 → 契約を促す
-            Text(
-              'まだアドバイザーと契約していない',
-              style: TextStyle(color: colorScheme.outline),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _openAdvisorSelection,
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text('アドバイザーと契約する'),
-              ),
-            ),
-          ] else ...[
-            // 試練を表示
-            if (_currentQuest != null) ...[
-              Text(
-                _currentQuest!.title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _currentQuest!.description,
-                style: TextStyle(color: colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Text(
-                    _currentQuest!.advisor.emoji,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    _currentQuest!.advisor.label,
-                    style: TextStyle(color: colorScheme.outline, fontSize: 12),
-                  ),
-                  const Spacer(),
-                  if (_currentQuest!.suggestedOffering > 0)
-                    Text(
-                      '目安: ¥${_currentQuest!.suggestedOffering}',
-                      style: TextStyle(color: colorScheme.outline, fontSize: 12),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _openTrialQuest,
-                  icon: const Icon(Icons.arrow_forward),
-                  label: Text(
-                    _currentQuest!.isCompleted ? '講評を確認する' : '試練に臨む',
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
     );
   }
 }
