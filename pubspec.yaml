@@ -39,6 +39,8 @@ dependencies:
   image_picker: ^1.1.2
   takamagahara_ui:
     path: ../../packages/takamagahara_ui
+  supabase_flutter: ^2.8.3
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +55,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  test: ^1.25.8
 
 flutter_launcher_icons:
   android: true
@@ -72,6 +75,7 @@ flutter:
 
   assets:
     - assets/icon.png
+    - assets/keyword_category_map.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -9,12 +9,23 @@ import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart'
 import 'package:kozuchi/features/exp_gauge/presentation/widgets/exp_gauge_widget.dart';
 import 'package:kozuchi/features/advisor_selection/presentation/advisor_selection_screen.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/trial_quest_screen.dart';
+import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
+import 'package:kozuchi/features/effects/presentation/effect_manager.dart';
 import 'package:kozuchi/features/pinch_zone/presentation/widgets/pinch_zone_overlay.dart';
 import 'package:kozuchi/features/pinch_zone/presentation/widgets/pinch_zone_warning_banner.dart';
 import 'package:kozuchi/features/analysis_chart/presentation/widgets/analysis_chart_widget.dart';
 import 'package:kozuchi/features/shared/data/kozuchi_quest_exporter.dart';
 import 'package:kozuchi/features/shared/data/player_repository.dart';
 import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service.dart';
+import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
+import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
+import 'package:kozuchi/domain/models/gold_luck_buff.dart';
+import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
+import 'package:kozuchi/features/shared/data/budget_repository.dart';
+import 'package:kozuchi/features/period_comparison/presentation/widgets/period_comparison_summary.dart';
+import 'package:kozuchi/domain/services/expense_repository.dart';
+import 'package:kozuchi/domain/services/expense_repository_impl.dart';
+import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
 
 /// メイン画面
 ///
@@ -31,11 +42,23 @@ class MainScreen extends StatefulWidget {
   /// データ永続化リポジトリ（テスト時にモック注入可能）
   final PlayerRepository repository;
 
+  /// 現在のテーマモード
+  final ThemeMode themeMode;
+
+  /// テーマモードに応じたアイコン
+  final IconData themeIcon;
+
+  /// テーマ切替コールバック
+  final VoidCallback? onToggleTheme;
+
   const MainScreen({
     super.key,
     this.initialPlayer,
     this.exporter = const KozuchiQuestExporter(),
     this.repository = const PlayerRepository(),
+    this.themeMode = ThemeMode.system,
+    this.themeIcon = Icons.brightness_auto,
+    this.onToggleTheme,
   });
 
   @override
@@ -62,7 +85,11 @@ class _MainScreenState extends State<MainScreen> {
       // テスト用の初期プレイヤーが指定されている場合は永続化データを無視
       setState(() => _isLoading = false);
       _exportCurrentQuest();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _checkCareerCoachBookBonus());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkCareerCoachBookBonus();
+        _checkRpgTaskBonus();
+        _checkTsundokuBookCompletion();
+      });
       return;
     }
 
@@ -82,7 +109,11 @@ class _MainScreenState extends State<MainScreen> {
         _isLoading = false;
       });
       _exportCurrentQuest();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _checkCareerCoachBookBonus());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkCareerCoachBookBonus();
+        _checkRpgTaskBonus();
+        _checkTsundokuBookCompletion();
+      });
     }
   }
 
@@ -113,6 +144,63 @@ class _MainScreenState extends State<MainScreen> {
           SnackBar(
             content: Text(
               '📚 キャリアコーチボーナス！『${result.bookTitle}』の蔵書追加でEXP +${result.bonusExp}',
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  /// rpg-taskの敵討伐ボーナスをチェックして適用する
+  ///
+  /// rpg-task が共有ストレージに書き出した enemy_defeated イベントを読み取り、
+  /// クエストランクに応じたボーナスEXPを付与する。
+  /// 1日最大3回。アドバイザー未契約でも付与される。
+  void _checkRpgTaskBonus() {
+    const service = RpgTaskBonusService();
+    service.checkAndConsume().then((result) {
+      if (result != null && mounted) {
+        final rankEmoji = switch (result.questRank) {
+          'S' => '👹',
+          'A' => '👺',
+          _ => '👾',
+        };
+        setState(() {
+          _player = _player.addExp(result.bonusExp);
+        });
+        _persistState();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$rankEmoji rpg-task討伐ボーナス！『${result.taskTitle}』討伐でEXP +${result.bonusExp}',
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  /// tsundoku読了による金運上昇バフをチェックして適用する
+  ///
+  /// tsundoku-quest が共有ストレージに書き出した book_completed イベントを読み取り、
+  /// 金運上昇バフ（収入2倍、60分間）を発動する。
+  /// アドバイザー未契約でも付与される。
+  void _checkTsundokuBookCompletion() {
+    const service = TsundokuGoldLuckBuffService();
+    service.checkAndConsume().then((buff) {
+      if (buff != null && mounted) {
+        setState(() {
+          _player = _player.applyGoldLuckBuff(buff);
+        });
+        _persistState();
+        final bookInfo =
+            buff.bookTitle != null ? '『${buff.bookTitle}』' : '本';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 5),
+            content: Text(
+              '📖✨ 金運上昇！${bookInfo}を読了した祝福で、'
+              '${buff.remainingDisplay}の間収入が${buff.multiplier.toInt()}倍に！',
             ),
           ),
         );
@@ -190,6 +278,49 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  void _openBudgetSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BudgetSettingsScreen(
+          repository: const BudgetRepository(),
+          onSaved: () {
+            // 予算設定後に必要なUI再描画があればここで
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openAchievementList() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AchievementListScreen(),
+      ),
+    );
+  }
+
+  Future<void> _openIncomeInput() async {
+    final result = await Navigator.of(context).push<IncomeResult>(
+      MaterialPageRoute(
+        builder: (_) => IncomeInputScreen(player: _player),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _player = result.updatedPlayer;
+      });
+      _persistState();
+      // 入金エフェクト：画面中央に桜吹雪を発動
+      EffectManager.of(context).playEffect(
+        'cherry_snow',
+        Offset(
+          MediaQuery.of(context).size.width / 2,
+          MediaQuery.of(context).size.height / 2,
+        ),
+      );
+    }
+  }
+
   bool get _canUseUraMode => _player.levelStage == LevelStage.kuu;
 
   @override
@@ -216,6 +347,35 @@ class _MainScreenState extends State<MainScreen> {
             ? Colors.white70
             : null,
         actions: [
+          if (widget.onToggleTheme != null)
+            IconButton(
+              key: const Key('themeToggleButton'),
+              icon: Icon(widget.themeIcon),
+              tooltip: switch (widget.themeMode) {
+                ThemeMode.light => 'ライトモード（タップでダークに切替）',
+                ThemeMode.dark => 'ダークモード（タップで自動に切替）',
+                ThemeMode.system => '自動（システム連動・タップでライトに切替）',
+              },
+              onPressed: widget.onToggleTheme,
+            ),
+          IconButton(
+            key: const Key('achievementListButton'),
+            icon: const Icon(Icons.emoji_events),
+            tooltip: '実績一覧',
+            onPressed: _openAchievementList,
+          ),
+          IconButton(
+            key: const Key('budgetSettingsButton'),
+            icon: const Icon(Icons.savings),
+            tooltip: '月間予算設定',
+            onPressed: _openBudgetSettings,
+          ),
+          IconButton(
+            key: const Key('incomeButton'),
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: '収入を記録',
+            onPressed: _openIncomeInput,
+          ),
           if (_player.advisor != null)
             Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -257,6 +417,10 @@ class _MainScreenState extends State<MainScreen> {
                   AnalysisChartWidget(
                     key: const Key('analysisChart'),
                     isVisible: true,
+                  ),
+                  const SizedBox(height: 16),
+                  const PeriodComparisonSummary(
+                    key: Key('periodComparisonSummary'),
                   ),
                 ],
                 const SizedBox(height: 24),

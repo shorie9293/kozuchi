@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
+import 'package:kozuchi/domain/classifier/classifier_service.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/offering_input_screen.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/reflection_screen.dart';
 import 'package:kozuchi/features/trial_quest/domain/ai_review_service.dart';
+import 'package:kozuchi/features/effects/presentation/effect_manager.dart';
 
 /// 試練クエスト画面
 ///
@@ -58,12 +60,26 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
       ),
     );
     if (result != null) {
+      // 分類器で自動タグ付け
+      final classification =
+          ClassifierService.instance.classify(result.purpose);
       final updatedQuest = _quest.recordOffering(
         amount: result.amount,
         purpose: result.purpose,
         note: result.note,
+        classifiedCategory: classification.isClassified
+            ? classification.category
+            : null,
       );
       _updateQuest(updatedQuest, result.updatedPlayer);
+      // 支出実行エフェクト：画面中央にコイン散布
+      EffectManager.of(context).playEffect(
+        'coin_scatter',
+        Offset(
+          MediaQuery.of(context).size.width / 2,
+          MediaQuery.of(context).size.height / 2,
+        ),
+      );
     }
   }
 

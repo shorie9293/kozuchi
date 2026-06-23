@@ -35,6 +35,9 @@ class TrialQuest {
   /// レシート画像のパス（拡張2: レシート撮影）
   final String? receiptImagePath;
 
+  /// キーワード分類器による自動分類カテゴリ（支出記録時に設定）
+  final String? classifiedCategory;
+
   TrialQuest({
     required this.title,
     required this.description,
@@ -46,6 +49,7 @@ class TrialQuest {
     this.reflection,
     this.review,
     this.receiptImagePath,
+    this.classifiedCategory,
   });
 
   /// JSONから復元
@@ -64,6 +68,7 @@ class TrialQuest {
       reflection: json['reflection'] as String?,
       review: json['review'] as String?,
       receiptImagePath: json['receiptImagePath'] as String?,
+      classifiedCategory: json['classifiedCategory'] as String?,
     );
   }
 
@@ -80,6 +85,7 @@ class TrialQuest {
       'reflection': reflection,
       'review': review,
       'receiptImagePath': receiptImagePath,
+      'classifiedCategory': classifiedCategory,
     };
   }
 
@@ -98,6 +104,7 @@ class TrialQuest {
     required String purpose,
     String note = '',
     String? receiptImagePath,
+    String? classifiedCategory,
   }) {
     return TrialQuest(
       title: title,
@@ -110,6 +117,7 @@ class TrialQuest {
       reflection: reflection,
       review: review,
       receiptImagePath: receiptImagePath ?? this.receiptImagePath,
+      classifiedCategory: classifiedCategory ?? this.classifiedCategory,
     );
   }
 
@@ -126,6 +134,7 @@ class TrialQuest {
       reflection: text,
       review: review,
       receiptImagePath: receiptImagePath,
+      classifiedCategory: classifiedCategory,
     );
   }
 
@@ -142,6 +151,7 @@ class TrialQuest {
       reflection: reflection,
       review: mockReview,
       receiptImagePath: receiptImagePath,
+      classifiedCategory: classifiedCategory,
     );
   }
 }
