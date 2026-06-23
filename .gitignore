@@ -54,3 +54,6 @@ coverage/
 /android/upload-keystore.jks.bak
 /android/upload-keystore.jks.base64
 /android/upload_certificate.pem
+
+# Environment secrets (Supabase credentials, API keys)
+.env

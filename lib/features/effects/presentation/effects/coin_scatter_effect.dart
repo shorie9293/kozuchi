@@ -82,7 +82,6 @@ class _CoinScatterEffectState extends State<CoinScatterEffect>
     return AnimatedBuilder(
       animation: _progress,
       builder: (context, child) {
-        const center = Offset.zero;
         return Stack(
           children: _coins.map((coin) {
             final dx = cos(coin.angle) * coin.distance * _progress.value;

@@ -1,0 +1,51 @@
+<!-- kozuchi ホームウィジェット用レイアウト -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical">
+
+    <!-- 残高 -->
+    <TextView
+        android:id="@+id/widget_balance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textColor="#1A1040"
+        android:text="¥---" />
+
+    <!-- 本日の試練 -->
+    <TextView
+        android:id="@+id/widget_trials"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="#49454F"
+        android:text="試練 -" />
+
+    <!-- HP バー -->
+    <ProgressBar
+        android:id="@+id/widget_hp_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:max="100000"
+        android:progress="100000"
+        android:progressTint="#D4A038" />
+
+    <!-- EXP -->
+    <TextView
+        android:id="@+id/widget_exp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="#79747E"
+        android:text="EXP 0" />
+
+</LinearLayout>
