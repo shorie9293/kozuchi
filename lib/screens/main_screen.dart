@@ -19,12 +19,9 @@ import 'package:kozuchi/features/shared/data/player_repository.dart';
 import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service.dart';
 import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
-import 'package:kozuchi/domain/models/gold_luck_buff.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 import 'package:kozuchi/features/period_comparison/presentation/widgets/period_comparison_summary.dart';
-import 'package:kozuchi/domain/services/expense_repository.dart';
-import 'package:kozuchi/domain/services/expense_repository_impl.dart';
 import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
 
 /// メイン画面
@@ -341,10 +338,10 @@ class _MainScreenState extends State<MainScreen> {
         title: const Text('打ち出の小槌'),
         centerTitle: true,
         backgroundColor: _isUraMode
-            ? Colors.black87
+            ? colorScheme.surface
             : null,
         foregroundColor: _isUraMode
-            ? Colors.white70
+            ? colorScheme.onSurface
             : null,
         actions: [
           if (widget.onToggleTheme != null)

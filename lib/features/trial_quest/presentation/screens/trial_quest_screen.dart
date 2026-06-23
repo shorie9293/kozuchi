@@ -272,7 +272,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
             ),
             if (_isLoading)
               Container(
-                color: Colors.black26,
+                color: Colors.black54,
                 child: const Center(
                   child: CircularProgressIndicator(),
                 ),
