@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:kozuchi/screens/main_screen.dart';
+import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/level_stage.dart';
@@ -176,6 +177,102 @@ void main() {
       // AppKeys.mainScreenがMainScreenに設定されている（Scaffoldにも同じKeyが設定されているためfindsWidgetsを使用）
       expect(find.byKey(AppKeys.mainScreen), findsWidgets);
       expect(find.text('打ち出の小槌'), findsOneWidget);
+    });
+  });
+
+  group('MainScreen - テーマ切替', () {
+    testWidgets('onToggleTheme が null の場合トグルボタンが表示されない', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: MainScreen(
+          onToggleTheme: null,
+          initialPlayer: PlayerModel(hp: 100000, exp: 0),
+        ),
+      ));
+
+      expect(find.byKey(const Key('themeToggleButton')), findsNothing);
+    });
+
+    testWidgets('onToggleTheme が設定されている場合トグルボタンが表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: MainScreen(
+          onToggleTheme: () {},
+          initialPlayer: PlayerModel(hp: 100000, exp: 0),
+        ),
+      ));
+
+      expect(find.byKey(const Key('themeToggleButton')), findsOneWidget);
+    });
+
+    testWidgets('テーマが light の場合 light_mode アイコンが表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: MainScreen(
+          onToggleTheme: () {},
+          initialPlayer: PlayerModel(hp: 100000, exp: 0),
+          themeMode: ThemeMode.light,
+          themeIcon: Icons.light_mode,
+        ),
+      ));
+
+      expect(find.byIcon(Icons.light_mode), findsOneWidget);
+    });
+
+    testWidgets('テーマが dark の場合 dark_mode アイコンが表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: MainScreen(
+          onToggleTheme: () {},
+          initialPlayer: PlayerModel(hp: 100000, exp: 0),
+          themeMode: ThemeMode.dark,
+          themeIcon: Icons.dark_mode,
+        ),
+      ));
+
+      expect(find.byIcon(Icons.dark_mode), findsOneWidget);
+    });
+
+    testWidgets('テーマが system の場合 brightness_auto アイコンが表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: MainScreen(
+          onToggleTheme: () {},
+          initialPlayer: PlayerModel(hp: 100000, exp: 0),
+          themeMode: ThemeMode.system,
+          themeIcon: Icons.brightness_auto,
+        ),
+      ));
+
+      expect(find.byIcon(Icons.brightness_auto), findsOneWidget);
+    });
+
+    testWidgets('トグルボタンタップでコールバックが呼ばれる', (tester) async {
+      var called = false;
+      await tester.pumpWidget(MaterialApp(
+        home: MainScreen(
+          onToggleTheme: () => called = true,
+          initialPlayer: PlayerModel(hp: 100000, exp: 0),
+        ),
+      ));
+
+      await tester.tap(find.byKey(const Key('themeToggleButton')));
+      expect(called, isTrue);
+    });
+
+    testWidgets('dark テーマ適用時に描画エラーなく表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.dark,
+        home: MainScreen(
+          onToggleTheme: () {},
+          initialPlayer: PlayerModel(hp: 100000, exp: 0),
+          themeMode: ThemeMode.dark,
+          themeIcon: Icons.dark_mode,
+        ),
+      ));
+      await tester.pump();
+
+      // ダークモードでもタイトルが表示されている
+      expect(find.text('打ち出の小槌'), findsOneWidget);
+      // dark_mode アイコンが表示されている
+      expect(find.byIcon(Icons.dark_mode), findsOneWidget);
     });
   });
 }
