@@ -74,7 +74,7 @@ class AdvisorSelectionScreen extends StatelessWidget {
                 crossAxisCount: 2,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 0.85,
+                childAspectRatio: 0.68,
                 children: Advisor.values.map((deity) {
                   return _AdvisorCard(
                     deity: deity,
@@ -114,26 +114,26 @@ class _AdvisorCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   deity.emoji,
-                  style: const TextStyle(fontSize: 48),
+                  style: const TextStyle(fontSize: 40),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   deity.label,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
@@ -141,10 +141,58 @@ class _AdvisorCard extends StatelessWidget {
                   child: Text(
                     deity.domain,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       color: colorScheme.onPrimaryContainer,
                     ),
                   ),
+                ),
+                const SizedBox(height: 6),
+                // 効果説明
+                Text(
+                  deity.effect,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                // 講評文体 + EXP倍率
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.auto_awesome, size: 10, color: colorScheme.tertiary),
+                    const SizedBox(width: 2),
+                    Flexible(
+                      child: Text(
+                        deity.trialStyle,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: colorScheme.tertiary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'EXP${deity.expMultiplierText}',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

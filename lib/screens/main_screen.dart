@@ -355,6 +355,9 @@ class _MainScreenState extends State<MainScreen> {
                   PinchZoneWarningBanner(player: _player),
                 ],
                 const SizedBox(height: 16),
+                // 🔮 現在の加護（常時表示）
+                _buildGuardianBlessingLine(colorScheme),
+                const SizedBox(height: 12),
                 // 3カードグリッド（収入/試練/加護）
                 _buildCardGrid(colorScheme),
               ],
@@ -384,6 +387,91 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ],
     );
+  }
+
+  /// 🔮 現在の加護（常時表示用コンパクト行）
+  Widget _buildGuardianBlessingLine(ColorScheme colorScheme) {
+    final advisor = _player.advisor;
+    if (advisor != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.amber.withValues(alpha: 0.1),
+              Colors.amber.withValues(alpha: 0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            const Text('🔮', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '現在の加護: ${advisor.emoji} ${advisor.label}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'EXP${advisor.expMultiplierText}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            const Text('🔮', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '加護なし',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: _openAdvisorSelection,
+              child: Text(
+                '契約する →',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   /// 3カードグリッド：収入カード / 試練カード / 加護カード
@@ -621,7 +709,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 8),
             // アドバイザー情報
-            if (_player.advisor != null)
+            if (_player.advisor != null) ...[
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -635,8 +723,11 @@ class _MainScreenState extends State<MainScreen> {
                       fontSize: 12,
                       color: colorScheme.onPrimaryContainer),
                 ),
-              )
-            else
+              ),
+              const SizedBox(height: 8),
+              // 効果詳細
+              _buildAdvisorEffectDetail(colorScheme, _player.advisor!),
+            ] else
               TextButton.icon(
                 onPressed: _openAdvisorSelection,
                 icon: const Icon(Icons.auto_awesome, size: 16),
@@ -675,6 +766,70 @@ class _MainScreenState extends State<MainScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// アドバイザーの効果詳細表示
+  Widget _buildAdvisorEffectDetail(ColorScheme colorScheme, Advisor advisor) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 14, color: Colors.amber),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  advisor.effect,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Text('🎤', style: TextStyle(fontSize: 12)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  advisor.trialStyle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'EXP${advisor.expMultiplierText}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
