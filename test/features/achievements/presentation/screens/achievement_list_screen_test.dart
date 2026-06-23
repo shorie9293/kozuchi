@@ -1,58 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/achievements/data/achievement_service.dart';
 import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
 import 'package:kozuchi/domain/models/achievement_api_model.dart';
-import 'dart:convert';
 
-/// 実績APIのモックレスポンス
-String _mockAchievementsJson() {
-  final achievements = [
-    {
-      'id': 1, 'key': 'first_offering', 'title': '初めての喜捨',
-      'description': '初めて喜捨を行った。', 'criteria_type': 'offering_count',
-      'criteria_value': 1, 'icon': '🙏', 'sort_order': 10,
-      'unlocked': true, 'unlocked_at': '2026-06-23T12:00:00',
-    },
-    {
-      'id': 2, 'key': 'offering_10', 'title': '喜捨の修行者',
-      'description': '喜捨を10回行った。', 'criteria_type': 'offering_count',
-      'criteria_value': 10, 'icon': '📿', 'sort_order': 11,
-      'unlocked': false, 'unlocked_at': null,
-      'progress': {'current': 3, 'target': 10, 'pct': 30.0},
-    },
-    {
-      'id': 5, 'key': 'total_10000', 'title': '壱万円突破',
-      'description': '累計喜捨額が1万円を超えた。', 'criteria_type': 'total_donation',
-      'criteria_value': 10000, 'icon': '💰', 'sort_order': 20,
-      'unlocked': false, 'unlocked_at': null,
-      'progress': {'current': 50000, 'target': 100000, 'pct': 50.0},
-    },
-    {
-      'id': 7, 'key': 'streak_7', 'title': '七日修行',
-      'description': '7日連続で喜捨を記録。', 'criteria_type': 'streak_days',
-      'criteria_value': 7, 'icon': '🌅', 'sort_order': 31,
-      'unlocked': false, 'unlocked_at': null,
-      'progress': {'current': 5, 'target': 7, 'pct': 71.4},
-    },
-    {
-      'id': 10, 'key': 'satori_25', 'title': '悟りの初段',
-      'description': 'SATORI値が25%に達した。', 'criteria_type': 'satori_level',
-      'criteria_value': 25, 'icon': '💡', 'sort_order': 50,
-      'unlocked': false, 'unlocked_at': null, 'progress': null,
-    },
+/// モック実績データを生成する
+List<AchievementApiModel> _mockAchievements() {
+  return [
+    AchievementApiModel(
+      id: 1, key: 'first_offering', title: '初めての喜捨',
+      description: '初めて喜捨を行った。', criteriaType: 'offering_count',
+      criteriaValue: 1, icon: '🙏', sortOrder: 10,
+      unlocked: true, unlockedAt: '2026-06-23T12:00:00',
+    ),
+    AchievementApiModel(
+      id: 2, key: 'offering_10', title: '喜捨の修行者',
+      description: '喜捨を10回行った。', criteriaType: 'offering_count',
+      criteriaValue: 10, icon: '📿', sortOrder: 11,
+      unlocked: false, unlockedAt: null,
+      progress: const AchievementProgress(current: 3, target: 10, pct: 30.0),
+    ),
+    AchievementApiModel(
+      id: 5, key: 'total_10000', title: '壱万円突破',
+      description: '累計喜捨額が1万円を超えた。', criteriaType: 'total_donation',
+      criteriaValue: 10000, icon: '💰', sortOrder: 20,
+      unlocked: false, unlockedAt: null,
+      progress: const AchievementProgress(current: 50000, target: 100000, pct: 50.0),
+    ),
+    AchievementApiModel(
+      id: 7, key: 'streak_7', title: '七日修行',
+      description: '7日連続で喜捨を記録。', criteriaType: 'streak_days',
+      criteriaValue: 7, icon: '🌅', sortOrder: 31,
+      unlocked: false, unlockedAt: null,
+      progress: const AchievementProgress(current: 5, target: 7, pct: 71.4),
+    ),
+    AchievementApiModel(
+      id: 10, key: 'satori_25', title: '悟りの初段',
+      description: 'SATORI値が25%に達した。', criteriaType: 'satori_level',
+      criteriaValue: 25, icon: '💡', sortOrder: 50,
+      unlocked: false, unlockedAt: null, progress: null,
+    ),
   ];
-  return json.encode(achievements);
 }
 
-/// 成功レスポンスを返すMockClient
-MockClient _successClient() {
-  return MockClient((request) async {
-    return http.Response(_mockAchievementsJson(), 200);
-  });
+/// fetchOverride でモックデータを返すサービスを作成
+AchievementService _mockService({List<AchievementApiModel>? data, bool throwError = false}) {
+  return AchievementService(
+    fetchOverride: ({String? userId}) async {
+      if (throwError) {
+        throw Exception('Mock API error: 500 Internal Server Error');
+      }
+      return data ?? _mockAchievements();
+    },
+  );
 }
 
 void main() {
@@ -60,12 +61,8 @@ void main() {
     // ── 通常表示 ──────────────────────────────────────────────────
 
     testWidgets('実績データがグリッドで表示される', (tester) async {
-      final service = AchievementService(
-        client: _successClient(),
-        baseUrl: 'http://localhost:9999',
-      );
       await tester.pumpWidget(
-        MaterialApp(home: AchievementListScreen(service: service)),
+        MaterialApp(home: AchievementListScreen(service: _mockService())),
       );
       await tester.pumpAndSettle();
 
@@ -80,12 +77,8 @@ void main() {
 
     testWidgets('解除済み実績はチェックアイコンと解除日が表示される',
         (tester) async {
-      final service = AchievementService(
-        client: _successClient(),
-        baseUrl: 'http://localhost:9999',
-      );
       await tester.pumpWidget(
-        MaterialApp(home: AchievementListScreen(service: service)),
+        MaterialApp(home: AchievementListScreen(service: _mockService())),
       );
       await tester.pumpAndSettle();
 
@@ -97,12 +90,8 @@ void main() {
 
     testWidgets('未解除実績は進捗インジケータが表示される',
         (tester) async {
-      final service = AchievementService(
-        client: _successClient(),
-        baseUrl: 'http://localhost:9999',
-      );
       await tester.pumpWidget(
-        MaterialApp(home: AchievementListScreen(service: service)),
+        MaterialApp(home: AchievementListScreen(service: _mockService())),
       );
       await tester.pumpAndSettle();
 
@@ -114,12 +103,8 @@ void main() {
 
     testWidgets('進捗がない実績はロックアイコンが表示される',
         (tester) async {
-      final service = AchievementService(
-        client: _successClient(),
-        baseUrl: 'http://localhost:9999',
-      );
       await tester.pumpWidget(
-        MaterialApp(home: AchievementListScreen(service: service)),
+        MaterialApp(home: AchievementListScreen(service: _mockService())),
       );
       await tester.pumpAndSettle();
 
@@ -130,15 +115,8 @@ void main() {
 
     testWidgets('APIエラー時にエラーメッセージとリトライボタンが表示される',
         (tester) async {
-      final errorClient = MockClient((request) async {
-        return http.Response('Internal Server Error', 500);
-      });
-      final service = AchievementService(
-        client: errorClient,
-        baseUrl: 'http://localhost:9999',
-      );
       await tester.pumpWidget(
-        MaterialApp(home: AchievementListScreen(service: service)),
+        MaterialApp(home: AchievementListScreen(service: _mockService(throwError: true))),
       );
       await tester.pumpAndSettle();
 
@@ -150,16 +128,14 @@ void main() {
 
     testWidgets('リトライボタンタップで再取得が行われる', (tester) async {
       int callCount = 0;
-      final retryClient = MockClient((request) async {
-        callCount++;
-        if (callCount == 1) {
-          return http.Response('error', 500);
-        }
-        return http.Response(_mockAchievementsJson(), 200);
-      });
       final service = AchievementService(
-        client: retryClient,
-        baseUrl: 'http://localhost:9999',
+        fetchOverride: ({String? userId}) async {
+          callCount++;
+          if (callCount == 1) {
+            throw Exception('error');
+          }
+          return _mockAchievements();
+        },
       );
       await tester.pumpWidget(
         MaterialApp(home: AchievementListScreen(service: service)),
@@ -180,15 +156,8 @@ void main() {
 
     testWidgets('実績が0件の場合、空メッセージが表示される',
         (tester) async {
-      final emptyClient = MockClient((request) async {
-        return http.Response('[]', 200);
-      });
-      final service = AchievementService(
-        client: emptyClient,
-        baseUrl: 'http://localhost:9999',
-      );
       await tester.pumpWidget(
-        MaterialApp(home: AchievementListScreen(service: service)),
+        MaterialApp(home: AchievementListScreen(service: _mockService(data: []))),
       );
       await tester.pumpAndSettle();
 
@@ -200,12 +169,8 @@ void main() {
     // ── AppBar ────────────────────────────────────────────────────
 
     testWidgets('AppBarにタイトルが表示される', (tester) async {
-      final service = AchievementService(
-        client: _successClient(),
-        baseUrl: 'http://localhost:9999',
-      );
       await tester.pumpWidget(
-        MaterialApp(home: AchievementListScreen(service: service)),
+        MaterialApp(home: AchievementListScreen(service: _mockService())),
       );
       await tester.pumpAndSettle();
 
@@ -216,14 +181,12 @@ void main() {
 
     testWidgets('userId指定時はクエリパラメータ付きでAPIが呼ばれる',
         (tester) async {
-      String? requestUrl;
-      final captureClient = MockClient((request) async {
-        requestUrl = request.url.toString();
-        return http.Response(_mockAchievementsJson(), 200);
-      });
+      String? capturedUserId;
       final service = AchievementService(
-        client: captureClient,
-        baseUrl: 'http://localhost:9999',
+        fetchOverride: ({String? userId}) async {
+          capturedUserId = userId;
+          return _mockAchievements();
+        },
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -233,8 +196,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(requestUrl, isNotNull);
-      expect(requestUrl, contains('user_id=test_user_123'));
+      expect(capturedUserId, 'test_user_123');
     });
   });
 

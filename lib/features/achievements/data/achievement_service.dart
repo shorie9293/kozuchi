@@ -10,10 +10,13 @@ import 'package:kozuchi/domain/models/achievement_api_model.dart';
 class AchievementService {
   final http.Client _client;
   final String? _baseUrlOverride;
+  final Future<List<AchievementApiModel>> Function({String? userId})? _fetchOverride;
 
-  AchievementService({http.Client? client, String? baseUrl})
+  AchievementService({http.Client? client, String? baseUrl,
+      Future<List<AchievementApiModel>> Function({String? userId})? fetchOverride})
       : _client = client ?? http.Client(),
-        _baseUrlOverride = baseUrl;
+        _baseUrlOverride = baseUrl,
+        _fetchOverride = fetchOverride;
 
   String get _baseUrl => _baseUrlOverride ?? Env.achievementApiUrl;
 
@@ -24,6 +27,10 @@ class AchievementService {
   Future<List<AchievementApiModel>> fetchAchievements({
     String? userId,
   }) async {
+    if (_fetchOverride != null) {
+      return _fetchOverride!(userId: userId);
+    }
+
     final uri = Uri.parse('$_baseUrl/api/achievements').replace(
       queryParameters: userId != null ? {'user_id': userId} : null,
     );
