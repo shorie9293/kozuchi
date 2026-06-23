@@ -53,6 +53,14 @@ jobs:
       - name: 📦 Get dependencies
         run: flutter pub get
 
+      - name: 📝 Create .env
+        run: |
+          cat > .env << 'ENVEOF'
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          ACHIEVEMENT_API_URL=${{ secrets.ACHIEVEMENT_API_URL }}
+          ENVEOF
+
       - name: 🔐 Decode Keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64_KOZUCHI }}" | tr -d '\n\r\t %' | base64 -d > android/upload-keystore.jks
