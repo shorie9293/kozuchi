@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 
+/// 打ち出の小槌（kozuchi）のテーマ定義
+///
+/// 高天原共通テーマ（和モダン×金×深紫）を基盤に、
+/// kozuchi独自の金銭哲学ゲームらしさを加味。
+///
+/// ライトテーマ：和紙白(#F5F0E8)基調 × 金アクセント
+/// ダークテーマ：墨色(#1A1A2E)基調 × 薄金アクセント（創造主様指定）
 class AppTheme {
-  /// 高天原共通テーマ（和モダン×金×深紫）を基盤にしたライトテーマ。
-  ///
-  /// 創造主様より「白い背景に薄い字で見えない」との神託を受け、
-  /// テキストの視認性を大幅に改善：
-  /// - 本文色: 深紫 (#1A1040) — M3生成の低コントラスト色より格段に視認性向上
-  /// - 背景色: 和紙白 (#F5F0E8) — 暖かみある生成り
-  /// - サブテキスト色: 金(#D4A038)を基調とした視認性の高い色調
+  /// ライトテーマ — 創造主様「白い背景に薄い字で見えない」の神託を反映
   static ThemeData get light {
     final base = TakamagaharaTheme.light;
     return base.copyWith(
-      // kozuchi独自の金銭哲学ゲームらしさを加味
       colorScheme: base.colorScheme.copyWith(
-        // サブテキストの視認性を上げる
-        onSurfaceVariant: TakamagaharaColors.deepPurple.withValues(alpha: 0.65),
+        // サブテキストの視認性を深紫65%に確保
+        onSurfaceVariant: TakamagaharaColors.textSecondaryLight,
+        // アウトライン: 深紫30% → さらに強い45%に
         outline: TakamagaharaColors.deepPurple.withValues(alpha: 0.45),
       ),
       textTheme: base.textTheme.copyWith(
@@ -26,12 +27,46 @@ class AppTheme {
     );
   }
 
+  /// ダークテーマ — 墨色基調 × 金アクセント
+  ///
+  /// 墨色(#1A1A2E) × 金箔アクセントの夜桜・星空を想起する配色。
+  /// 全コンポーネントが ColorScheme 経由でトークンを参照する。
   static ThemeData get dark {
     final base = TakamagaharaTheme.dark;
     return base.copyWith(
       colorScheme: base.colorScheme.copyWith(
-        onSurfaceVariant: TakamagaharaColors.goldLight.withValues(alpha: 0.7),
-        outline: TakamagaharaColors.goldLight.withValues(alpha: 0.4),
+        // 補足テキスト: 薄金60%
+        onSurfaceVariant: TakamagaharaColors.textSecondaryDark,
+        // アウトライン: 薄金40%
+        outline: TakamagaharaColors.goldLight.withValues(alpha: 0.40),
+      ),
+      // カードのデフォルト色を墨色+ に
+      cardTheme: CardThemeData(
+        color: TakamagaharaColors.surfaceCardDark,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: TakamagaharaColors.goldLight.withValues(alpha: 0.12),
+          ),
+        ),
+      ),
+      // AppBar のデフォルト色を墨色に
+      appBarTheme: const AppBarTheme(
+        backgroundColor: TakamagaharaColors.sumiDark,
+        foregroundColor: TakamagaharaColors.goldLight,
+        elevation: 0,
+      ),
+      // 入力フィールド
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: TakamagaharaColors.surfaceInputDark,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: TakamagaharaColors.goldLight.withValues(alpha: 0.25),
+          ),
+        ),
       ),
     );
   }
