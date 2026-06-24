@@ -15,11 +15,16 @@ class EffectDefinition {
   /// 全画面エフェクトかどうか（falseの場合は指定座標に表示）
   final bool isFullScreen;
 
+  /// エフェクト固有の追加パラメータ
+  /// 例: guardian_switch では oldAdvisor / newAdvisor のindexを格納
+  final Map<String, dynamic>? parameters;
+
   const EffectDefinition({
     required this.name,
     required this.duration,
     this.particleCount,
     this.isFullScreen = false,
+    this.parameters,
   });
 
   @override

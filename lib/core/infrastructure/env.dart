@@ -15,4 +15,12 @@ class Env {
 
   static String get achievementApiUrl =>
       dotenv.env['ACHIEVEMENT_API_URL'] ?? 'http://localhost:8100';
+
+  /// 週間レポートAPIのベースURL（kozuchi server）
+  static String get weeklyReportApiUrl =>
+      dotenv.env['WEEKLY_REPORT_API_URL'] ?? 'http://localhost:8080';
+
+  /// 目標管理APIのベースURL（kozuchi server）
+  static String get goalsApiUrl =>
+      dotenv.env['GOALS_API_URL'] ?? 'http://localhost:8080';
 }

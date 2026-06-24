@@ -1,21 +1,35 @@
 import 'package:flutter/material.dart';
+
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 
-/// 取引履歴フィルタバーウィジェット
+/// 取引一覧のフィルタバーWidget。
 ///
-/// 種別切替（全件/収入/支出）の SegmentedButton と
-/// 日付範囲選択（開始日・終了日）のフィールドを提供する。
-/// フィルタ値が変更されるたびに onChanged コールバックを発火する。
+/// 種別トグル（全件/収入/支出）と日付範囲選択（開始〜終了）を提供する。
+/// ユーザー操作のたびに [onChanged] で新しい [TransactionFilter] を発火する。
+///
+/// ## 使い方
+///
+/// ```dart
+/// TransactionFilterBar(
+///   initialFilter: const TransactionFilter(),
+///   onChanged: (filter) => print(filter.type),
+/// )
+/// ```
+///
+/// ## アクセシビリティ
+///
+/// 全操作可能要素に [Semantics] ラベルを付与している。
 class TransactionFilterBar extends StatefulWidget {
-  /// 初期フィルタ値
+  /// 初期フィルタ値。
   final TransactionFilter initialFilter;
 
-  /// フィルタ変更時に呼ばれるコールバック
-  final void Function(TransactionFilter filter) onChanged;
+  /// フィルタ変更時に発火するコールバック。
+  /// 種別切替・日付選択のたびに呼ばれる。
+  final ValueChanged<TransactionFilter> onChanged;
 
   const TransactionFilterBar({
     super.key,
-    this.initialFilter = const TransactionFilter(),
+    required this.initialFilter,
     required this.onChanged,
   });
 
@@ -24,169 +38,203 @@ class TransactionFilterBar extends StatefulWidget {
 }
 
 class _TransactionFilterBarState extends State<TransactionFilterBar> {
-  late TransactionFilter _filter;
+  late TransactionFilterType _type;
+  late DateTime? _startDate;
+  late DateTime? _endDate;
 
   @override
   void initState() {
     super.initState();
-    _filter = widget.initialFilter;
+    _type = widget.initialFilter.type;
+    _startDate = widget.initialFilter.startDate;
+    _endDate = widget.initialFilter.endDate;
   }
 
-  void _updateFilter(TransactionFilter newFilter) {
-    if (newFilter == _filter) return;
-    setState(() => _filter = newFilter);
-    widget.onChanged(newFilter);
+  void _emitFilter() {
+    widget.onChanged(
+      TransactionFilter(
+        type: _type,
+        startDate: _startDate,
+        endDate: _endDate,
+      ),
+    );
   }
 
-  void _onTypeChanged(TransactionFilterType type) {
-    if (type == _filter.type) return; // 同じ値なら発火しない
-    _updateFilter(_filter.copyWith(type: type));
+  void _onTypeChanged(TransactionFilterType? value) {
+    if (value == null || value == _type) return;
+    setState(() => _type = value);
+    _emitFilter();
   }
 
-  Future<void> _pickDate(BuildContext context, bool isStart) async {
+  Future<void> _pickDate({
+    required DateTime? initial,
+    required ValueChanged<DateTime?> onPicked,
+  }) async {
     final now = DateTime.now();
-    final initialDate = isStart
-        ? (_filter.startDate ?? DateTime(now.year, now.month, 1))
-        : (_filter.endDate ?? now);
-
     final picked = await showDatePicker(
       context: context,
-      initialDate: initialDate,
+      initialDate: initial ?? now,
       firstDate: DateTime(2020),
-      lastDate: DateTime(now.year + 1),
-      helpText: isStart ? '開始日を選択' : '終了日を選択',
+      lastDate: now.add(const Duration(days: 365)),
+      helpText: '日付を選択',
       cancelText: 'キャンセル',
       confirmText: '決定',
     );
-
     if (picked != null) {
-      final newFilter = isStart
-          ? _filter.copyWith(startDate: picked)
-          : _filter.copyWith(endDate: picked);
-      _updateFilter(newFilter);
+      onPicked(picked);
+      _emitFilter();
     }
   }
 
-  String _dateLabel(DateTime? date) {
+  /// 日付を YYYY-MM-DD 形式に整形する
+  String _formatDate(DateTime? date) {
     if (date == null) return '----';
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final y = date.year.toString();
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant),
+        color: cs.surfaceContainerLow,
+        border: Border(
+          bottom: BorderSide(color: cs.outlineVariant.withAlpha(128)),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── 種別切替 ──
-          SegmentedButton<TransactionFilterType>(
-            segments: TransactionFilterType.values.map((type) {
-              return ButtonSegment<TransactionFilterType>(
-                value: type,
-                label: Text(type.label),
-              );
-            }).toList(),
-            selected: {_filter.type},
-            onSelectionChanged: (selected) {
-              _onTypeChanged(selected.first);
-            },
-            style: ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              textStyle: WidgetStateProperty.all(
-                const TextStyle(fontSize: 13),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // ── 日付範囲 ──
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 幅が狭い（〜480px）は縦積み、広ければ横並び
+          final isNarrow = constraints.maxWidth < 480;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 開始日
-              Expanded(
-                child: _DateField(
-                  key: const Key('startDateField'),
-                  label: '開始日',
-                  value: _dateLabel(_filter.startDate),
-                  onTap: () => _pickDate(context, true),
+              // ── 種別トグル ──
+              Semantics(
+                label: '取引種別フィルタ',
+                child: SegmentedButton<TransactionFilterType>(
+                  segments: const [
+                    ButtonSegment(
+                      value: TransactionFilterType.all,
+                      label: Text('全件'),
+                    ),
+                    ButtonSegment(
+                      value: TransactionFilterType.income,
+                      label: Text('収入'),
+                      icon: Icon(Icons.add_circle_outline, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: TransactionFilterType.expense,
+                      label: Text('支出'),
+                      icon: Icon(Icons.remove_circle_outline, size: 16),
+                    ),
+                  ],
+                  selected: {_type},
+                  onSelectionChanged: (selected) =>
+                      _onTypeChanged(selected.firstOrNull),
+                  showSelectedIcon: false,
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              // 終了日
-              Expanded(
-                child: _DateField(
-                  key: const Key('endDateField'),
-                  label: '終了日',
-                  value: _dateLabel(_filter.endDate),
-                  onTap: () => _pickDate(context, false),
+              // 日付範囲は縦積み時のみスペースを開ける
+              if (isNarrow) const SizedBox(height: 8),
+
+              // ── 日付範囲選択 ──
+              Semantics(
+                label: '日付範囲フィルタ',
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _DateChip(
+                        label: _formatDate(_startDate),
+                        hint: '開始日',
+                        onTap: () => _pickDate(
+                          initial: _startDate,
+                          onPicked: (d) => setState(() => _startDate = d),
+                        ),
+                        icon: Icons.calendar_today,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('〜', style: TextStyle(color: cs.outline)),
+                    ),
+                    Expanded(
+                      child: _DateChip(
+                        label: _formatDate(_endDate),
+                        hint: '終了日',
+                        onTap: () => _pickDate(
+                          initial: _endDate,
+                          onPicked: (d) => setState(() => _endDate = d),
+                        ),
+                        icon: Icons.calendar_today,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 }
 
-/// 日付フィールド（タップで日付ピッカーを開く）
-class _DateField extends StatelessWidget {
+/// 日付選択用のタップ可能なチップ。
+///
+/// 外観は入力欄風で、タップで [showDatePicker] を開く。
+class _DateChip extends StatelessWidget {
   final String label;
-  final String value;
+  final String hint;
   final VoidCallback onTap;
+  final IconData icon;
 
-  const _DateField({
-    super.key,
+  const _DateChip({
     required this.label,
-    required this.value,
+    required this.hint,
     required this.onTap,
+    required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
+    final isPlaceholder = label == '----';
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+          border: Border.all(color: cs.outlineVariant.withAlpha(100)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
+            Icon(icon, size: 14, color: cs.outline),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isPlaceholder ? cs.outline : cs.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const Spacer(),
-            Icon(
-              Icons.calendar_today,
-              size: 14,
-              color: colorScheme.outline,
             ),
           ],
         ),

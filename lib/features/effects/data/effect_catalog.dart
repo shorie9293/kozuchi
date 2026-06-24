@@ -27,6 +27,8 @@ class EffectCatalog {
   /// - cherry_snow: 入金時の桜吹雪（3秒、30パーティクル）
   /// - light_pillar: 喜捨成功時の光の柱（2.5秒）
   /// - full_glow: SATORI MAX到達時の全体発光（5秒、全画面）
+  /// - satori_tooltip: SATORI変動時の理由吹き出し（3秒、fade-in 200ms + hold 2.5s + fade-out）
+  /// - satori_increase: SATORI増加時の光の粒子（1.5秒、8パーティクル）
   /// - placeholder: プレースホルダー（テスト・参照用、1.5秒）
   /// - test_flash: テスト用瞬間エフェクト（即座に消滅）
   factory EffectCatalog.defaultCatalog() {
@@ -49,6 +51,20 @@ class EffectCatalog {
         name: 'full_glow',
         duration: Duration(seconds: 3),
         isFullScreen: true,
+      ),
+      'satori_tooltip': const EffectDefinition(
+        name: 'satori_tooltip',
+        duration: Duration(milliseconds: 3000),
+      ),
+      'satori_increase': const EffectDefinition(
+        name: 'satori_increase',
+        duration: Duration(milliseconds: 1500),
+        particleCount: 8,
+      ),
+      'dark_curtain': const EffectDefinition(
+        name: 'dark_curtain',
+        duration: Duration(milliseconds: 1200),
+        isFullScreen: false,
       ),
       'placeholder': const EffectDefinition(
         name: 'placeholder',

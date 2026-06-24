@@ -1,32 +1,39 @@
 /// 取引種別フィルタ
 enum TransactionFilterType {
-  /// 全件
-  all('全件'),
+  /// 全件（収入＋支出）
+  all,
 
   /// 収入のみ
-  income('収入'),
+  income,
 
   /// 支出のみ
-  expense('支出');
+  expense;
 
-  /// 日本語表示ラベル
-  final String label;
-
-  const TransactionFilterType(this.label);
+  /// 日本語ラベル
+  String get label {
+    switch (this) {
+      case TransactionFilterType.all:
+        return '全件';
+      case TransactionFilterType.income:
+        return '収入';
+      case TransactionFilterType.expense:
+        return '支出';
+    }
+  }
 }
 
-/// 取引履歴画面のフィルタ状態を保持する不変な値オブジェクト。
+/// 取引一覧のフィルタ条件
 ///
-/// 種別（全件/収入/支出）と日付範囲（開始日〜終了日）を保持し、
-/// 画面やデータ取得クエリに渡すための統一的なフィルタ表現を提供する。
+/// [type] で種別、[startDate]/[endDate] で日付範囲を指定する。
+/// イミュータブル（不変）で、== 比較による等価判定をサポートする。
 class TransactionFilter {
   /// 取引種別（デフォルト: 全件）
   final TransactionFilterType type;
 
-  /// 開始日（nullの場合は制限なし）
+  /// 開始日（null の場合は制限なし）
   final DateTime? startDate;
 
-  /// 終了日（nullの場合は制限なし）
+  /// 終了日（null の場合は制限なし）
   final DateTime? endDate;
 
   const TransactionFilter({
@@ -35,7 +42,7 @@ class TransactionFilter {
     this.endDate,
   });
 
-  /// コピーを作成し、指定されたフィールドのみ変更する
+  /// 一部のフィールドのみ変更した新しいフィルタを返す
   TransactionFilter copyWith({
     TransactionFilterType? type,
     DateTime? startDate,
@@ -50,47 +57,42 @@ class TransactionFilter {
     );
   }
 
-  /// JSONに変換（日付は YYYY-MM-DD 形式の文字列）
+  /// JSON にシリアライズ
   Map<String, dynamic> toJson() {
     return {
       'type': type.name,
-      if (startDate != null) 'startDate': _dateToString(startDate!),
-      if (endDate != null) 'endDate': _dateToString(endDate!),
+      if (startDate != null)
+        'startDate':
+            '${startDate!.year}-${startDate!.month.toString().padLeft(2, '0')}-${startDate!.day.toString().padLeft(2, '0')}',
+      if (endDate != null)
+        'endDate':
+            '${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}',
     };
   }
 
-  /// JSONから復元
+  /// JSON から復元
   factory TransactionFilter.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(String? value) {
+      if (value == null) return null;
+      return DateTime.tryParse(value);
+    }
+
     return TransactionFilter(
-      type: _parseType(json['type'] as String? ?? 'all'),
-      startDate: json['startDate'] != null
-          ? DateTime.tryParse(json['startDate'] as String)
-          : null,
-      endDate: json['endDate'] != null
-          ? DateTime.tryParse(json['endDate'] as String)
-          : null,
+      type: TransactionFilterType.values.firstWhere(
+        (t) => t.name == (json['type'] as String? ?? 'all'),
+        orElse: () => TransactionFilterType.all,
+      ),
+      startDate: parseDate(json['startDate'] as String?),
+      endDate: parseDate(json['endDate'] as String?),
     );
-  }
-
-  static TransactionFilterType _parseType(String name) {
-    return TransactionFilterType.values.firstWhere(
-      (t) => t.name == name,
-      orElse: () => TransactionFilterType.all,
-    );
-  }
-
-  static String _dateToString(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is TransactionFilter &&
-        other.type == type &&
-        other.startDate == startDate &&
-        other.endDate == endDate;
-  }
+  bool operator ==(Object other) =>
+      other is TransactionFilter &&
+      type == other.type &&
+      startDate == other.startDate &&
+      endDate == other.endDate;
 
   @override
   int get hashCode => Object.hash(type, startDate, endDate);

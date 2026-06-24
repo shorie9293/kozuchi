@@ -22,6 +22,10 @@ class PlayerModel {
   /// 有効期間中は収入（addHp）に倍率がかかる
   final GoldLuckBuff? goldLuckBuff;
 
+  /// 開眼段階の昇格アニメーションを表示済みの段階名セット
+  /// 同じ段階への2度目の到達ではアニメーションを再表示しない
+  final Set<String> seenStages;
+
   /// 生活防衛ライン（固定値。このラインを下回るとピンチ状態）
   static const int livingDefenseLine = 30000;
 
@@ -59,6 +63,7 @@ class PlayerModel {
       advisor: newAdvisor,
       lastSwitchTimestamp: DateTime.now(),
       goldLuckBuff: goldLuckBuff,
+      seenStages: seenStages,
     );
   }
 
@@ -68,6 +73,7 @@ class PlayerModel {
     this.advisor,
     this.lastSwitchTimestamp,
     this.goldLuckBuff,
+    this.seenStages = const <String>{},
   }) : assert(hp >= 0, 'HPは0以上である必要があります'),
        assert(exp >= 0, 'EXPは0以上である必要があります');
 
@@ -98,6 +104,9 @@ class PlayerModel {
       goldLuckBuff: json['goldLuckBuff'] != null
           ? GoldLuckBuff.fromJson(json['goldLuckBuff'] as Map<String, dynamic>)
           : null,
+      seenStages: json['seenStages'] != null
+          ? Set<String>.from(json['seenStages'] as List<dynamic>)
+          : const <String>{},
     );
   }
 
@@ -109,6 +118,7 @@ class PlayerModel {
       'advisor': advisor?.name,
       'lastSwitchTimestamp': lastSwitchTimestamp?.toIso8601String(),
       'goldLuckBuff': goldLuckBuff?.toJson(),
+      'seenStages': seenStages.toList(),
     };
   }
 
@@ -120,6 +130,7 @@ class PlayerModel {
       exp: exp,
       advisor: advisor,
       goldLuckBuff: goldLuckBuff,
+      seenStages: seenStages,
     );
   }
 
@@ -130,6 +141,7 @@ class PlayerModel {
       exp: exp + amount,
       advisor: advisor,
       goldLuckBuff: goldLuckBuff,
+      seenStages: seenStages,
     );
   }
 
@@ -143,6 +155,7 @@ class PlayerModel {
       exp: exp,
       advisor: advisor,
       goldLuckBuff: goldLuckBuff,
+      seenStages: seenStages,
     );
   }
 
@@ -153,6 +166,7 @@ class PlayerModel {
       exp: exp,
       advisor: deity,
       goldLuckBuff: goldLuckBuff,
+      seenStages: seenStages,
     );
   }
 
@@ -167,6 +181,28 @@ class PlayerModel {
       advisor: advisor,
       lastSwitchTimestamp: lastSwitchTimestamp,
       goldLuckBuff: buff,
+      seenStages: seenStages,
     );
+  }
+
+  /// 指定された開眼段階の昇格アニメーションを表示済みとしてマークする
+  PlayerModel markStageSeen(LevelStage stage) {
+    final updatedSeen = Set<String>.from(seenStages);
+    updatedSeen.add(stage.name);
+    return PlayerModel(
+      hp: hp,
+      exp: exp,
+      advisor: advisor,
+      lastSwitchTimestamp: lastSwitchTimestamp,
+      goldLuckBuff: goldLuckBuff,
+      seenStages: updatedSeen,
+    );
+  }
+
+  /// 指定された開眼段階の昇格アニメーションがまだ表示されていないか
+  bool shouldShowStageTransition(LevelStage stage) {
+    // 初転法輪（初期段階）への遷移はアニメーション不要
+    if (stage == LevelStage.shoTenborin) return false;
+    return !seenStages.contains(stage.name);
   }
 }

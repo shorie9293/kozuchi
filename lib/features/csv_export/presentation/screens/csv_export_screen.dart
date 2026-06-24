@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kozuchi/features/csv_export/data/csv_export_service.dart';
+import 'package:kozuchi/features/csv_export/data/drive_upload_service.dart';
 
 /// CSVエクスポート画面
 ///
@@ -12,10 +14,12 @@ import 'package:kozuchi/features/csv_export/data/csv_export_service.dart';
 /// - エラーメッセージ表示
 class CsvExportScreen extends StatefulWidget {
   final CsvExportService? service;
+  final DriveUploadService? driveService;
 
   const CsvExportScreen({
     super.key,
     this.service,
+    this.driveService,
   });
 
   @override
@@ -24,18 +28,23 @@ class CsvExportScreen extends StatefulWidget {
 
 class _CsvExportScreenState extends State<CsvExportScreen> {
   late final CsvExportService _service;
+  late final DriveUploadService _driveService;
   final _emailController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
   bool _isSendingEmail = false;
+  bool _isUploadingDrive = false;
   String? _errorMessage;
   String? _successMessage;
+  String? _cachedCsvContent;
+  String? _driveShareLink;
 
   @override
   void initState() {
     super.initState();
     _service = widget.service ?? CsvExportService();
+    _driveService = widget.driveService ?? DriveUploadService();
   }
 
   @override
@@ -83,6 +92,7 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
       _isLoading = true;
       _errorMessage = null;
       _successMessage = null;
+      _driveShareLink = null;
     });
 
     try {
@@ -90,6 +100,7 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
         startDate: _startDate,
         endDate: _endDate,
       );
+      _cachedCsvContent = csvData;
 
       // CSVをファイルに保存
       final dir = Directory.systemTemp;
@@ -151,6 +162,63 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
       if (mounted) {
         setState(() {
           _isSendingEmail = false;
+          _errorMessage = e.message;
+        });
+      }
+    }
+  }
+
+  /// Google DriveにCSVをアップロード
+  Future<void> _uploadToDrive() async {
+    // CSVが未エクスポートなら先にエクスポート
+    if (_cachedCsvContent == null) {
+      setState(() {
+        _errorMessage = '先に「CSVをエクスポート」を実行してください';
+      });
+      return;
+    }
+
+    setState(() {
+      _isUploadingDrive = true;
+      _errorMessage = null;
+      _successMessage = null;
+      _driveShareLink = null;
+    });
+
+    try {
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .split('.')
+          .first;
+      final result = await _driveService.uploadCsv(
+        _cachedCsvContent!,
+        filename: 'kozuchi_export_$timestamp.csv',
+      );
+
+      if (mounted) {
+        setState(() {
+          _isUploadingDrive = false;
+          _driveShareLink = result.webViewLink;
+          _successMessage = 'Driveにアップロードしました';
+        });
+        // 共有リンクをクリップボードにコピー
+        if (result.webViewLink.isNotEmpty) {
+          await Clipboard.setData(ClipboardData(text: result.webViewLink));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('共有リンクをコピーしました'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } on DriveUploadException catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingDrive = false;
           _errorMessage = e.message;
         });
       }
@@ -356,6 +424,99 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
             ),
 
             const SizedBox(height: 24),
+
+            // ── Drive共有セクション ──
+            const Divider(height: 32),
+            Text(
+              'Google Driveで共有',
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+
+            // Driveアップロードボタン
+            SizedBox(
+              height: 48,
+              child: ElevatedButton.icon(
+                key: const Key('csvExport_driveUploadButton'),
+                onPressed: (_isUploadingDrive || _cachedCsvContent == null)
+                    ? null
+                    : _uploadToDrive,
+                icon: _isUploadingDrive
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          key: Key('csvExport_driveLoadingIndicator'),
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.cloud_upload),
+                label: Text(_isUploadingDrive ? 'アップロード中...' : 'Driveに保存'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.tertiary,
+                  foregroundColor: theme.colorScheme.onTertiary,
+                ),
+              ),
+            ),
+
+            // 共有リンク表示
+            if (_driveShareLink != null) ...[
+              const SizedBox(height: 12),
+              Card(
+                key: const Key('csvExport_driveLinkCard'),
+                color: theme.colorScheme.tertiaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.link,
+                              color: theme.colorScheme.onTertiaryContainer,
+                              size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '共有リンク（コピー済み）',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: theme.colorScheme.onTertiaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _driveShareLink!,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.colorScheme.onTertiaryContainer
+                              .withAlpha(180),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            if (_cachedCsvContent == null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '※ Driveに保存するには、先に「CSVをエクスポート」を実行してください',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withAlpha(120),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+
+            const SizedBox(height: 16),
 
             // 説明テキスト
             Text(

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:kozuchi/core/theme/theme_repository.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
+import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/tutorial/data/kozuchi_tutorial_service.dart';
 import 'package:kozuchi/features/tutorial/presentation/kozuchi_tutorial_overlay.dart';
@@ -15,8 +16,12 @@ import 'package:kozuchi/features/effects/presentation/effect_manager.dart';
 import 'package:kozuchi/features/effects/presentation/effects/coin_scatter_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/placeholder_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/satori_glow_effect.dart';
+import 'package:kozuchi/features/effects/presentation/effects/satori_increase_effect.dart';
+import 'package:kozuchi/features/effects/presentation/effects/satori_tooltip_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/cherry_blizzard_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/pillar_of_light_effect.dart';
+import 'package:kozuchi/features/effects/presentation/effects/guardian_switch_effect.dart';
+import 'package:kozuchi/features/effects/presentation/effects/dark_curtain_effect.dart';
 import 'package:kozuchi/screens/main_screen.dart';
 
 void main() async {
@@ -30,6 +35,18 @@ void main() async {
     url: Env.supabaseUrl,
     anonKey: Env.supabaseAnonKey,
   );
+
+  // 匿名認証：既存セッションがあれば再利用、なければ新規サインイン
+  final authService = AuthService();
+  try {
+    final userId = await authService.signInAnonymously();
+    // ignore: avoid_print
+    print('[kozuchi] Anonymous auth OK, user_id=$userId');
+  } catch (e) {
+    // 認証失敗時もアプリは起動継続（オフラインモード）
+    // ignore: avoid_print
+    print('[kozuchi] Anonymous auth failed (offline mode): $e');
+  }
 
   // 支出分類器を初期化
   await ClassifierService.instance.initialize();
@@ -139,6 +156,10 @@ class _MyAppState extends State<MyApp> {
       'full_glow' => SatoriGlowEffect(instance: instance),
       'cherry_snow' => CherryBlizzardEffect(instance: instance),
       'light_pillar' => PillarOfLightEffect(instance: instance),
+      'guardian_switch' => GuardianSwitchEffect(instance: instance),
+      'satori_tooltip' => SatoriTooltipEffect(instance: instance),
+      'satori_increase' => SatoriIncreaseEffect(instance: instance),
+      'dark_curtain' => DarkCurtainEffect(instance: instance),
       _ => const SizedBox.shrink(),
     };
   }
