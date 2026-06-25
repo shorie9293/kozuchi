@@ -77,9 +77,8 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
         amount: result.amount,
         purpose: result.purpose,
         note: result.note,
-        classifiedCategory: classification.isClassified
-            ? classification.category
-            : null,
+        classifiedCategory:
+            result.category ?? classification.category,
       );
       _updateQuest(updatedQuest, result.updatedPlayer);
       // 支出実行エフェクト：画面中央にコイン散布

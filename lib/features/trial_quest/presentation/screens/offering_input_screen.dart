@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
+import 'package:kozuchi/domain/classifier/classifier_service.dart';
 import 'package:kozuchi/features/receipt_scanner/data/receipt_ocr_service.dart';
 import 'package:kozuchi/features/receipt_scanner/presentation/screens/receipt_scanner_screen.dart';
 
@@ -10,6 +11,7 @@ class OfferingResult {
   final String purpose;
   final String note;
   final String? receiptImagePath;
+  final String? category;
   final PlayerModel updatedPlayer;
 
   OfferingResult({
@@ -17,6 +19,7 @@ class OfferingResult {
     required this.purpose,
     required this.note,
     this.receiptImagePath,
+    this.category,
     required this.updatedPlayer,
   });
 }
@@ -45,6 +48,20 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
   late final TextEditingController _purposeController;
   late final TextEditingController _noteController;
   String? _receiptImagePath;
+  String? _selectedCategory;
+
+  static const Map<String, String> _categoryEmojis = {
+    '食費': '🍙',
+    '娯楽': '🎮',
+    '交通': '🚃',
+    '光熱費': '💡',
+    '交際費': '🎁',
+    'その他': '📦',
+  };
+
+  static const List<String> _categories = [
+    '食費', '娯楽', '交通', '光熱費', '交際費', 'その他'
+  ];
 
   @override
   void initState() {
@@ -54,6 +71,8 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     );
     _purposeController = TextEditingController();
     _noteController = TextEditingController();
+    // 用途入力に応じて自動分類
+    _purposeController.addListener(_autoClassify);
   }
 
   @override
@@ -62,6 +81,17 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     _purposeController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  /// 用途テキストから自動分類
+  void _autoClassify() {
+    final text = _purposeController.text;
+    if (text.length >= 2 && _selectedCategory == null) {
+      final result = ClassifierService.instance.classify(text);
+      if (result.isClassified) {
+        setState(() => _selectedCategory = result.category);
+      }
+    }
   }
 
   /// レシート撮影画面を開く
@@ -99,6 +129,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
       purpose: _purposeController.text,
       note: _noteController.text,
       receiptImagePath: _receiptImagePath,
+      category: _selectedCategory,
       updatedPlayer: updatedPlayer,
     ));
   }
@@ -190,6 +221,29 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                   if (value == null || value.isEmpty) return '用途を入力せよ';
                   return null;
                 },
+              ),
+              const SizedBox(height: 16),
+              // カテゴリ選択
+              Text('カテゴリ',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: colorScheme.onSurface)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _categories.map((cat) => ChoiceChip(
+                  label: Text('${_categoryEmojis[cat]} $cat',
+                      style: const TextStyle(fontSize: 13)),
+                  selected: _selectedCategory == cat,
+                  selectedColor:
+                      colorScheme.primaryContainer,
+                  onSelected: (selected) {
+                    setState(() =>
+                        _selectedCategory = selected ? cat : null);
+                  },
+                )).toList(),
               ),
               const SizedBox(height: 16),
               // 一言メモ

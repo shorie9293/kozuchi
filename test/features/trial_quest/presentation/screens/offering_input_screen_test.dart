@@ -65,8 +65,13 @@ void main() {
       await tester.enterText(amountField, '');
       await tester.pumpAndSettle();
 
+      // 送信ボタンまでスクロール
+      final submitButton = find.text('支出を実行する');
+      await tester.ensureVisible(submitButton);
+      await tester.pumpAndSettle();
+
       // 送信ボタンをタップ
-      await tester.tap(find.text('支出を実行する'));
+      await tester.tap(submitButton);
       await tester.pumpAndSettle();
 
       expect(find.text('金額を入力せよ'), findsOneWidget);
@@ -126,8 +131,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 送信ボタンをタップ
-      await tester.tap(find.text('支出を実行する'));
+      // 送信ボタンまでスクロールしてタップ
+      final submitButton = find.text('支出を実行する');
+      await tester.ensureVisible(submitButton);
+      await tester.pumpAndSettle();
+      await tester.tap(submitButton);
       await tester.pumpAndSettle();
 
       // OfferingInputScreen がポップされた（画面が閉じた）ことを確認
