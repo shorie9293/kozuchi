@@ -140,7 +140,7 @@ class CloudSyncService {
         .eq('user_id', userId)
         .count(CountOption.exact);
 
-    return response.count ?? 0;
+    return response.count ?? 0; // ignore: dead_null_aware_expression
   }
 
   // ─── デイリークエスト（daily_quests） ────────────────────────────

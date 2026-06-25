@@ -29,7 +29,7 @@ class _GuardianSwitchEffectState extends State<GuardianSwitchEffect>
   late final AnimationController _controller;
   late final Animation<double> _fadeIn;
   late final Animation<double> _fadeOut;
-  late final Animation<double> _messageProgress;
+  late final Animation<double> _messageProgress; // ignore: unused_field
   late final List<_SwitchParticle> _particles;
   final _random = Random();
 
@@ -130,7 +130,7 @@ class _GuardianSwitchEffectState extends State<GuardianSwitchEffect>
   Widget build(BuildContext context) {
     if (_isSkipped) return const SizedBox.shrink();
 
-    final screenSize = MediaQuery.of(context).size;
+    // final screenSize = MediaQuery.of(context).size;
 
     return AnimatedBuilder(
       animation: _controller,

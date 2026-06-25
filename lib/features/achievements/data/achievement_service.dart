@@ -29,7 +29,7 @@ class AchievementService {
     String? userId,
   }) async {
     if (_fetchOverride != null) {
-      return _fetchOverride!(userId: userId);
+      return _fetchOverride!(userId: userId); // ignore: unnecessary_non_null_assertion
     }
 
     final uri = Uri.parse('$_baseUrl/api/achievements').replace(

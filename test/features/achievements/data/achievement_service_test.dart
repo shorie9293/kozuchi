@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kozuchi/domain/models/achievement_api_model.dart';
 import 'package:kozuchi/domain/models/achievement_check_models.dart';

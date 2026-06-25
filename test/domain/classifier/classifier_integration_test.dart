@@ -1,9 +1,6 @@
-import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kozuchi/domain/classifier/classifier_interface.dart';
-import 'package:kozuchi/domain/classifier/classifier_service.dart';
 import 'package:kozuchi/domain/classifier/keyword_classifier.dart';
 
 /// キーワード分類器の統合試験

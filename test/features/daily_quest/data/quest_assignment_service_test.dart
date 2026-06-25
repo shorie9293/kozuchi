@@ -61,6 +61,7 @@ void main() {
       // 候補がunderBudgetのみになるように他を除外する状況を作るのは難しいので、
       // 全ての組合せで判定する方法をとる
       // seed=1 で予算設定ありの場合
+      // ignore: unused_local_variable
       final withBudget = service.assignDailyQuests(
         budgetIsSet: true,
         dailyBudgetAmount: 5000,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kozuchi/domain/models/advisor.dart';
 import 'package:kozuchi/features/effects/domain/effect_definition.dart';
 import 'package:kozuchi/features/effects/domain/effect_instance.dart';
 import 'package:kozuchi/features/effects/presentation/effects/guardian_switch_effect.dart';
