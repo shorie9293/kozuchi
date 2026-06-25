@@ -3,6 +3,7 @@ import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
 import 'package:kozuchi/features/receipt_scanner/data/receipt_ocr_service.dart';
+import 'package:kozuchi/features/receipt_scanner/data/mlkit_receipt_ocr_service.dart';
 import 'package:kozuchi/features/receipt_scanner/presentation/screens/receipt_scanner_screen.dart';
 
 /// 支出入力結果
@@ -99,7 +100,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     final result = await Navigator.of(context).push<ReceiptOcrResult>(
       MaterialPageRoute(
         builder: (_) => ReceiptScannerScreen(
-          ocrService: MockReceiptOcrService(),
+          ocrService: MlKitReceiptOcrService(),
         ),
       ),
     );
