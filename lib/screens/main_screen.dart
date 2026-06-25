@@ -15,7 +15,6 @@ import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart'
 import 'package:kozuchi/features/exp_gauge/presentation/widgets/exp_gauge_widget.dart';
 import 'package:kozuchi/features/advisor_selection/presentation/advisor_selection_screen.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/trial_quest_screen.dart';
-import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
 import 'package:kozuchi/features/effects/presentation/effect_manager.dart';
 import 'package:kozuchi/features/pinch_zone/presentation/widgets/pinch_zone_overlay.dart';
 import 'package:kozuchi/features/pinch_zone/presentation/widgets/pinch_zone_warning_banner.dart';
@@ -25,8 +24,8 @@ import 'package:kozuchi/features/shared/data/player_repository.dart';
 import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service.dart';
 import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
+import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
-import 'package:kozuchi/features/budget/presentation/widgets/daily_budget_widget.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
 import 'package:kozuchi/features/budget/domain/daily_budget.dart';
 import 'package:kozuchi/features/budget/data/daily_budget_service.dart';
@@ -552,28 +551,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Future<void> _openIncomeInput() async {
-    final result = await Navigator.of(context).push<IncomeResult>(
-      MaterialPageRoute(
-        builder: (_) => IncomeInputScreen(player: _player),
-      ),
-    );
-    if (result != null) {
-      setState(() {
-        _player = result.updatedPlayer;
-      });
-      _persistState();
-      // 入金エフェクト：画面中央に桜吹雪を発動
-      EffectManager.of(context).playEffect(
-        'cherry_snow',
-        Offset(
-          MediaQuery.of(context).size.width / 2,
-          MediaQuery.of(context).size.height / 2,
-        ),
-      );
-    }
-  }
-
   bool get _canUseUraMode => _player.levelStage == LevelStage.kuu;
 
   @override
@@ -603,6 +580,15 @@ class _MainScreenState extends State<MainScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 🎯 目標支出ゲージ（主役・最上部）
+                GoalSpendingGauge(
+                  monthlyBudget: _budgetAmount,
+                  totalSpent: _monthlyExpenditure,
+                  remainingDays: _displayBudget.remainingDays,
+                  onTapBudget:
+                      _budgetAmount == 0 ? _openBudgetSettings : null,
+                ),
+                const SizedBox(height: 8),
                 // HP/EXPコンパクト表示
                 _buildHpExpCompactRow(colorScheme),
                 // ピンチゾーン警告バナー（HPバー直下）
@@ -622,11 +608,6 @@ class _MainScreenState extends State<MainScreen> {
                         : 0.0,
                     threshold: _warningThreshold,
                   ),
-                ],
-                // 日割り予算表示（予算設定済みの場合のみ）
-                if (!_displayBudget.isBudgetNotSet) ...[
-                  const SizedBox(height: 8),
-                  DailyBudgetWidget(dailyBudget: _displayBudget),
                 ],
                 const SizedBox(height: 16),
                 // 🔮 現在の加護（常時表示）
@@ -789,11 +770,11 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildCardGrid(ColorScheme colorScheme) {
     return Column(
       children: [
-        // 1行目：収入カード + 試練カード
+        // 1行目：目標カード + 試練カード
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildIncomeCard(colorScheme)),
+            Expanded(child: _buildGoalCard(colorScheme)),
             const SizedBox(width: 12),
             Expanded(child: _buildTrialCard(colorScheme)),
           ],
@@ -805,11 +786,8 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// 💰 収入カード
-  Widget _buildIncomeCard(ColorScheme colorScheme) {
-    final buff = _player.goldLuckBuff;
-    final hasActiveBuff = buff?.isActive == true;
-
+  /// 🎯 目標カード
+  Widget _buildGoalCard(ColorScheme colorScheme) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -817,40 +795,13 @@ class _MainScreenState extends State<MainScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('💰 収入',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _openIncomeInput,
-                icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text('収入を記録'),
-              ),
+            GoalSpendingGauge(
+              monthlyBudget: _budgetAmount,
+              totalSpent: _monthlyExpenditure,
+              remainingDays: _displayBudget.remainingDays,
+              onTapBudget:
+                  _budgetAmount == 0 ? _openBudgetSettings : null,
             ),
-            if (hasActiveBuff) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Text('✨', style: TextStyle(fontSize: 14)),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        '金運${buff!.multiplier.toInt()}倍! ${buff.remainingDisplay}',
-                        style: const TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
