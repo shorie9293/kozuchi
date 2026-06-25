@@ -5,30 +5,30 @@ void main() {
   group('Advisor', () {
     test('四天のアドバイザーが定義されている', () {
       expect(Advisor.values.length, 4);
-      expect(Advisor.values, contains(Advisor.lifePlanner));
-      expect(Advisor.values, contains(Advisor.careerCoach));
-      expect(Advisor.values, contains(Advisor.investmentMentor));
-      expect(Advisor.values, contains(Advisor.wellnessAdvisor));
+      expect(Advisor.values, contains(Advisor.daikokuten));
+      expect(Advisor.values, contains(Advisor.benzaiten));
+      expect(Advisor.values, contains(Advisor.bishamonten));
+      expect(Advisor.values, contains(Advisor.kichijoten));
     });
 
-    test('ライフプランナーは福・食・財を領分とする', () {
-      expect(Advisor.lifePlanner.domain, '福・食・財');
-      expect(Advisor.lifePlanner.label, 'ライフプランナー');
+    test('大黒天は福・食・財を領分とする', () {
+      expect(Advisor.daikokuten.domain, '福・食・財');
+      expect(Advisor.daikokuten.label, '大黒天');
     });
 
-    test('キャリアコーチは学び・芸術を領分とする', () {
-      expect(Advisor.careerCoach.domain, '学び・芸術');
-      expect(Advisor.careerCoach.label, 'キャリアコーチ');
+    test('弁財天は学び・芸術を領分とする', () {
+      expect(Advisor.benzaiten.domain, '学び・芸術');
+      expect(Advisor.benzaiten.label, '弁財天');
     });
 
-    test('投資メンターは戦い・勝負を領分とする', () {
-      expect(Advisor.investmentMentor.domain, '戦い・勝負');
-      expect(Advisor.investmentMentor.label, '投資メンター');
+    test('毘沙門天は戦い・勝負を領分とする', () {
+      expect(Advisor.bishamonten.domain, '戦い・勝負');
+      expect(Advisor.bishamonten.label, '毘沙門天');
     });
 
-    test('ウェルネスアドバイザーは美・幸福を領分とする', () {
-      expect(Advisor.wellnessAdvisor.domain, '美・幸福');
-      expect(Advisor.wellnessAdvisor.label, 'ウェルネスアドバイザー');
+    test('吉祥天は美・幸福を領分とする', () {
+      expect(Advisor.kichijoten.domain, '美・幸福');
+      expect(Advisor.kichijoten.label, '吉祥天');
     });
   });
 }

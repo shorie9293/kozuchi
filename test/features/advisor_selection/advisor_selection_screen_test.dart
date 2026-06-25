@@ -14,10 +14,10 @@ void main() {
         ),
       );
       // skipOffstage: false でGrid内の全要素を検索
-      expect(find.text('ライフプランナー', skipOffstage: false), findsOneWidget);
-      expect(find.text('キャリアコーチ', skipOffstage: false), findsOneWidget);
-      expect(find.text('投資メンター', skipOffstage: false), findsOneWidget);
-      expect(find.text('ウェルネスアドバイザー', skipOffstage: false), findsOneWidget);
+      expect(find.text('大黒天', skipOffstage: false), findsOneWidget);
+      expect(find.text('弁財天', skipOffstage: false), findsOneWidget);
+      expect(find.text('毘沙門天', skipOffstage: false), findsOneWidget);
+      expect(find.text('吉祥天', skipOffstage: false), findsOneWidget);
     });
 
     testWidgets('各アドバイザーの領分が表示される', (tester) async {
@@ -58,8 +58,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('ライフプランナー'));
-      expect(selectedDeity, Advisor.lifePlanner);
+      await tester.tap(find.text('大黒天'));
+      expect(selectedDeity, Advisor.daikokuten);
     });
 
     testWidgets('WidgetKeyが設定されている', (tester) async {
@@ -96,7 +96,7 @@ void main() {
           ),
         ),
       );
-      // 🪘 appears both in the description box and in ライフプランナー's card
+      // 🪘 appears both in the description box and in 大黒天's card
       expect(find.text('🪘', skipOffstage: false), findsAtLeastNWidgets(1));
       expect(find.text('🎵', skipOffstage: false), findsOneWidget);
       expect(find.text('⚔️', skipOffstage: false), findsOneWidget);
@@ -139,7 +139,7 @@ void main() {
       expect(find.textContaining('四天'), findsOneWidget);
     });
 
-    testWidgets('tap キャリアコーチ calls back with careerCoach', (tester) async {
+    testWidgets('tap 弁財天 calls back with careerCoach', (tester) async {
       Advisor? selectedDeity;
       await tester.pumpWidget(
         MaterialApp(
@@ -151,8 +151,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('キャリアコーチ'));
-      expect(selectedDeity, Advisor.careerCoach);
+      await tester.tap(find.text('弁財天'));
+      expect(selectedDeity, Advisor.benzaiten);
     });
   });
 }

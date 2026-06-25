@@ -10,7 +10,7 @@ void main() {
         oldValue: 10,
         newValue: 25,
         delta: 15,
-        context: 'ライフプランナー',
+        context: '大黒天',
       );
 
       expect(event.direction, SatoriDirection.increase);
@@ -18,7 +18,7 @@ void main() {
       expect(event.oldValue, 10);
       expect(event.newValue, 25);
       expect(event.delta, 15);
-      expect(event.context, 'ライフプランナー');
+      expect(event.context, '大黒天');
     });
 
     test('toStringは矢印と理由と値の変遷を含む', () {

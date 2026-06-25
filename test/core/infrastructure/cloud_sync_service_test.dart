@@ -83,7 +83,7 @@ void main() {
       final player = PlayerModel(
         hp: 85000,
         exp: 320,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
         lastSwitchTimestamp: DateTime.utc(2026, 6, 24),
       );
 
@@ -141,7 +141,7 @@ void main() {
         title: '自己投資の試練',
         description: '今週は学びに¥3,000投資せよ',
         suggestedOffering: 3000,
-        advisor: Advisor.careerCoach,
+        advisor: Advisor.benzaiten,
         offeringAmount: 2500,
         offeringPurpose: '技術書購入',
         offeringNote: 'Dart実践入門',

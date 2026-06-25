@@ -11,7 +11,7 @@ void main() {
       title: '誰かと食事を共にせよ',
       description: '友人や家族と食事をし、会計を済ませよ',
       suggestedOffering: 3000,
-      advisor: Advisor.lifePlanner,
+      advisor: Advisor.daikokuten,
     );
     final player = PlayerModel(hp: 100000, exp: 30);
 

@@ -3,15 +3,15 @@ import 'dart:io';
 
 import 'package:kozuchi/domain/models/advisor.dart';
 
-/// CareerCoach（キャリアコーチ）の蔵書追加ボーナスを処理するサービス
+/// CareerCoach（弁財天）の蔵書追加ボーナスを処理するサービス
 ///
 /// tsundoku-questが書き出す共有ストレージのJSONファイルを読み取り、
-/// アドバイザーがキャリアコーチの場合にEXPボーナスを返す。
+/// アドバイザーが弁財天の場合にEXPボーナスを返す。
 class CareerCoachBookBonusService {
   /// 共有ストレージのファイルパス
   final String filePath;
 
-  /// EXPボーナス値（キャリアコーチの場合に付与）
+  /// EXPボーナス値（弁財天の場合に付与）
   static const int careerCoachBonusExp = 10;
 
   const CareerCoachBookBonusService({
@@ -24,12 +24,12 @@ class CareerCoachBookBonusService {
   /// 戻り値:
   /// - [advisor] が CareerCoach でない場合 → null（ボーナスなし）
   /// - ファイルが存在しない場合 → null
-  /// - ファイルが存在し、アドバイザーがキャリアコーチの場合 → CareerCoachBonusResult
+  /// - ファイルが存在し、アドバイザーが弁財天の場合 → CareerCoachBonusResult
   Future<CareerCoachBonusResult?> checkAndConsume(
     Advisor advisor,
   ) async {
-    // キャリアコーチでなければボーナスなし
-    if (advisor != Advisor.careerCoach) return null;
+    // 弁財天でなければボーナスなし
+    if (advisor != Advisor.benzaiten) return null;
 
     final file = File(filePath);
     if (!await file.exists()) return null;
@@ -59,7 +59,7 @@ class CareerCoachBookBonusService {
   }
 }
 
-/// キャリアコーチボーナスの結果
+/// 弁財天ボーナスの結果
 class CareerCoachBonusResult {
   final String bookTitle;
   final String? bookAuthor;

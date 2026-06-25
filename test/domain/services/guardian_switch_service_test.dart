@@ -17,15 +17,15 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 500,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
-      final result = service.switchGuardian(player, Advisor.careerCoach);
+      final result = service.switchGuardian(player, Advisor.benzaiten);
 
       expect(result.isSuccess, isTrue);
       expect(result.error, isNull);
-      expect(result.newAdvisor, Advisor.careerCoach);
-      expect(result.player!.advisor, Advisor.careerCoach);
+      expect(result.newAdvisor, Advisor.benzaiten);
+      expect(result.player!.advisor, Advisor.benzaiten);
       expect(result.player!.exp, 500 - PlayerModel.switchExpCost);
       expect(result.player!.lastSwitchTimestamp, isNotNull);
       expect(
@@ -42,27 +42,27 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: PlayerModel.switchExpCost,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
-      final result = service.switchGuardian(player, Advisor.investmentMentor);
+      final result = service.switchGuardian(player, Advisor.bishamonten);
 
       expect(result.isSuccess, isTrue);
       expect(result.player!.exp, 0);
-      expect(result.player!.advisor, Advisor.investmentMentor);
+      expect(result.player!.advisor, Advisor.bishamonten);
     });
 
     test('任意の守護神に切り替えられる', () {
       final player = PlayerModel(
         hp: 100000,
         exp: 500,
-        advisor: Advisor.careerCoach,
+        advisor: Advisor.benzaiten,
       );
 
-      final result = service.switchGuardian(player, Advisor.wellnessAdvisor);
+      final result = service.switchGuardian(player, Advisor.kichijoten);
 
       expect(result.isSuccess, isTrue);
-      expect(result.newAdvisor, Advisor.wellnessAdvisor);
+      expect(result.newAdvisor, Advisor.kichijoten);
     });
 
     // ── エラー系: EXP不足 ──
@@ -71,10 +71,10 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 50,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
-      final result = service.switchGuardian(player, Advisor.careerCoach);
+      final result = service.switchGuardian(player, Advisor.benzaiten);
 
       expect(result.isSuccess, isFalse);
       expect(result.error, GuardianSwitchError.insufficientExp);
@@ -85,10 +85,10 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 0,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
-      final result = service.switchGuardian(player, Advisor.careerCoach);
+      final result = service.switchGuardian(player, Advisor.benzaiten);
 
       expect(result.isSuccess, isFalse);
       expect(result.error, GuardianSwitchError.insufficientExp);
@@ -100,12 +100,12 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 500,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
         lastSwitchTimestamp:
             DateTime.now().subtract(const Duration(days: 6)),
       );
 
-      final result = service.switchGuardian(player, Advisor.careerCoach);
+      final result = service.switchGuardian(player, Advisor.benzaiten);
 
       expect(result.isSuccess, isFalse);
       expect(result.error, GuardianSwitchError.inCooldown);
@@ -115,12 +115,12 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 500,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
         lastSwitchTimestamp:
             DateTime.now().subtract(const Duration(hours: 1)),
       );
 
-      final result = service.switchGuardian(player, Advisor.careerCoach);
+      final result = service.switchGuardian(player, Advisor.benzaiten);
 
       expect(result.isSuccess, isFalse);
       expect(result.error, GuardianSwitchError.inCooldown);
@@ -130,12 +130,12 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 500,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
         lastSwitchTimestamp:
             DateTime.now().subtract(const Duration(days: 7, minutes: 1)),
       );
 
-      final result = service.switchGuardian(player, Advisor.investmentMentor);
+      final result = service.switchGuardian(player, Advisor.bishamonten);
 
       expect(result.isSuccess, isTrue);
     });
@@ -146,10 +146,10 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 500,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
-      final result = service.switchGuardian(player, Advisor.lifePlanner);
+      final result = service.switchGuardian(player, Advisor.daikokuten);
 
       expect(result.isSuccess, isFalse);
       expect(result.error, GuardianSwitchError.alreadyContracted);
@@ -164,7 +164,7 @@ void main() {
         advisor: null,
       );
 
-      final result = service.switchGuardian(player, Advisor.lifePlanner);
+      final result = service.switchGuardian(player, Advisor.daikokuten);
 
       expect(result.isSuccess, isFalse);
       expect(result.error, GuardianSwitchError.noActiveGuardian);
@@ -177,10 +177,10 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 300,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
-      final result = customService.switchGuardian(player, Advisor.careerCoach);
+      final result = customService.switchGuardian(player, Advisor.benzaiten);
 
       expect(result.isSuccess, isTrue);
       expect(result.player!.exp, 0);
@@ -191,10 +191,10 @@ void main() {
       final player = PlayerModel(
         hp: 100000,
         exp: 200,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
-      final result = customService.switchGuardian(player, Advisor.careerCoach);
+      final result = customService.switchGuardian(player, Advisor.benzaiten);
 
       expect(result.isSuccess, isFalse);
       expect(result.error, GuardianSwitchError.insufficientExp);

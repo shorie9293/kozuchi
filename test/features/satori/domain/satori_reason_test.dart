@@ -104,7 +104,7 @@ void main() {
       expect(reason, '善き布施の実践');
     });
 
-    test('キャリアコーチボーナスは智慧の蔵書ボーナス', () {
+    test('弁財天ボーナスは智慧の蔵書ボーナス', () {
       final reason = SatoriReason.forIncrease(
         SatoriContext.careerCoachBonus(bookTitle: 'テストの書'),
       );
@@ -157,7 +157,7 @@ void main() {
     test('careerCoachBonusでbookTitleがnullの場合も動作する', () {
       final ctx = SatoriContext.careerCoachBonus();
       expect(ctx.triggerType, SatoriTriggerType.careerCoachBonus);
-      expect(ctx.advisorLabel, 'キャリアコーチ');
+      expect(ctx.advisorLabel, '弁財天');
     });
 
     test('genericファクトリが正しいtriggerTypeを設定する', () {

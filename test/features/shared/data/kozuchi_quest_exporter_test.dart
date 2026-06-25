@@ -27,7 +27,7 @@ void main() {
         title: 'コンビニ誘惑を断て',
         description: '3日間コンビニで無駄遣いせず、必要なものだけ買う',
         suggestedOffering: 500,
-        advisor: Advisor.investmentMentor,
+        advisor: Advisor.bishamonten,
       );
 
       final exporter = KozuchiQuestExporter(filePath: filePath);
@@ -47,10 +47,10 @@ void main() {
 
     test('advisorが正しい文字列キーで出力されること（全4種）', () async {
       final deities = {
-        Advisor.lifePlanner: 'lifePlanner',
-        Advisor.careerCoach: 'careerCoach',
-        Advisor.investmentMentor: 'investmentMentor',
-        Advisor.wellnessAdvisor: 'wellnessAdvisor',
+        Advisor.daikokuten: 'lifePlanner',
+        Advisor.benzaiten: 'careerCoach',
+        Advisor.bishamonten: 'investmentMentor',
+        Advisor.kichijoten: 'wellnessAdvisor',
       };
 
       for (final entry in deities.entries) {
@@ -77,7 +77,7 @@ void main() {
         title: '深いパス',
         description: 'テスト',
         suggestedOffering: 100,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
       final exporter = KozuchiQuestExporter(filePath: deepPath);
@@ -95,7 +95,7 @@ void main() {
         title: 'テスト',
         description: '未完了の試練',
         suggestedOffering: 100,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
 
       final exporter = KozuchiQuestExporter(filePath: filePath);
@@ -111,7 +111,7 @@ void main() {
         title: 'テスト',
         description: '完了した試練',
         suggestedOffering: 100,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       ).recordOffering(amount: 500, purpose: '寄付')
        .recordReflection('よく頑張った');
 

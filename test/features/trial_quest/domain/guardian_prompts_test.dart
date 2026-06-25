@@ -10,33 +10,33 @@ void main() {
       service = DeepSeekReviewService();
     });
 
-    test('ライフプランナーのシステムプロンプトに名前と領分が含まれる', () {
-      final prompt = service.buildSystemPrompt(Advisor.lifePlanner);
-      expect(prompt, contains('ライフプランナー'));
+    test('大黒天のシステムプロンプトに名前と領分が含まれる', () {
+      final prompt = service.buildSystemPrompt(Advisor.daikokuten);
+      expect(prompt, contains('大黒天'));
       expect(prompt, contains('福・食・財'));
       expect(prompt, contains('〜ぞ'));
       expect(prompt, contains('EXP'));
     });
 
-    test('キャリアコーチのシステムプロンプトに名前と領分が含まれる', () {
-      final prompt = service.buildSystemPrompt(Advisor.careerCoach);
-      expect(prompt, contains('キャリアコーチ'));
+    test('弁財天のシステムプロンプトに名前と領分が含まれる', () {
+      final prompt = service.buildSystemPrompt(Advisor.benzaiten);
+      expect(prompt, contains('弁財天'));
       expect(prompt, contains('学び・芸術'));
       expect(prompt, contains('〜わ'));
       expect(prompt, contains('EXP'));
     });
 
-    test('投資メンターのシステムプロンプトに名前と領分が含まれる', () {
-      final prompt = service.buildSystemPrompt(Advisor.investmentMentor);
-      expect(prompt, contains('投資メンター'));
+    test('毘沙門天のシステムプロンプトに名前と領分が含まれる', () {
+      final prompt = service.buildSystemPrompt(Advisor.bishamonten);
+      expect(prompt, contains('毘沙門天'));
       expect(prompt, contains('戦い・勝負'));
       expect(prompt, contains('〜だ'));
       expect(prompt, contains('EXP'));
     });
 
-    test('ウェルネスアドバイザーのシステムプロンプトに名前と領分が含まれる', () {
-      final prompt = service.buildSystemPrompt(Advisor.wellnessAdvisor);
-      expect(prompt, contains('ウェルネスアドバイザー'));
+    test('吉祥天のシステムプロンプトに名前と領分が含まれる', () {
+      final prompt = service.buildSystemPrompt(Advisor.kichijoten);
+      expect(prompt, contains('吉祥天'));
       expect(prompt, contains('美・幸福'));
       expect(prompt, contains('〜なさい'));
       expect(prompt, contains('EXP'));

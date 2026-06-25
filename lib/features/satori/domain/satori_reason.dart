@@ -7,7 +7,7 @@ class SatoriContext {
   /// 変動の契機
   final SatoriTriggerType triggerType;
 
-  /// アドバイザー表示名（例: "ライフプランナー"）
+  /// アドバイザー表示名（例: "大黒天"）
   final String? advisorLabel;
 
   /// AI講評によるEXP倍率（0.5〜2.0）
@@ -49,7 +49,7 @@ class SatoriContext {
     );
   }
 
-  /// キャリアコーチボーナスからの変動
+  /// 弁財天ボーナスからの変動
   factory SatoriContext.careerCoachBonus({
     String? bookTitle,
     LevelStage? previousStage,
@@ -57,7 +57,7 @@ class SatoriContext {
   }) {
     return SatoriContext(
       triggerType: SatoriTriggerType.careerCoachBonus,
-      advisorLabel: bookTitle != null ? 'キャリアコーチ（$bookTitle）' : 'キャリアコーチ',
+      advisorLabel: bookTitle != null ? '弁財天（$bookTitle）' : '弁財天',
       previousStage: previousStage,
       newStage: newStage,
     );
@@ -81,7 +81,7 @@ enum SatoriTriggerType {
   /// 振り返り講評
   reflectionReview,
 
-  /// キャリアコーチボーナス
+  /// 弁財天ボーナス
   careerCoachBonus,
 
   /// ピンチゾーンペナルティ（将来実装）
@@ -113,7 +113,7 @@ class SatoriReason {
       return _reflectionReviewIncreaseReason(context);
     }
 
-    // キャリアコーチボーナス
+    // 弁財天ボーナス
     if (context.triggerType == SatoriTriggerType.careerCoachBonus) {
       return '智慧の蔵書ボーナス';
     }

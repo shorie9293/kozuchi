@@ -41,8 +41,8 @@ void main() {
 
     test('アドバイザーを契約できる', () {
       final player = PlayerModel.defaultPlayer()
-          .contractWith(Advisor.lifePlanner);
-      expect(player.advisor, Advisor.lifePlanner);
+          .contractWith(Advisor.daikokuten);
+      expect(player.advisor, Advisor.daikokuten);
     });
 
     test('ピンチ状態（HPが生活防衛ライン以下）を検出できる', () {

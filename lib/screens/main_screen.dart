@@ -216,10 +216,10 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  /// キャリアコーチの蔵書追加ボーナスをチェックして適用する
+  /// 弁財天の蔵書追加ボーナスをチェックして適用する
   ///
   /// tsundoku-quest が共有ストレージに書き出した book_added イベントを読み取り、
-  /// アドバイザーがキャリアコーチの場合に EXP ボーナスを付与する。
+  /// アドバイザーが弁財天の場合に EXP ボーナスを付与する。
   void _checkCareerCoachBookBonus() {
     final advisor = _player.advisor;
     if (advisor == null) return;
@@ -234,7 +234,7 @@ class _MainScreenState extends State<MainScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '📚 キャリアコーチボーナス！『${result.bookTitle}』の蔵書追加でEXP +${result.bonusExp}',
+              '📚 弁財天ボーナス！『${result.bookTitle}』の蔵書追加でEXP +${result.bonusExp}',
             ),
           ),
         );
@@ -371,7 +371,7 @@ class _MainScreenState extends State<MainScreen> {
         title: 'アドバイザーと契約せよ',
         description: 'まずは四天のアドバイザーから1柱を選び、契約を結べ。',
         suggestedOffering: 0,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
     }
     return TrialQuest(

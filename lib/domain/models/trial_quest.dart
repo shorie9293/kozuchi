@@ -60,7 +60,7 @@ class TrialQuest {
       suggestedOffering: json['suggestedOffering'] as int? ?? 0,
       advisor: Advisor.values.firstWhere(
         (d) => d.name == json['advisor'],
-        orElse: () => Advisor.lifePlanner,
+        orElse: () => Advisor.daikokuten,
       ),
       offeringAmount: json['offeringAmount'] as int?,
       offeringPurpose: json['offeringPurpose'] as String?,

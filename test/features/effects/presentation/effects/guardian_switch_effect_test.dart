@@ -66,7 +66,7 @@ void main() {
       // 1.0秒経過で別れのメッセージが完全表示される（progress 0.25）
       await tester.pump(const Duration(milliseconds: 1000));
 
-      // ライフプランナーの別れの言葉が含まれている
+      // 大黒天の別れの言葉が含まれている
       expect(
         find.textContaining('福と財の加護'),
         findsOneWidget,
@@ -91,7 +91,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 2400));
 
       expect(
-        find.textContaining('キャリアコーチ'),
+        find.textContaining('弁財天'),
         findsWidgets,
       );
     });

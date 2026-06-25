@@ -143,16 +143,16 @@ class WeeklyReportService {
     final absChange = totalChange.abs();
 
     return switch (advisor!) {
-      Advisor.lifePlanner => isDecrease
+      Advisor.daikokuten => isDecrease
           ? '$prefix支出¥$absChange減。よくぞ福を守った。来週も「$topCategory」に気を配れ。福は日々の小さな選択に宿る。'
           : '$prefix支出¥$absChange増。されど恐るるに及ばず。「$topCategory」は明日の福への布施と心得よ。',
-      Advisor.careerCoach => isDecrease
+      Advisor.benzaiten => isDecrease
           ? '$prefix¥${absChange}の節約、見事です。浮いた資金を学びに回せば、さらに高みへ。'
           : '$prefix¥$absChangeの支出増。しかし「$topCategory」への投資はあなたを成長させる糧。恐れず、されど見極めを。',
-      Advisor.investmentMentor => isDecrease
+      Advisor.bishamonten => isDecrease
           ? '$prefix¥${absChange}の支出減、戦略的撤退と見た。「$topCategory」への資源配分、見事なり。'
           : '$prefix¥$absChangeの支出増。これは攻めの一手か、それとも無駄打ちか。よく見極めよ。',
-      Advisor.wellnessAdvisor => isDecrease
+      Advisor.kichijoten => isDecrease
           ? '$prefix¥${absChange}の節約、心身のバランスが整ってきた証。「$topCategory」もほどほどが美しき調和。'
           : '$prefix¥$absChangeの支出増。されど心が潤うなら良し。「$topCategory」があなたを輝かせているならば。',
     };

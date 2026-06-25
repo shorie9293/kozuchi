@@ -95,7 +95,7 @@ class PlayerModel {
       advisor: json['advisor'] != null
           ? Advisor.values.firstWhere(
               (d) => d.name == json['advisor'],
-              orElse: () => Advisor.lifePlanner,
+              orElse: () => Advisor.daikokuten,
             )
           : null,
       lastSwitchTimestamp: json['lastSwitchTimestamp'] != null

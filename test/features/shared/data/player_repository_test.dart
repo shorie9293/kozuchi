@@ -23,7 +23,7 @@ void main() {
       final player = PlayerModel(
         hp: 50000,
         exp: 42,
-        advisor: Advisor.investmentMentor,
+        advisor: Advisor.bishamonten,
       );
 
       await repository.savePlayer(player);
@@ -33,7 +33,7 @@ void main() {
       expect(loaded, isNotNull);
       expect(loaded!.hp, 50000);
       expect(loaded.exp, 42);
-      expect(loaded.advisor, Advisor.investmentMentor);
+      expect(loaded.advisor, Advisor.bishamonten);
     });
 
     // ──────────────────────────────────────────────
@@ -64,7 +64,7 @@ void main() {
         title: 'コンビニ誘惑を断て',
         description: '3日間コンビニで無駄遣いしない',
         suggestedOffering: 500,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
         offeringAmount: 300,
         offeringPurpose: '食費節約',
         offeringNote: 'おにぎりだけ買った',
@@ -81,7 +81,7 @@ void main() {
       expect(loaded!.title, 'コンビニ誘惑を断て');
       expect(loaded.description, '3日間コンビニで無駄遣いしない');
       expect(loaded.suggestedOffering, 500);
-      expect(loaded.advisor, Advisor.lifePlanner);
+      expect(loaded.advisor, Advisor.daikokuten);
       expect(loaded.offeringAmount, 300);
       expect(loaded.offeringPurpose, '食費節約');
       expect(loaded.offeringNote, 'おにぎりだけ買った');
@@ -107,7 +107,7 @@ void main() {
         title: '試練',
         description: 'テスト',
         suggestedOffering: 100,
-        advisor: Advisor.wellnessAdvisor,
+        advisor: Advisor.kichijoten,
       );
 
       await repository.savePlayer(player);
@@ -131,14 +131,14 @@ void main() {
       final player = PlayerModel(
         hp: 77777,
         exp: 7,
-        advisor: Advisor.careerCoach,
+        advisor: Advisor.benzaiten,
       );
 
       final quest = TrialQuest(
         title: '混入テスト用クエスト',
         description: 'このデータがPlayerに混ざってはいけない',
         suggestedOffering: 999,
-        advisor: Advisor.investmentMentor,
+        advisor: Advisor.bishamonten,
       );
 
       await repository.savePlayer(player);
@@ -150,7 +150,7 @@ void main() {
       expect(loaded, isNotNull);
       expect(loaded!.hp, 77777);
       expect(loaded.exp, 7);
-      expect(loaded.advisor, Advisor.careerCoach);
+      expect(loaded.advisor, Advisor.benzaiten);
 
       // quest側も正しく保存されていることを確認
       final loadedQuest = await repository.loadQuest();

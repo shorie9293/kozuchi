@@ -34,7 +34,7 @@ void main() {
         'timestamp': '2026-05-21T12:00:00.000Z',
       });
 
-      final result = await service.checkAndConsume(Advisor.lifePlanner);
+      final result = await service.checkAndConsume(Advisor.daikokuten);
 
       expect(result, isNull);
     });
@@ -48,7 +48,7 @@ void main() {
         'timestamp': '2026-05-21T12:00:00.000Z',
       });
 
-      final result = await service.checkAndConsume(Advisor.investmentMentor);
+      final result = await service.checkAndConsume(Advisor.bishamonten);
 
       expect(result, isNull);
     });
@@ -62,7 +62,7 @@ void main() {
         'timestamp': '2026-05-21T12:00:00.000Z',
       });
 
-      final result = await service.checkAndConsume(Advisor.wellnessAdvisor);
+      final result = await service.checkAndConsume(Advisor.kichijoten);
 
       expect(result, isNull);
     });
@@ -70,7 +70,7 @@ void main() {
     test('Returns null when file does not exist', () async {
       final service = CareerCoachBookBonusService(filePath: filePath);
 
-      final result = await service.checkAndConsume(Advisor.careerCoach);
+      final result = await service.checkAndConsume(Advisor.benzaiten);
 
       expect(result, isNull);
     });
@@ -84,7 +84,7 @@ void main() {
         'timestamp': '2026-05-21T12:00:00.000Z',
       });
 
-      final result = await service.checkAndConsume(Advisor.careerCoach);
+      final result = await service.checkAndConsume(Advisor.benzaiten);
 
       expect(result, isNull);
     });
@@ -98,7 +98,7 @@ void main() {
         'timestamp': '2026-05-21T12:00:00.000Z',
       });
 
-      final result = await service.checkAndConsume(Advisor.careerCoach);
+      final result = await service.checkAndConsume(Advisor.benzaiten);
 
       expect(result, isNotNull);
       expect(result!.bookTitle, 'Some Book Title');
@@ -117,7 +117,7 @@ void main() {
 
       expect(File(filePath).existsSync(), isTrue);
 
-      await service.checkAndConsume(Advisor.careerCoach);
+      await service.checkAndConsume(Advisor.benzaiten);
 
       expect(File(filePath).existsSync(), isFalse);
     });
@@ -131,7 +131,7 @@ void main() {
         'timestamp': '2026-05-21T12:00:00.000Z',
       });
 
-      final result = await service.checkAndConsume(Advisor.careerCoach);
+      final result = await service.checkAndConsume(Advisor.benzaiten);
 
       expect(result, isNotNull);
       expect(result!.bookTitle, 'Some Book Title');
@@ -148,7 +148,7 @@ void main() {
         'timestamp': '2026-05-21T12:00:00.000Z',
       });
 
-      final result = await service.checkAndConsume(Advisor.careerCoach);
+      final result = await service.checkAndConsume(Advisor.benzaiten);
 
       expect(result, isNotNull);
       expect(result!.bookTitle, 'Another Book');

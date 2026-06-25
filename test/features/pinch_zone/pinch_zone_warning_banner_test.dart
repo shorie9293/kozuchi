@@ -9,7 +9,7 @@ void main() {
     testWidgets('アドバイザーの絵文字と名前が表示される', (tester) async {
       final player = PlayerModel(
         hp: 25000,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -21,7 +21,7 @@ void main() {
 
       // 絵文字と名前が含まれている
       expect(find.textContaining('🪘'), findsOneWidget);
-      expect(find.textContaining('ライフプランナー'), findsOneWidget);
+      expect(find.textContaining('大黒天'), findsOneWidget);
       // 警告メッセージが含まれている
       expect(find.textContaining('ピンチゾーン'), findsOneWidget);
     });
@@ -29,7 +29,7 @@ void main() {
     testWidgets('異なるアドバイザーでも正しく表示される', (tester) async {
       final player = PlayerModel(
         hp: 15000,
-        advisor: Advisor.careerCoach,
+        advisor: Advisor.benzaiten,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -40,14 +40,14 @@ void main() {
       );
 
       expect(find.textContaining('🎵'), findsOneWidget);
-      expect(find.textContaining('キャリアコーチ'), findsOneWidget);
+      expect(find.textContaining('弁財天'), findsOneWidget);
       expect(find.textContaining('ピンチゾーン'), findsOneWidget);
     });
 
-    testWidgets('投資メンターでも正しく表示される', (tester) async {
+    testWidgets('毘沙門天でも正しく表示される', (tester) async {
       final player = PlayerModel(
         hp: 5000,
-        advisor: Advisor.investmentMentor,
+        advisor: Advisor.bishamonten,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -58,14 +58,14 @@ void main() {
       );
 
       expect(find.textContaining('⚔️'), findsOneWidget);
-      expect(find.textContaining('投資メンター'), findsOneWidget);
+      expect(find.textContaining('毘沙門天'), findsOneWidget);
       expect(find.textContaining('ピンチゾーン'), findsOneWidget);
     });
 
-    testWidgets('ウェルネスアドバイザーでも正しく表示される', (tester) async {
+    testWidgets('吉祥天でも正しく表示される', (tester) async {
       final player = PlayerModel(
         hp: 10000,
-        advisor: Advisor.wellnessAdvisor,
+        advisor: Advisor.kichijoten,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -76,7 +76,7 @@ void main() {
       );
 
       expect(find.textContaining('🌸'), findsOneWidget);
-      expect(find.textContaining('ウェルネスアドバイザー'), findsOneWidget);
+      expect(find.textContaining('吉祥天'), findsOneWidget);
       expect(find.textContaining('ピンチゾーン'), findsOneWidget);
     });
 

@@ -12,7 +12,7 @@ void main() {
         title: '誰かと食事を共にせよ',
         description: '友人や家族と食事をし、会計を済ませよ',
         suggestedOffering: 3000,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
       final player = PlayerModel.defaultPlayer();
 
@@ -35,7 +35,7 @@ void main() {
         title: '本を買って智慧を得よ',
         description: '本を一冊購入せよ',
         suggestedOffering: 2000,
-        advisor: Advisor.careerCoach,
+        advisor: Advisor.benzaiten,
       );
       final player = PlayerModel.defaultPlayer();
 
@@ -58,7 +58,7 @@ void main() {
         title: '誰かに贈り物をせよ',
         description: '大切な人に贈り物をせよ',
         suggestedOffering: 5000,
-        advisor: Advisor.wellnessAdvisor,
+        advisor: Advisor.kichijoten,
       );
       final player = PlayerModel.defaultPlayer();
 
@@ -72,7 +72,7 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('ウェルネスアドバイザー'), findsOneWidget);
+      expect(find.textContaining('吉祥天'), findsOneWidget);
     });
 
     testWidgets('支出入力画面に遷移できる', (tester) async {
@@ -80,7 +80,7 @@ void main() {
         title: '己への投資を使え',
         description: '自分への投資に金を使え',
         suggestedOffering: 10000,
-        advisor: Advisor.investmentMentor,
+        advisor: Advisor.bishamonten,
       );
       final player = PlayerModel.defaultPlayer();
 
@@ -105,7 +105,7 @@ void main() {
         title: '誰かと食事を共にせよ',
         description: '友人と食事を共にせよ',
         suggestedOffering: 3000,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       ).recordOffering(amount: 3000, purpose: '友人との食事', note: '楽しかった');
       final player = PlayerModel.defaultPlayer();
 
@@ -130,7 +130,7 @@ void main() {
         title: '試練',
         description: '説明',
         suggestedOffering: 1000,
-        advisor: Advisor.lifePlanner,
+        advisor: Advisor.daikokuten,
       );
       final player = PlayerModel.defaultPlayer();
 

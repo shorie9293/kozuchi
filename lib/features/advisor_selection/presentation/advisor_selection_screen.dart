@@ -3,7 +3,7 @@ import 'package:kozuchi/domain/models/advisor.dart';
 
 /// アドバイザー選択画面
 ///
-/// 四天（ライフプランナー/キャリアコーチ/投資メンター/ウェルネスアドバイザー）から1柱を選択させる。
+/// 四天（大黒天/弁財天/毘沙門天/吉祥天）から1柱を選択させる。
 class AdvisorSelectionScreen extends StatelessWidget {
   final void Function(Advisor deity) onSelected;
 

@@ -63,7 +63,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -90,7 +90,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -117,7 +117,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -148,7 +148,7 @@ void main() {
         );
 
         await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -175,7 +175,7 @@ void main() {
             'choices': [
               {
                 'message': {
-                  'content': 'ライフプランナー「よくぞ内省した。その気づきこそが福の種ぞ。EXP: 1.5」',
+                  'content': '大黒天「よくぞ内省した。その気づきこそが福の種ぞ。EXP: 1.5」',
                 },
               },
             ],
@@ -185,7 +185,7 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -210,7 +210,7 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -235,7 +235,7 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '深く内省しました',
           offeringAmount: 5000,
           offeringPurpose: '自己投資',
@@ -245,7 +245,7 @@ void main() {
       });
 
       test('講評文が正しく抽出される', () async {
-        final reviewText = 'ライフプランナー「うむ、その内省の中に確かな悟りの灯を見た。'
+        final reviewText = '大黒天「うむ、その内省の中に確かな悟りの灯を見た。'
             '支出の痛みは執着の手放しに他ならぬ。よく励んだぞ。」';
         responses[apiUrl] = http.Response(
           jsonEncode({
@@ -262,7 +262,7 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
@@ -276,14 +276,14 @@ void main() {
       test('ネットワークエラー時にフォールバック講評を返す', () async {
         // レスポンスを設定しない → 404エラー
         final result = await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
         );
 
         expect(result.reviewText, isNotEmpty);
-        expect(result.reviewText, contains('ライフプランナー'));
+        expect(result.reviewText, contains('大黒天'));
         expect(result.expMultiplier, 1.0);
       });
 
@@ -295,14 +295,14 @@ void main() {
         );
 
         final result = await service.generateReview(
-          deity: Advisor.lifePlanner,
+          deity: Advisor.daikokuten,
           reflection: '相手が喜んでくれて嬉しかった',
           offeringAmount: 3000,
           offeringPurpose: '友人との食事',
         );
 
         expect(result.reviewText, isNotEmpty);
-        expect(result.reviewText, contains('ライフプランナー'));
+        expect(result.reviewText, contains('大黒天'));
         expect(result.expMultiplier, 1.0);
       });
     });

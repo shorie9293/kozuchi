@@ -9,7 +9,7 @@ TrialQuest _createQuest({
   String title = '試練のタイトル',
   String description = '試練の説明',
   int suggestedOffering = 500,
-  Advisor advisor = Advisor.lifePlanner,
+  Advisor advisor = Advisor.daikokuten,
 }) {
   return TrialQuest(
     title: title,

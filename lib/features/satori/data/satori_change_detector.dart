@@ -15,7 +15,7 @@ import 'package:kozuchi/features/satori/data/satori_event_dispatcher.dart';
 ///   oldPlayer: currentPlayer,
 ///   newPlayer: updatedPlayer,
 ///   context: SatoriContext.reflectionReview(
-///     advisorLabel: 'ライフプランナー',
+///     advisorLabel: '大黒天',
 ///     expMultiplier: 1.5,
 ///     offeringAmount: 3000,
 ///     previousStage: currentPlayer.levelStage,

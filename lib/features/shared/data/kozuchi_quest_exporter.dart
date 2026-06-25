@@ -40,7 +40,7 @@ class KozuchiQuestExporter {
 
   /// Advisor enum を文字列キーに変換する
   ///
-  /// 例: Advisor.investmentMentor → "investmentMentor"
+  /// 例: Advisor.bishamonten → "investmentMentor"
   String _deityKey(Advisor deity) {
     return deity.name;
   }
