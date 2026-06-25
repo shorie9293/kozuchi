@@ -9,6 +9,7 @@ import 'package:kozuchi/domain/models/level_stage.dart';
 import 'package:kozuchi/domain/models/daily_quest.dart';
 import 'package:kozuchi/features/daily_quest/data/daily_quest_orchestrator.dart';
 import 'package:kozuchi/features/daily_quest/presentation/state/daily_quest_notifier.dart';
+import 'package:kozuchi/features/daily_quest/data/quest_action.dart';
 import 'package:kozuchi/features/daily_quest/presentation/widgets/daily_quest_list.dart';
 import 'package:kozuchi/features/daily_quest/presentation/widgets/quest_achievement_effect.dart';
 import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
@@ -34,11 +35,13 @@ import 'package:kozuchi/features/shared/data/budget_repository.dart';
 import 'package:kozuchi/features/period_comparison/presentation/widgets/period_comparison_summary.dart';
 import 'package:kozuchi/features/achievements/data/achievement_service.dart';
 import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
+import 'package:kozuchi/features/achievements/presentation/widgets/achievement_unlock_overlay.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
 import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
+import 'package:kozuchi/features/collaboration_dashboard/presentation/screens/collaboration_dashboard_screen.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
 
 /// メイン画面
@@ -187,6 +190,23 @@ class _MainScreenState extends State<MainScreen> {
         yesterdayWasHighSpending: false,   // TODO: 前日の支出分析
       );
 
+      // 日跨ぎ時に前日未達成クエストのSATORIペナルティを適用
+      final satoriPenalty = _dailyQuestNotifier.lastSatoriPenalty;
+      if (satoriPenalty > 0 && mounted) {
+        setState(() {
+          _player = _player.addExp(-satoriPenalty);
+        });
+        _persistState();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🌅 日が変わった… 昨日の未達成クエストによりSATORI -$satoriPenalty',
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+
       if (mounted) {
         setState(() => _dailyQuestsLoaded = true);
       }
@@ -292,14 +312,12 @@ class _MainScreenState extends State<MainScreen> {
       final newlyUnlocked = achievements
           .where((a) => a.unlocked && !_knownUnlockedKeys.contains(a.key))
           .toList();
-      for (final a in newlyUnlocked) {
-        _knownUnlockedKeys.add(a.key);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 4),
-            content: Text('🏆 実績解除！ ${a.icon} ${a.title}'),
-          ),
-        );
+      if (newlyUnlocked.isNotEmpty) {
+        for (final a in newlyUnlocked) {
+          _knownUnlockedKeys.add(a.key);
+        }
+        // ポップアップで実績解除を演出
+        showAchievementUnlockPopup(context, newlyUnlocked);
       }
       // 既存の解除済み実績もキャッシュに追加
       for (final a in achievements.where((a) => a.unlocked)) {
@@ -315,6 +333,36 @@ class _MainScreenState extends State<MainScreen> {
   void _exportCurrentQuest() {
     if (_currentQuest != null && _currentQuest!.title != 'アドバイザーと契約せよ') {
       widget.exporter.export(_currentQuest);
+    }
+  }
+
+  /// 支出記録時にデイリークエスト進捗を検出し、達成時はEXPを付与する
+  void _onExpenseRecorded(int amount, String category) {
+    final completed = _dailyQuestNotifier.detectAction(
+      QuestAction.expenseRecorded(amount: amount, category: category),
+    );
+
+    if (completed.isNotEmpty) {
+      final totalExp = completed.fold<int>(0, (sum, q) => sum + q.expReward);
+      if (totalExp > 0) {
+        setState(() {
+          _player = _player.addExp(totalExp);
+        });
+        _persistState();
+        // 永続化（SharedPreferencesに保存）
+        _dailyQuestNotifier.persist();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '✨ デイリークエスト達成！ ${completed.map((q) => q.title).join('、')} EXP +$totalExp',
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -354,36 +402,50 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  void _openGuardianSwitch() {
-    Navigator.of(context).push<Advisor>(
+  void _openGuardianSwitch() async {
+    final oldAdvisor = _player.advisor;
+    if (oldAdvisor == null) return;
+
+    final deity = await Navigator.of(context).push<Advisor>(
       MaterialPageRoute(
         builder: (_) => AdvisorSelectionScreen(
-          onSelected: (deity) {
-            final result = const GuardianSwitchService().switchGuardian(_player, deity);
-            if (!result.isSuccess) {
-              final msg = result.error == GuardianSwitchError.insufficientExp
-                  ? 'EXPが不足しています'
-                  : result.error == GuardianSwitchError.alreadyContracted
-                      ? 'すでに同じ守護神です'
-                      : 'クールダウン中です';
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(msg)),
-              );
-              return;
-            }
-            setState(() {
-              _player = result.player!;
-              _currentQuest = _createInitialQuest();
-            });
-            _persistState();
-            _exportCurrentQuest();
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${result.newAdvisor!.label}に切り替えました')),
-            );
+          onSelected: (selected) {
+            Navigator.of(context).pop(selected);
           },
         ),
       ),
+    );
+
+    if (deity == null || !mounted) return;
+
+    final result = const GuardianSwitchService().switchGuardian(_player, deity);
+    if (!result.isSuccess) {
+      final msg = result.error == GuardianSwitchError.insufficientExp
+          ? 'EXPが不足しています'
+          : result.error == GuardianSwitchError.alreadyContracted
+              ? 'すでに同じ守護神です'
+              : 'クールダウン中です';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+      return;
+    }
+
+    setState(() {
+      _player = result.player!;
+      _currentQuest = _createInitialQuest();
+    });
+    _persistState();
+    _exportCurrentQuest();
+
+    // 切替演出エフェクトを発火（全画面オーバーレイ）
+    EffectManager.of(context).playEffect(
+      'guardian_switch',
+      Offset.zero,
+      parameters: {
+        'oldAdvisor': oldAdvisor.index,
+        'newAdvisor': deity.index,
+      },
     );
   }
 
@@ -401,6 +463,9 @@ class _MainScreenState extends State<MainScreen> {
             });
             _persistState();
             _exportCurrentQuest();
+          },
+          onExpenseRecorded: (amount, category) {
+            _onExpenseRecorded(amount, category);
           },
         ),
       ),
@@ -474,6 +539,16 @@ class _MainScreenState extends State<MainScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const SummaryScreen(),
+      ),
+    );
+  }
+
+  void _openCollaborationDashboard() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CollaborationDashboardScreen(
+          player: _player,
+        ),
       ),
     );
   }
@@ -800,6 +875,10 @@ class _MainScreenState extends State<MainScreen> {
                 InkWell(
                   onTap: _openSummary,
                   child: const Text('📊 分析', style: TextStyle(fontSize: 11)),
+                ),
+                InkWell(
+                  onTap: _openCollaborationDashboard,
+                  child: const Text('🔗 連携', style: TextStyle(fontSize: 11)),
                 ),
               ],
             ),

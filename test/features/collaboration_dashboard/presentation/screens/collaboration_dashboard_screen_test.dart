@@ -46,7 +46,9 @@ void main() {
           statsService: _MockStatsService(stats),
         ),
       );
-      await tester.pumpAndSettle();
+      // pumpAndSettle は WashiBackground のアニメーションでタイムアウトするため pump を使用
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // 総合シナジー統計セクションが表示されている
       expect(find.text('総合シナジー統計'), findsOneWidget);
@@ -72,7 +74,8 @@ void main() {
           statsService: _MockStatsService(stats),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('金運上昇バフ（tsundoku読了）'), findsOneWidget);
       expect(find.text('現在アクティブな金運バフはありません'), findsOneWidget);
@@ -105,7 +108,8 @@ void main() {
           statsService: _MockStatsService(stats),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // アクティブバフの詳細が表示されている
       expect(find.textContaining('収入'), findsWidgets);
@@ -130,7 +134,8 @@ void main() {
           statsService: _MockStatsService(stats),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('rpg-task 討伐ボーナス履歴'), findsOneWidget);
       expect(find.text('まだ討伐ボーナスの履歴はありません'), findsOneWidget);
@@ -168,7 +173,10 @@ void main() {
           statsService: _MockStatsService(stats),
         ),
       );
-      await tester.pumpAndSettle();
+      // FutureBuilder の完了を確実にするため複数ポンプ
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
 
       // イベントタイルが表示されている
       expect(find.text('魔王討伐'), findsOneWidget);
@@ -176,8 +184,8 @@ void main() {
       expect(find.text('EXP +50'), findsOneWidget);
       expect(find.text('EXP +30'), findsOneWidget);
 
-      // 残りボーナス回数が表示されている
-      expect(find.textContaining('残り1回'), findsOneWidget);
+      // 残りボーナス回数が表示されている（完全一致）
+      expect(find.text('残り1/3回'), findsOneWidget);
     });
 
     testWidgets('shows progress bar for bonus usage', (tester) async {
@@ -197,9 +205,10 @@ void main() {
           statsService: _MockStatsService(stats),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // プログレスバーが表示される（LinearProgressIndicator）
+      // プログレスバーが表示される
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
     });
 
@@ -226,11 +235,14 @@ void main() {
           statsService: _MockStatsService(stats),
         ),
       );
-      await tester.pumpAndSettle();
+      // FutureBuilder の完了を確実にするため複数ポンプ
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('150'), findsOneWidget); // totalBonusExpAwarded
       expect(find.text('5'), findsOneWidget); // totalSynergyEvents
-      expect(find.textContaining('残り0回'), findsOneWidget);
+      expect(find.text('残り0/3回'), findsOneWidget);
     });
   });
 }

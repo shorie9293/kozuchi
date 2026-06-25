@@ -15,6 +15,7 @@ class DailyQuestNotifier extends ChangeNotifier {
   DailyQuestState? _state;
   bool _isLoading = true;
   String? _errorMessage;
+  int _lastSatoriPenalty = 0;
 
   DailyQuestNotifier({
     DailyQuestOrchestrator orchestrator =
@@ -31,6 +32,9 @@ class DailyQuestNotifier extends ChangeNotifier {
 
   /// エラーメッセージ（エラーがない場合はnull）
   String? get errorMessage => _errorMessage;
+
+  /// 前回の日跨ぎリフレッシュ時のSATORIペナルティ合計
+  int get lastSatoriPenalty => _lastSatoriPenalty;
 
   /// クエストがあるか
   bool get hasQuests => _state != null && _state!.quests.isNotEmpty;
@@ -68,6 +72,7 @@ class DailyQuestNotifier extends ChangeNotifier {
         yesterdayReceiptCount: yesterdayReceiptCount,
       );
       _state = result.state;
+      _lastSatoriPenalty = result.previousDaySatoriPenalty;
       _isLoading = false;
       notifyListeners();
     } catch (e) {

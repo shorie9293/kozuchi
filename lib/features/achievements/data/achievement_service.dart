@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:kozuchi/core/infrastructure/env.dart';
 import 'package:kozuchi/domain/models/achievement_api_model.dart';
+import 'package:kozuchi/domain/models/achievement_check_models.dart';
 
 /// 実績APIとの通信を担当するサービス
 ///
@@ -48,6 +49,33 @@ class AchievementService {
         .map((e) => AchievementApiModel.fromJson(
             Map<String, dynamic>.from(e as Map)))
         .toList();
+  }
+  /// 実績チェックを実行し、新たに解除された実績を返す
+  ///
+  /// [request] にはユーザーIDと全基準値の現在値を含める。
+  /// 戻り値の [AchievementCheckResponse.newlyUnlocked] が空でなければ
+  /// ポップアップで実績解除を通知すること。
+  Future<AchievementCheckResponse> checkAchievements(
+    AchievementCheckRequest request,
+  ) async {
+    final uri = Uri.parse('$_baseUrl/api/achievements/check');
+
+    final response = await _client.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(request.toJson()),
+    );
+
+    if (response.statusCode != 200) {
+      throw AchievementServiceException(
+        '実績チェックに失敗しました (status: ${response.statusCode})',
+      );
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return AchievementCheckResponse.fromJson(
+      Map<String, dynamic>.from(data),
+    );
   }
 }
 

@@ -18,12 +18,19 @@ class TrialQuestScreen extends StatefulWidget {
   final void Function(TrialQuest quest, PlayerModel player) onQuestUpdated;
   final AiReviewService? aiReviewService;
 
+  /// 支出記録時に呼ばれるコールバック（デイリークエスト進捗検出用）
+  ///
+  /// [amount] 支出金額（円）
+  /// [category] 支出用途（カテゴリ）
+  final void Function(int amount, String category)? onExpenseRecorded;
+
   const TrialQuestScreen({
     super.key,
     required this.quest,
     required this.player,
     required this.onQuestUpdated,
     this.aiReviewService,
+    this.onExpenseRecorded,
   });
 
   @override
@@ -60,6 +67,9 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
       ),
     );
     if (result != null) {
+      // デイリークエスト進捗検出用のコールバック
+      widget.onExpenseRecorded?.call(result.amount, result.purpose);
+
       // 分類器で自動タグ付け
       final classification =
           ClassifierService.instance.classify(result.purpose);

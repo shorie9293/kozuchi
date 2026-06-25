@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
-import 'package:kozuchi/domain/models/gold_luck_buff.dart';
 
 void main() {
   late Directory tempDir;
@@ -118,7 +117,6 @@ void main() {
 
       final before = DateTime.now().toUtc();
       final result = await service.checkAndConsume();
-      final after = DateTime.now().toUtc();
 
       expect(result, isNotNull);
       // 有効期限は発動時刻から約60分後
