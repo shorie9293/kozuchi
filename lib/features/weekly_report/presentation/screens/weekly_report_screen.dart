@@ -19,10 +19,14 @@ class WeeklyReportScreen extends StatefulWidget {
   /// 支出リポジトリ（テスト時に注入可能、ローカル集計モード用）
   final ExpenseRepository? repository;
 
+  /// 表示する週ラベル（例: "2026-W25"）。nullの場合は現在の週。
+  final String? week;
+
   const WeeklyReportScreen({
     super.key,
     this.apiService,
     this.repository,
+    this.week,
   });
 
   @override
@@ -58,7 +62,7 @@ class _WeeklyReportScreenState extends State<WeeklyReportScreen> {
     try {
       final WeeklyReport report;
       if (_useApi) {
-        report = await _apiService.fetchReport();
+        report = await _apiService.fetchReport(week: widget.week);
       } else {
         report = await _localService.generate(DateTime.now());
       }
@@ -84,7 +88,7 @@ class _WeeklyReportScreenState extends State<WeeklyReportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('週間レポート'),
+        title: Text(widget.week != null ? '週間レポート (${widget.week})' : '週間レポート'),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

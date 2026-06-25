@@ -294,7 +294,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
           child: Column(
             children: [
               Text(
-                '$label',
+                label,
                 style: TextStyle(
                   fontSize: 13,
                   color: colorScheme.onSurfaceVariant,

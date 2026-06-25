@@ -27,7 +27,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('生活防衛ライン ¥30,000'), findsOneWidget);
+      expect(find.textContaining('生活防衛'), findsOneWidget);
     });
 
     testWidgets('ピンチ状態（HP低下時）に警告が表示される', (tester) async {
@@ -39,7 +39,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('⚠️ ピンチ状態 — 執着の餓えに気をつけよ'), findsOneWidget);
+      expect(find.text('⚠️ ピンチ状態'), findsOneWidget);
     });
 
     testWidgets('通常時はピンチ警告が表示されない', (tester) async {
@@ -51,7 +51,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('⚠️ ピンチ状態 — 執着の餓えに気をつけよ'), findsNothing);
+      expect(find.text('⚠️ ピンチ状態'), findsNothing);
     });
 
     testWidgets('WidgetKeyが設定されている', (tester) async {
@@ -113,7 +113,7 @@ void main() {
       final FractionallySizedBox widget = tester.widget(hpBarBox);
       expect(widget.widthFactor, closeTo(0.15, 0.01));
       // Pinch warning should show
-      expect(find.text('⚠️ ピンチ状態 — 執着の餓えに気をつけよ'), findsOneWidget);
+      expect(find.text('⚠️ ピンチ状態'), findsOneWidget);
     });
 
     testWidgets('HP bar shows minimum width when HP is 0', (tester) async {

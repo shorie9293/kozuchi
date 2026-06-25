@@ -4,7 +4,13 @@ import 'package:kozuchi/core/widgets/washi_background.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/advisor.dart';
+import 'package:kozuchi/domain/services/guardian_switch_service.dart';
 import 'package:kozuchi/domain/models/level_stage.dart';
+import 'package:kozuchi/domain/models/daily_quest.dart';
+import 'package:kozuchi/features/daily_quest/data/daily_quest_orchestrator.dart';
+import 'package:kozuchi/features/daily_quest/presentation/state/daily_quest_notifier.dart';
+import 'package:kozuchi/features/daily_quest/presentation/widgets/daily_quest_list.dart';
+import 'package:kozuchi/features/daily_quest/presentation/widgets/quest_achievement_effect.dart';
 import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
 import 'package:kozuchi/features/exp_gauge/presentation/widgets/exp_gauge_widget.dart';
 import 'package:kozuchi/features/advisor_selection/presentation/advisor_selection_screen.dart';
@@ -20,10 +26,16 @@ import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service
 import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
+import 'package:kozuchi/features/budget/presentation/widgets/daily_budget_widget.dart';
+import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
+import 'package:kozuchi/features/budget/domain/daily_budget.dart';
+import 'package:kozuchi/features/budget/data/daily_budget_service.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 import 'package:kozuchi/features/period_comparison/presentation/widgets/period_comparison_summary.dart';
+import 'package:kozuchi/features/achievements/data/achievement_service.dart';
 import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
+import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
 import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
@@ -68,17 +80,30 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  /// 既に通知済みの解除済み実績キー（セッション内重複通知防止）
+  static final Set<String> _knownUnlockedKeys = {};
+
   late PlayerModel _player;
   TrialQuest? _currentQuest;
   bool _isUraMode = false;
   bool _isLoading = true;
+  late final DailyQuestNotifier _dailyQuestNotifier;
+  bool _dailyQuestsLoaded = false;
+
+  // 予算表示用の状態
+  int _budgetAmount = 0;
+  int _monthlyExpenditure = 0;
+  double _warningThreshold = 0.8;
+  DailyBudget _displayBudget = DailyBudget.empty();
 
   @override
   void initState() {
     super.initState();
     _player = widget.initialPlayer ?? PlayerModel.defaultPlayer();
     _currentQuest = _createInitialQuest();
+    _dailyQuestNotifier = DailyQuestNotifier();
     _loadSavedState();
+    _loadDailyQuests();
   }
 
   /// 保存済みの状態を復元する
@@ -91,6 +116,7 @@ class _MainScreenState extends State<MainScreen> {
         _checkCareerCoachBookBonus();
         _checkRpgTaskBonus();
         _checkTsundokuBookCompletion();
+        _checkNewAchievements();
       });
       return;
     }
@@ -115,6 +141,7 @@ class _MainScreenState extends State<MainScreen> {
         _checkCareerCoachBookBonus();
         _checkRpgTaskBonus();
         _checkTsundokuBookCompletion();
+        _checkNewAchievements();
       });
     }
   }
@@ -124,6 +151,50 @@ class _MainScreenState extends State<MainScreen> {
     await widget.repository.savePlayer(_player);
     if (_currentQuest != null) {
       await widget.repository.saveQuest(_currentQuest!);
+    }
+  }
+
+  /// デイリークエストを読み込む
+  ///
+  /// アプリ起動時または日付跨ぎ時に、今日のクエストを割り当て・読み込む。
+  /// テスト用に初期プレイヤーが指定されている場合はスキップ。
+  Future<void> _loadDailyQuests() async {
+    if (widget.initialPlayer != null) return;
+
+    try {
+      // 予算情報を取得（DailyBudgetServiceで計算）
+      final dailyBudgetService = DailyBudgetService();
+      final dailyBudget = await dailyBudgetService.calculate();
+      final budgetIsSet = !dailyBudget.isBudgetNotSet;
+      final dailyBudgetAmount = dailyBudget.dailyAllowance;
+
+      // 予算表示用の状態を保存
+      final budgetRepo = const BudgetRepository();
+      final threshold = await budgetRepo.loadWarningThreshold();
+      if (mounted) {
+        setState(() {
+          _budgetAmount = dailyBudget.monthlyBudget;
+          _monthlyExpenditure = dailyBudget.totalSpent;
+          _warningThreshold = threshold;
+          _displayBudget = dailyBudget;
+        });
+      }
+
+      await _dailyQuestNotifier.loadQuestsForToday(
+        budgetIsSet: budgetIsSet,
+        dailyBudgetAmount: dailyBudgetAmount,
+        allCategoriesUsedRecently: false, // TODO: 実際のカテゴリ使用状況を取得
+        yesterdayWasHighSpending: false,   // TODO: 前日の支出分析
+      );
+
+      if (mounted) {
+        setState(() => _dailyQuestsLoaded = true);
+      }
+    } catch (_) {
+      // クエスト読み込み失敗時もアプリは継続
+      if (mounted) {
+        setState(() => _dailyQuestsLoaded = true);
+      }
     }
   }
 
@@ -210,6 +281,35 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  /// 新たに解除された実績をチェックして通知する
+  void _checkNewAchievements() {
+    final userId = AuthService.currentUserId;
+    if (userId == null) return;
+
+    final service = AchievementService();
+    service.fetchAchievements(userId: userId).then((achievements) {
+      if (!mounted) return;
+      final newlyUnlocked = achievements
+          .where((a) => a.unlocked && !_knownUnlockedKeys.contains(a.key))
+          .toList();
+      for (final a in newlyUnlocked) {
+        _knownUnlockedKeys.add(a.key);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 4),
+            content: Text('🏆 実績解除！ ${a.icon} ${a.title}'),
+          ),
+        );
+      }
+      // 既存の解除済み実績もキャッシュに追加
+      for (final a in achievements.where((a) => a.unlocked)) {
+        _knownUnlockedKeys.add(a.key);
+      }
+    }).catchError((_) {
+      // 実績通知は非クリティカル — 失敗してもアプリは継続
+    });
+  }
+
   /// 現在のクエストを共有ストレージに書き出す
   /// 試練が未契約状態（title == 'アドバイザーと契約せよ'）の場合は書き出さない
   void _exportCurrentQuest() {
@@ -254,6 +354,39 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _openGuardianSwitch() {
+    Navigator.of(context).push<Advisor>(
+      MaterialPageRoute(
+        builder: (_) => AdvisorSelectionScreen(
+          onSelected: (deity) {
+            final result = const GuardianSwitchService().switchGuardian(_player, deity);
+            if (!result.isSuccess) {
+              final msg = result.error == GuardianSwitchError.insufficientExp
+                  ? 'EXPが不足しています'
+                  : result.error == GuardianSwitchError.alreadyContracted
+                      ? 'すでに同じ守護神です'
+                      : 'クールダウン中です';
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(msg)),
+              );
+              return;
+            }
+            setState(() {
+              _player = result.player!;
+              _currentQuest = _createInitialQuest();
+            });
+            _persistState();
+            _exportCurrentQuest();
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${result.newAdvisor!.label}に切り替えました')),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   void _openTrialQuest() {
     if (_currentQuest == null) return;
     Navigator.of(context).push(
@@ -286,11 +419,30 @@ class _MainScreenState extends State<MainScreen> {
         builder: (_) => BudgetSettingsScreen(
           repository: const BudgetRepository(),
           onSaved: () {
-            // 予算設定後に必要なUI再描画があればここで
+            // 予算設定後に必要なUI再描画
           },
         ),
       ),
     );
+    _refreshBudgetDisplay();
+  }
+
+  /// 予算表示データを再読み込みする
+  Future<void> _refreshBudgetDisplay() async {
+    final dailyBudgetService = DailyBudgetService();
+    final dailyBudget = await dailyBudgetService.calculate();
+    final budgetRepo = const BudgetRepository();
+    final threshold = await budgetRepo.loadWarningThreshold();
+    if (mounted) {
+      setState(() {
+        _budgetAmount = dailyBudget.monthlyBudget;
+        _monthlyExpenditure = dailyBudget.totalSpent;
+        _warningThreshold = threshold;
+        _displayBudget = dailyBudget;
+      });
+    }
+    // デイリークエストも予算変更に応じて再読み込み
+    _loadDailyQuests();
   }
 
   void _openAchievementList() {
@@ -384,9 +536,30 @@ class _MainScreenState extends State<MainScreen> {
                   const SizedBox(height: 8),
                   PinchZoneWarningBanner(player: _player),
                 ],
+                // 予算超過接近時の警告バナー
+                if (_budgetAmount > 0 &&
+                    _monthlyExpenditure >= _budgetAmount * _warningThreshold) ...[
+                  const SizedBox(height: 8),
+                  BudgetWarningBanner(
+                    spentAmount: _monthlyExpenditure,
+                    budgetAmount: _budgetAmount,
+                    ratio: _budgetAmount > 0
+                        ? _monthlyExpenditure / _budgetAmount
+                        : 0.0,
+                    threshold: _warningThreshold,
+                  ),
+                ],
+                // 日割り予算表示（予算設定済みの場合のみ）
+                if (!_displayBudget.isBudgetNotSet) ...[
+                  const SizedBox(height: 8),
+                  DailyBudgetWidget(dailyBudget: _displayBudget),
+                ],
                 const SizedBox(height: 16),
                 // 🔮 現在の加護（常時表示）
                 _buildGuardianBlessingLine(colorScheme),
+                const SizedBox(height: 12),
+                // 📋 デイリークエスト
+                _buildDailyQuestSection(colorScheme),
                 const SizedBox(height: 12),
                 // 3カードグリッド（収入/試練/加護）
                 _buildCardGrid(colorScheme),
@@ -399,6 +572,36 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  /// 📋 デイリークエストセクション
+  Widget _buildDailyQuestSection(ColorScheme colorScheme) {
+    if (!_dailyQuestsLoaded) {
+      return const SizedBox.shrink();
+    }
+
+    final quests = _dailyQuestNotifier.state?.quests ?? [];
+
+    return ListenableBuilder(
+      listenable: _dailyQuestNotifier,
+      builder: (context, _) {
+        final currentQuests = _dailyQuestNotifier.state?.quests ?? [];
+        final allCompleted = _dailyQuestNotifier.isAllCompleted;
+
+        return DailyQuestList(
+          quests: currentQuests,
+          isLoading: _dailyQuestNotifier.isLoading && currentQuests.isEmpty,
+          errorMessage: _dailyQuestNotifier.errorMessage,
+          onRetry: () => _loadDailyQuests(),
+          allCompletedEffect: allCompleted
+              ? QuestAchievementEffect(showAllComplete: true)
+              : null,
+          onQuestTap: (quest) {
+            // 将来のクエスト詳細画面用
+          },
+        );
+      },
+    );
+  }
+
   /// HPバーとEXPゲージを横並びのコンパクトなRowで表示
   Widget _buildHpExpCompactRow(ColorScheme colorScheme) {
     return Row(
@@ -408,7 +611,11 @@ class _MainScreenState extends State<MainScreen> {
           child: AnimatedOpacity(
             opacity: (_isUraMode && _canUseUraMode) ? 0.3 : 1.0,
             duration: const Duration(milliseconds: 600),
-            child: HpBarWidget(player: _player),
+            child: HpBarWidget(
+              player: _player,
+              budgetAmount: _budgetAmount,
+              monthlyExpenditure: _monthlyExpenditure,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -769,6 +976,18 @@ class _MainScreenState extends State<MainScreen> {
               const SizedBox(height: 8),
               // 効果詳細
               _buildAdvisorEffectDetail(colorScheme, _player.advisor!),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed:
+                    _player.isInCooldown ? null : _openGuardianSwitch,
+                icon: const Icon(Icons.swap_horiz, size: 16),
+                label: Text(
+                  _player.isInCooldown
+                      ? '守護神切替 (あと${_player.remainingCooldown!.inDays}日)'
+                      : '守護神切替',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
             ] else
               TextButton.icon(
                 onPressed: _openAdvisorSelection,

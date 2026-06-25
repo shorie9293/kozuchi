@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:app_links/app_links.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:kozuchi/core/theme/theme_repository.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
@@ -22,7 +23,14 @@ import 'package:kozuchi/features/effects/presentation/effects/cherry_blizzard_ef
 import 'package:kozuchi/features/effects/presentation/effects/pillar_of_light_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/guardian_switch_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/dark_curtain_effect.dart';
+import 'package:kozuchi/features/weekly_report/presentation/screens/weekly_report_screen.dart';
 import 'package:kozuchi/screens/main_screen.dart';
+
+/// ディープリンクナビゲーションのためのグローバルナビゲーターキー
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+/// アプリ完全終了状態から起動した場合の初期ディープリンクを保持
+Uri? _pendingInitialDeepLink;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,8 +59,56 @@ void main() async {
   // 支出分類器を初期化
   await ClassifierService.instance.initialize();
 
+  // ── ディープリンクハンドリングの初期化 ──
+  final appLinks = AppLinks();
+
+  // 完全終了状態からディープリンクで起動した場合の初期リンクを取得
+  try {
+    _pendingInitialDeepLink = await appLinks.getInitialLink();
+  } catch (e) {
+    // ignore: avoid_print
+    print('[kozuchi] Error getting initial deep link: $e');
+  }
+
+  // バックグラウンド→フォアグラウンド復帰時のリンクをリッスン
+  appLinks.uriLinkStream.listen(_handleDeepLink);
+
   final isFirstLaunch = await KozuchiTutorialService.isFirstLaunch();
   runApp(MyApp(isFirstLaunch: isFirstLaunch));
+}
+
+/// ディープリンクURLを解析し、該当画面に遷移する。
+///
+/// 対応URL形式:
+///   app://weekly-report?week=YYYY-WW
+void _handleDeepLink(Uri uri) {
+  // ignore: avoid_print
+  print('[kozuchi] Deep link received: $uri');
+
+  if (uri.scheme == 'app' && uri.host == 'weekly-report') {
+    final week = uri.queryParameters['week'];
+    _navigateToWeeklyReport(week);
+  }
+}
+
+/// WeeklyReportScreen に遷移する。
+///
+/// アプリ完全終了状態からの起動時は
+/// [MyApp._onFirstFrame] で遅延実行される。
+void _navigateToWeeklyReport(String? week) {
+  final nav = navigatorKey.currentState;
+  if (nav == null) {
+    // まだナビゲーターが初期化されていない（完全終了状態からの起動時）
+    // → _pendingInitialDeepLink として保持し、初回フレーム後に再試行する
+    return;
+  }
+
+  // 現在のルートの上にプッシュ
+  nav.push(
+    MaterialPageRoute(
+      builder: (_) => WeeklyReportScreen(week: week),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -67,6 +123,7 @@ class _MyAppState extends State<MyApp> {
   late bool _showTutorial;
   ThemeMode _themeMode = ThemeMode.system;
   bool _themeLoaded = false;
+  bool _firstFrameHandled = false;
   final ThemeRepository _themeRepo = const ThemeRepository();
 
   @override
@@ -74,6 +131,8 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _showTutorial = widget.isFirstLaunch;
     _loadThemeMode();
+    // 初回フレーム後に保留中のディープリンクを処理
+    WidgetsBinding.instance.addPostFrameCallback(_onFirstFrame);
   }
 
   Future<void> _loadThemeMode() async {
@@ -83,6 +142,22 @@ class _MyAppState extends State<MyApp> {
         _themeMode = saved ?? ThemeMode.system;
         _themeLoaded = true;
       });
+    }
+  }
+
+  /// 初回フレーム描画後に保留中のディープリンクを処理する。
+  ///
+  /// アプリ完全終了状態からディープリンクで起動された場合、
+  /// [main()] 内ではまだ Navigator が存在しないため、
+  /// 初回フレームまで遅延させる必要がある。
+  void _onFirstFrame(Duration _) {
+    if (_firstFrameHandled) return;
+    _firstFrameHandled = true;
+
+    final pendingLink = _pendingInitialDeepLink;
+    _pendingInitialDeepLink = null;
+    if (pendingLink != null) {
+      _handleDeepLink(pendingLink);
     }
   }
 
@@ -123,6 +198,7 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp(
       title: 'kozuchi',
+      navigatorKey: navigatorKey,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _themeMode,

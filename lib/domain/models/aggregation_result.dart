@@ -1,9 +1,3 @@
-/// 集計結果モデル群
-///
-/// ExpenseAggregationService が返す構造化データ。
-/// 週間/月間の支出集計を、カテゴリ別・日別に集約し、
-/// 前期間との比較データも含む。
-
 /// カテゴリ別集計エントリ
 class CategoryTotal {
   final String category;
