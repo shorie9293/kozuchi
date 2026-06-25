@@ -66,6 +66,11 @@ class EffectCatalog {
         duration: Duration(milliseconds: 1200),
         isFullScreen: false,
       ),
+      'guardian_switch': const EffectDefinition(
+        name: 'guardian_switch',
+        duration: Duration(seconds: 4),
+        isFullScreen: true,
+      ),
       'placeholder': const EffectDefinition(
         name: 'placeholder',
         duration: Duration(milliseconds: 1500),

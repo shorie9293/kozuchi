@@ -6,6 +6,7 @@ import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:kozuchi/core/theme/theme_repository.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
+import 'package:kozuchi/core/infrastructure/deep_link_service.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/tutorial/data/kozuchi_tutorial_service.dart';
 import 'package:kozuchi/features/tutorial/presentation/kozuchi_tutorial_overlay.dart';
@@ -85,8 +86,8 @@ void _handleDeepLink(Uri uri) {
   // ignore: avoid_print
   print('[kozuchi] Deep link received: $uri');
 
-  if (uri.scheme == 'app' && uri.host == 'weekly-report') {
-    final week = uri.queryParameters['week'];
+  final week = DeepLinkService.parseWeeklyReportWeek(uri);
+  if (week != null) {
     _navigateToWeeklyReport(week);
   }
 }

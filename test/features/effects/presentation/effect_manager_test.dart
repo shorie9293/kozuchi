@@ -224,9 +224,9 @@ void main() {
         // setStateがスケジュールされたのでpump
         await tester.pump();
 
-        // full_glowエフェクトが追加されている
-        expect(state.activeEffects.length, 1);
-        expect(state.activeEffects.first.definition.name, 'full_glow');
+        // full_glowエフェクトが追加されている（tooltip + satori_increase も同時発火）
+        expect(state.activeEffects.length, greaterThanOrEqualTo(1));
+        expect(state.activeEffects.any((e) => e.definition.name == 'full_glow'), true);
         expect(find.text('✨full_glow'), findsOneWidget);
       });
 
@@ -259,8 +259,8 @@ void main() {
 
         await tester.pump();
 
-        // full_glowは発動しない
-        expect(state.activeEffects, isEmpty);
+        // full_glowは発動しない（tooltip + satori_increase は発火）
+        expect(state.activeEffects.any((e) => e.definition.name == 'full_glow'), false);
       });
 
       testWidgets('SATORI減少ではfull_glowは発動しない', (tester) async {
@@ -292,8 +292,8 @@ void main() {
 
         await tester.pump();
 
-        // full_glowは発動しない
-        expect(state.activeEffects, isEmpty);
+        // full_glowは発動しない（tooltip + dark_curtain は発火）
+        expect(state.activeEffects.any((e) => e.definition.name == 'full_glow'), false);
       });
 
       testWidgets('既にkuu到達済みの増加ではfull_glowは再発動しない',
@@ -326,8 +326,8 @@ void main() {
 
         await tester.pump();
 
-        // 既にkuuなので発動しない
-        expect(state.activeEffects, isEmpty);
+        // 既にkuuなのでfull_glowは発動しない（tooltip + satori_increase は発火）
+        expect(state.activeEffects.any((e) => e.definition.name == 'full_glow'), false);
       });
     });
 
@@ -367,9 +367,9 @@ void main() {
 
         await tester.pump();
 
-        // light_pillarエフェクトが追加されている
-        expect(state.activeEffects.length, 1);
-        expect(state.activeEffects.first.definition.name, 'light_pillar');
+        // light_pillarエフェクトが追加されている（tooltip + satori_increase も同時発火）
+        expect(state.activeEffects.length, greaterThanOrEqualTo(1));
+        expect(state.activeEffects.any((e) => e.definition.name == 'light_pillar'), true);
         expect(find.text('✨light_pillar'), findsOneWidget);
       });
 
@@ -403,8 +403,8 @@ void main() {
 
         await tester.pump();
 
-        // light_pillarは発動しない
-        expect(state.activeEffects, isEmpty);
+        // light_pillarは発動しない（tooltip + satori_increase は発火）
+        expect(state.activeEffects.any((e) => e.definition.name == 'light_pillar'), false);
       });
 
       testWidgets('SATORI減少ではlight_pillarは発動しない', (tester) async {
@@ -436,8 +436,8 @@ void main() {
 
         await tester.pump();
 
-        // light_pillarは発動しない
-        expect(state.activeEffects, isEmpty);
+        // light_pillarは発動しない（tooltip + dark_curtain は発火）
+        expect(state.activeEffects.any((e) => e.definition.name == 'light_pillar'), false);
       });
 
       testWidgets('light_pillarエフェクトがduration経過後に消滅する',
@@ -469,7 +469,8 @@ void main() {
         );
 
         await tester.pump();
-        expect(state.activeEffects.length, 1);
+        expect(state.activeEffects.length, greaterThanOrEqualTo(1));
+        expect(state.activeEffects.any((e) => e.definition.name == 'light_pillar'), true);
         expect(find.text('✨light_pillar'), findsOneWidget);
 
         // duration（2.5秒）経過後に消滅
@@ -508,8 +509,8 @@ void main() {
 
         await tester.pump();
 
-        expect(state.activeEffects.length, 1);
-        expect(state.activeEffects.first.definition.name, 'light_pillar');
+        expect(state.activeEffects.length, greaterThanOrEqualTo(1));
+        expect(state.activeEffects.any((e) => e.definition.name == 'light_pillar'), true);
       });
     });
   });
