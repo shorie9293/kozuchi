@@ -39,11 +39,12 @@ class ReturnMission {
   });
 
   /// 未発行（ミッションなし）の状態
-  factory ReturnMission.none() => const ReturnMission(
+  factory ReturnMission.none() => ReturnMission(
         id: '',
         title: '',
         description: '',
         targetValue: 0,
+        issuedAt: DateTime(1970),
       );
 
   /// 途絶時のストリーク日数に基づいて復帰ミッションを生成する。

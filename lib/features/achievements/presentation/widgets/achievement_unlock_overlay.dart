@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/domain/models/achievement_api_model.dart';
 
 /// 実績解除ポップアップ
