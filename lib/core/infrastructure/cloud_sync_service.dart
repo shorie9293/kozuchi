@@ -181,7 +181,7 @@ class CloudSyncService {
         .eq('user_id', userId)
         .count(CountOption.exact);
 
-    return response.count ?? 0;
+    return response.count;
   }
 
   // ─── デイリークエスト（daily_quests） ────────────────────────────
