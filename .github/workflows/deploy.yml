@@ -35,6 +35,9 @@ jobs:
             git clone --depth 1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/shorie9293/takamagahara.git /tmp/takamagahara
           cp -r /tmp/takamagahara/packages/takamagahara_core ../../packages/
           cp -r /tmp/takamagahara/packages/takamagahara_ui ../../packages/
+          # Ensure asset directories exist (sprites are large and may not be in repo)
+          mkdir -p ../../packages/takamagahara_ui/assets/sprites
+          touch ../../packages/takamagahara_ui/assets/sprites/.gitkeep
           rm -rf /tmp/takamagahara
 
       - name: 🦋 Setup Flutter
