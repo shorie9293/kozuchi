@@ -11,7 +11,6 @@ import 'package:kozuchi/features/daily_quest/presentation/state/daily_quest_noti
 import 'package:kozuchi/features/daily_quest/data/quest_action.dart';
 import 'package:kozuchi/features/daily_quest/presentation/widgets/daily_quest_list.dart';
 import 'package:kozuchi/features/daily_quest/presentation/widgets/quest_achievement_effect.dart';
-import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
 import 'package:kozuchi/features/exp_gauge/presentation/widgets/exp_gauge_widget.dart';
 import 'package:kozuchi/features/advisor_selection/presentation/advisor_selection_screen.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/trial_quest_screen.dart';
@@ -44,26 +43,13 @@ import 'package:kozuchi/core/infrastructure/env.dart';
 
 /// メイン画面
 ///
-/// HPバー + EXPゲージ + 現在の試練を表示する
-/// アプリの中心画面。
-/// レベルMAX段階（kuu）到達後は裏面モードに切り替え可能。
+/// 目標支出ゲージ + 3タブ（目標/試練/加護）+ 支出FAB
 class MainScreen extends StatefulWidget {
-  /// テスト用の初期プレイヤー（nullの場合はデフォルト値）
   final PlayerModel? initialPlayer;
-
-  /// テスト用に注入可能なKozuchiQuestExporter（デフォルトで実インスタンス）
   final KozuchiQuestExporter exporter;
-
-  /// データ永続化リポジトリ（テスト時にモック注入可能）
   final PlayerRepository repository;
-
-  /// 現在のテーマモード
   final ThemeMode themeMode;
-
-  /// テーマモードに応じたアイコン
   final IconData themeIcon;
-
-  /// テーマ切替コールバック
   final VoidCallback? onToggleTheme;
 
   const MainScreen({
@@ -80,8 +66,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  /// 既に通知済みの解除済み実績キー（セッション内重複通知防止）
+class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   static final Set<String> _knownUnlockedKeys = {};
 
   late PlayerModel _player;
@@ -91,15 +76,17 @@ class _MainScreenState extends State<MainScreen> {
   late final DailyQuestNotifier _dailyQuestNotifier;
   bool _dailyQuestsLoaded = false;
 
-  // 予算表示用の状態
   int _budgetAmount = 0;
   int _monthlyExpenditure = 0;
   double _warningThreshold = 0.8;
   DailyBudget _displayBudget = DailyBudget.empty();
 
+  late final TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _player = widget.initialPlayer ?? PlayerModel.defaultPlayer();
     _currentQuest = _createInitialQuest();
     _dailyQuestNotifier = DailyQuestNotifier();
@@ -107,10 +94,14 @@ class _MainScreenState extends State<MainScreen> {
     _loadDailyQuests();
   }
 
-  /// 保存済みの状態を復元する
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadSavedState() async {
     if (widget.initialPlayer != null) {
-      // テスト用の初期プレイヤーが指定されている場合は永続化データを無視
       setState(() => _isLoading = false);
       _exportCurrentQuest();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -127,9 +118,7 @@ class _MainScreenState extends State<MainScreen> {
 
     if (mounted) {
       setState(() {
-        if (savedPlayer != null) {
-          _player = savedPlayer;
-        }
+        if (savedPlayer != null) _player = savedPlayer;
         if (savedQuest != null) {
           _currentQuest = savedQuest;
         } else {
@@ -147,7 +136,6 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  /// 現在の状態を永続化する
   Future<void> _persistState() async {
     await widget.repository.savePlayer(_player);
     if (_currentQuest != null) {
@@ -155,21 +143,13 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  /// デイリークエストを読み込む
-  ///
-  /// アプリ起動時または日付跨ぎ時に、今日のクエストを割り当て・読み込む。
-  /// テスト用に初期プレイヤーが指定されている場合はスキップ。
   Future<void> _loadDailyQuests() async {
     if (widget.initialPlayer != null) return;
-
     try {
-      // 予算情報を取得（DailyBudgetServiceで計算）
       final dailyBudgetService = DailyBudgetService();
       final dailyBudget = await dailyBudgetService.calculate();
       final budgetIsSet = !dailyBudget.isBudgetNotSet;
       final dailyBudgetAmount = dailyBudget.dailyAllowance;
-
-      // 予算表示用の状態を保存
       final budgetRepo = const BudgetRepository();
       final threshold = await budgetRepo.loadWarningThreshold();
       if (mounted) {
@@ -180,184 +160,115 @@ class _MainScreenState extends State<MainScreen> {
           _displayBudget = dailyBudget;
         });
       }
-
       await _dailyQuestNotifier.loadQuestsForToday(
         budgetIsSet: budgetIsSet,
         dailyBudgetAmount: dailyBudgetAmount,
-        allCategoriesUsedRecently: false, // TODO: 実際のカテゴリ使用状況を取得
-        yesterdayWasHighSpending: false,   // TODO: 前日の支出分析
+        allCategoriesUsedRecently: false,
+        yesterdayWasHighSpending: false,
       );
-
-      // 日跨ぎ時に前日未達成クエストのSATORIペナルティを適用
       final satoriPenalty = _dailyQuestNotifier.lastSatoriPenalty;
       if (satoriPenalty > 0 && mounted) {
-        setState(() {
-          _player = _player.addExp(-satoriPenalty);
-        });
+        setState(() => _player = _player.addExp(-satoriPenalty));
         _persistState();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '🌅 日が変わった… 昨日の未達成クエストによりSATORI -$satoriPenalty',
-            ),
+            content: Text('🌅 日が変わった… 昨日の未達成クエストによりSATORI -$satoriPenalty'),
             duration: const Duration(seconds: 4),
           ),
         );
       }
-
-      if (mounted) {
-        setState(() => _dailyQuestsLoaded = true);
-      }
+      if (mounted) setState(() => _dailyQuestsLoaded = true);
     } catch (_) {
-      // クエスト読み込み失敗時もアプリは継続
-      if (mounted) {
-        setState(() => _dailyQuestsLoaded = true);
-      }
+      if (mounted) setState(() => _dailyQuestsLoaded = true);
     }
   }
 
-  /// 弁財天の蔵書追加ボーナスをチェックして適用する
-  ///
-  /// tsundoku-quest が共有ストレージに書き出した book_added イベントを読み取り、
-  /// アドバイザーが弁財天の場合に EXP ボーナスを付与する。
   void _checkCareerCoachBookBonus() {
     final advisor = _player.advisor;
     if (advisor == null) return;
-
     const service = CareerCoachBookBonusService();
     service.checkAndConsume(advisor).then((result) {
       if (result != null && mounted) {
-        setState(() {
-          _player = _player.addExp(result.bonusExp);
-        });
+        setState(() => _player = _player.addExp(result.bonusExp));
         _persistState();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '📚 弁財天ボーナス！『${result.bookTitle}』の蔵書追加でEXP +${result.bonusExp}',
-            ),
-          ),
+          SnackBar(content: Text('📚 キャリアコーチボーナス！『${result.bookTitle}』の蔵書追加でEXP +${result.bonusExp}')),
         );
       }
     });
   }
 
-  /// rpg-taskの敵討伐ボーナスをチェックして適用する
-  ///
-  /// rpg-task が共有ストレージに書き出した enemy_defeated イベントを読み取り、
-  /// クエストランクに応じたボーナスEXPを付与する。
-  /// 1日最大3回。アドバイザー未契約でも付与される。
   void _checkRpgTaskBonus() {
     const service = RpgTaskBonusService();
     service.checkAndConsume().then((result) {
       if (result != null && mounted) {
         final rankEmoji = switch (result.questRank) {
-          'S' => '👹',
-          'A' => '👺',
-          _ => '👾',
+          'S' => '👹', 'A' => '👺', _ => '👾',
         };
-        setState(() {
-          _player = _player.addExp(result.bonusExp);
-        });
+        setState(() => _player = _player.addExp(result.bonusExp));
         _persistState();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$rankEmoji rpg-task討伐ボーナス！『${result.taskTitle}』討伐でEXP +${result.bonusExp}',
-            ),
-          ),
+          SnackBar(content: Text('$rankEmoji rpg-task討伐ボーナス！『${result.taskTitle}』討伐でEXP +${result.bonusExp}')),
         );
       }
     });
   }
 
-  /// tsundoku読了による金運上昇バフをチェックして適用する
-  ///
-  /// tsundoku-quest が共有ストレージに書き出した book_completed イベントを読み取り、
-  /// 金運上昇バフ（収入2倍、60分間）を発動する。
-  /// アドバイザー未契約でも付与される。
   void _checkTsundokuBookCompletion() {
     const service = TsundokuGoldLuckBuffService();
     service.checkAndConsume().then((buff) {
       if (buff != null && mounted) {
-        setState(() {
-          _player = _player.applyGoldLuckBuff(buff);
-        });
+        setState(() => _player = _player.applyGoldLuckBuff(buff));
         _persistState();
-        final bookInfo =
-            buff.bookTitle != null ? '『${buff.bookTitle}』' : '本';
+        final bookInfo = buff.bookTitle != null ? '『${buff.bookTitle}』' : '本';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             duration: const Duration(seconds: 5),
-            content: Text(
-              '📖✨ 金運上昇！${bookInfo}を読了した祝福で、'
-              '${buff.remainingDisplay}の間収入が${buff.multiplier.toInt()}倍に！',
-            ),
+            content: Text('📖✨ 金運上昇！${bookInfo}を読了した祝福で、${buff.remainingDisplay}の間収入が${buff.multiplier.toInt()}倍に！'),
           ),
         );
       }
     });
   }
 
-  /// 新たに解除された実績をチェックして通知する
   void _checkNewAchievements() {
     final userId = AuthService.currentUserId;
     if (userId == null) return;
-
     final service = AchievementService();
     service.fetchAchievements(userId: userId).then((achievements) {
       if (!mounted) return;
-      final newlyUnlocked = achievements
-          .where((a) => a.unlocked && !_knownUnlockedKeys.contains(a.key))
-          .toList();
+      final newlyUnlocked = achievements.where((a) => a.unlocked && !_knownUnlockedKeys.contains(a.key)).toList();
       if (newlyUnlocked.isNotEmpty) {
         for (final a in newlyUnlocked) {
           _knownUnlockedKeys.add(a.key);
         }
-        // ポップアップで実績解除を演出
         showAchievementUnlockPopup(context, newlyUnlocked);
       }
-      // 既存の解除済み実績もキャッシュに追加
       for (final a in achievements.where((a) => a.unlocked)) {
         _knownUnlockedKeys.add(a.key);
       }
-    }).catchError((_) {
-      // 実績通知は非クリティカル — 失敗してもアプリは継続
-    });
+    }).catchError((_) {});
   }
 
-  /// 現在のクエストを共有ストレージに書き出す
-  /// 試練が未契約状態（title == 'アドバイザーと契約せよ'）の場合は書き出さない
   void _exportCurrentQuest() {
     if (_currentQuest != null && _currentQuest!.title != 'アドバイザーと契約せよ') {
       widget.exporter.export(_currentQuest);
     }
   }
 
-  /// 支出記録時にデイリークエスト進捗を検出し、達成時はEXPを付与する
   void _onExpenseRecorded(int amount, String category) {
     final completed = _dailyQuestNotifier.detectAction(
       QuestAction.expenseRecorded(amount: amount, category: category),
     );
-
     if (completed.isNotEmpty) {
       final totalExp = completed.fold<int>(0, (sum, q) => sum + q.expReward);
       if (totalExp > 0) {
-        setState(() {
-          _player = _player.addExp(totalExp);
-        });
+        setState(() => _player = _player.addExp(totalExp));
         _persistState();
-        // 永続化（SharedPreferencesに保存）
         _dailyQuestNotifier.persist();
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '✨ デイリークエスト達成！ ${completed.map((q) => q.title).join('、')} EXP +$totalExp',
-              ),
-              duration: const Duration(seconds: 3),
-            ),
+            SnackBar(content: Text('✨ デイリークエスト達成！ ${completed.map((q) => q.title).join('、')} EXP +$totalExp')),
           );
         }
       }
@@ -365,18 +276,17 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   TrialQuest _createInitialQuest() {
-    // アドバイザー未契約の場合は試練を表示しない
     if (_player.advisor == null) {
       return TrialQuest(
         title: 'アドバイザーと契約せよ',
-        description: 'まずは四天のアドバイザーから1柱を選び、契約を結べ。',
+        description: 'まずは四天の守護神から1柱を選び、契約を結べ。',
         suggestedOffering: 0,
         advisor: Advisor.daikokuten,
       );
     }
     return TrialQuest(
       title: '試練を待て',
-      description: 'アドバイザーからの試練を待っている…',
+      description: '守護神からの試練を待っている…',
       suggestedOffering: 0,
       advisor: _player.advisor!,
     );
@@ -403,19 +313,14 @@ class _MainScreenState extends State<MainScreen> {
   void _openGuardianSwitch() async {
     final oldAdvisor = _player.advisor;
     if (oldAdvisor == null) return;
-
     final deity = await Navigator.of(context).push<Advisor>(
       MaterialPageRoute(
         builder: (_) => AdvisorSelectionScreen(
-          onSelected: (selected) {
-            Navigator.of(context).pop(selected);
-          },
+          onSelected: (selected) => Navigator.of(context).pop(selected),
         ),
       ),
     );
-
     if (deity == null || !mounted) return;
-
     final result = const GuardianSwitchService().switchGuardian(_player, deity);
     if (!result.isSuccess) {
       final msg = result.error == GuardianSwitchError.insufficientExp
@@ -423,28 +328,17 @@ class _MainScreenState extends State<MainScreen> {
           : result.error == GuardianSwitchError.alreadyContracted
               ? 'すでに同じ守護神です'
               : 'クールダウン中です';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       return;
     }
-
     setState(() {
       _player = result.player!;
       _currentQuest = _createInitialQuest();
     });
     _persistState();
     _exportCurrentQuest();
-
-    // 切替演出エフェクトを発火（全画面オーバーレイ）
-    EffectManager.of(context).playEffect(
-      'guardian_switch',
-      Offset.zero,
-      parameters: {
-        'oldAdvisor': oldAdvisor.index,
-        'newAdvisor': deity.index,
-      },
-    );
+    EffectManager.of(context).playEffect('guardian_switch', Offset.zero,
+      parameters: {'oldAdvisor': oldAdvisor.index, 'newAdvisor': deity.index});
   }
 
   void _openTrialQuest() {
@@ -455,42 +349,50 @@ class _MainScreenState extends State<MainScreen> {
           quest: _currentQuest!,
           player: _player,
           onQuestUpdated: (quest, player) {
-            setState(() {
-              _currentQuest = quest;
-              _player = player;
-            });
+            setState(() { _currentQuest = quest; _player = player; });
             _persistState();
             _exportCurrentQuest();
           },
-          onExpenseRecorded: (amount, category) {
-            _onExpenseRecorded(amount, category);
-          },
+          onExpenseRecorded: (amount, category) => _onExpenseRecorded(amount, category),
         ),
       ),
     );
   }
 
+  /// 支出FAB — 常時表示の支出記録ボタン
+  void _openQuickOffering() {
+    // 簡易支出記録: 試練がなくても支出を記録できる
+    if (_currentQuest == null || _currentQuest!.isOfferingRecorded) {
+      // クエストがない/完了済みなら新規簡易クエストで
+      final quest = _player.advisor != null
+          ? TrialQuest(title: '喜捨の記録', description: '日々の支出を記録せよ', suggestedOffering: 0, advisor: _player.advisor!)
+          : TrialQuest(title: '喜捨の記録', description: '日々の支出を記録せよ', suggestedOffering: 0, advisor: Advisor.daikokuten);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => TrialQuestScreen(
+            quest: quest,
+            player: _player,
+            onQuestUpdated: (q, p) { setState(() { _currentQuest = q; _player = p; }); _persistState(); _exportCurrentQuest(); },
+            onExpenseRecorded: (amount, category) => _onExpenseRecorded(amount, category),
+          ),
+        ),
+      );
+    } else {
+      _openTrialQuest();
+    }
+  }
+
   void _toggleUraMode() {
-    setState(() {
-      _isUraMode = !_isUraMode;
-    });
+    setState(() => _isUraMode = !_isUraMode);
   }
 
   void _openBudgetSettings() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BudgetSettingsScreen(
-          repository: const BudgetRepository(),
-          onSaved: () {
-            // 予算設定後に必要なUI再描画
-          },
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => BudgetSettingsScreen(repository: const BudgetRepository(), onSaved: () {})),
     );
     _refreshBudgetDisplay();
   }
 
-  /// 予算表示データを再読み込みする
   Future<void> _refreshBudgetDisplay() async {
     final dailyBudgetService = DailyBudgetService();
     final dailyBudget = await dailyBudgetService.calculate();
@@ -504,51 +406,28 @@ class _MainScreenState extends State<MainScreen> {
         _displayBudget = dailyBudget;
       });
     }
-    // デイリークエストも予算変更に応じて再読み込み
     _loadDailyQuests();
   }
 
   void _openAchievementList() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AchievementListScreen(),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => AchievementListScreen()));
   }
 
   void _openGoalList() {
     final apiService = GoalApiService(baseUrl: Env.goalsApiUrl);
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => GoalListScreen(apiService: apiService),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => GoalListScreen(apiService: apiService)));
   }
 
   void _openTransactionHistory() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const TransactionHistoryPage(),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TransactionHistoryPage()));
   }
 
   void _openSummary() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const SummaryScreen(),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
   }
 
   void _openCollaborationDashboard() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CollaborationDashboardScreen(
-          player: _player,
-        ),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => CollaborationDashboardScreen(player: _player)));
   }
 
   bool get _canUseUraMode => _player.levelStage == LevelStage.kuu;
@@ -557,11 +436,8 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    // データ読み込み中はローディング表示
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -571,264 +447,174 @@ class _MainScreenState extends State<MainScreen> {
         centerTitle: true,
         backgroundColor: _isUraMode ? colorScheme.surface : null,
         foregroundColor: _isUraMode ? colorScheme.onSurface : null,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: '🎯 目標'),
+            Tab(text: '📜 試練'),
+            Tab(text: '🛡️ 加護'),
+          ],
+        ),
       ),
       body: WashiBackground(
         child: PinchZoneOverlay(
           isPinchState: _player.isPinchState,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 🎯 目標支出ゲージ（主役・最上部）
-                GoalSpendingGauge(
+          child: Column(
+            children: [
+              // 固定ヘッダー部
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: GoalSpendingGauge(
                   monthlyBudget: _budgetAmount,
                   totalSpent: _monthlyExpenditure,
                   remainingDays: _displayBudget.remainingDays,
-                  onTapBudget:
-                      _budgetAmount == 0 ? _openBudgetSettings : null,
+                  onTapBudget: _budgetAmount == 0 ? _openBudgetSettings : null,
                 ),
-                const SizedBox(height: 8),
-                // HP/EXPコンパクト表示
-                _buildHpExpCompactRow(colorScheme),
-                // ピンチゾーン警告バナー（HPバー直下）
-                if (_player.isPinchState) ...[
-                  const SizedBox(height: 8),
-                  PinchZoneWarningBanner(player: _player),
-                ],
-                // 予算超過接近時の警告バナー
-                if (_budgetAmount > 0 &&
-                    _monthlyExpenditure >= _budgetAmount * _warningThreshold) ...[
-                  const SizedBox(height: 8),
-                  BudgetWarningBanner(
-                    spentAmount: _monthlyExpenditure,
-                    budgetAmount: _budgetAmount,
-                    ratio: _budgetAmount > 0
-                        ? _monthlyExpenditure / _budgetAmount
-                        : 0.0,
-                    threshold: _warningThreshold,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                // 🔮 現在の加護（常時表示）
-                _buildGuardianBlessingLine(colorScheme),
-                const SizedBox(height: 12),
-                // 📋 デイリークエスト
-                _buildDailyQuestSection(colorScheme),
-                const SizedBox(height: 12),
-                // 3カードグリッド（収入/試練/加護）
-                _buildCardGrid(colorScheme),
-              ],
-            ),
-          ),
-        ),
-      ),
-      floatingActionButton: _buildFloatingActionButton(),
-    );
-  }
-
-  /// 📋 デイリークエストセクション
-  Widget _buildDailyQuestSection(ColorScheme colorScheme) {
-    if (!_dailyQuestsLoaded) {
-      return const SizedBox.shrink();
-    }
-
-    return ListenableBuilder(
-      listenable: _dailyQuestNotifier,
-      builder: (context, _) {
-        final currentQuests = _dailyQuestNotifier.state?.quests ?? [];
-        final allCompleted = _dailyQuestNotifier.isAllCompleted;
-
-        return DailyQuestList(
-          quests: currentQuests,
-          isLoading: _dailyQuestNotifier.isLoading && currentQuests.isEmpty,
-          errorMessage: _dailyQuestNotifier.errorMessage,
-          onRetry: () => _loadDailyQuests(),
-          allCompletedEffect: allCompleted
-              ? QuestAchievementEffect(showAllComplete: true)
-              : null,
-          onQuestTap: (quest) {
-            // 将来のクエスト詳細画面用
-          },
-        );
-      },
-    );
-  }
-
-  /// HPバーとEXPゲージを横並びのコンパクトなRowで表示
-  Widget _buildHpExpCompactRow(ColorScheme colorScheme) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: AnimatedOpacity(
-            opacity: (_isUraMode && _canUseUraMode) ? 0.3 : 1.0,
-            duration: const Duration(milliseconds: 600),
-            child: HpBarWidget(
-              player: _player,
-              budgetAmount: _budgetAmount,
-              monthlyExpenditure: _monthlyExpenditure,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ExpGaugeWidget(player: _player),
-        ),
-      ],
-    );
-  }
-
-  /// 🔮 現在の加護（常時表示用コンパクト行）
-  Widget _buildGuardianBlessingLine(ColorScheme colorScheme) {
-    final advisor = _player.advisor;
-    if (advisor != null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.amber.withValues(alpha: 0.1),
-              Colors.amber.withValues(alpha: 0.05),
+              ),
+              // 警告バナー
+              if (_player.isPinchState)
+                PinchZoneWarningBanner(player: _player),
+              if (_budgetAmount > 0 && _monthlyExpenditure >= _budgetAmount * _warningThreshold)
+                BudgetWarningBanner(
+                  spentAmount: _monthlyExpenditure,
+                  budgetAmount: _budgetAmount,
+                  ratio: _budgetAmount > 0 ? _monthlyExpenditure / _budgetAmount : 0.0,
+                  threshold: _warningThreshold,
+                ),
+              // タブコンテンツ
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildGoalTab(colorScheme),
+                    _buildQuestTab(colorScheme),
+                    _buildGuardianTab(colorScheme),
+                  ],
+                ),
+              ),
             ],
           ),
-          borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
-          children: [
-            const Text('🔮', style: TextStyle(fontSize: 16)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '現在の加護: ${advisor.emoji} ${advisor.label}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                'EXP${advisor.expMultiplierText}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.amber,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            const Text('🔮', style: TextStyle(fontSize: 16)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '加護なし',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            GestureDetector(
-              onTap: _openAdvisorSelection,
-              child: Text(
-                '契約する →',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openQuickOffering,
+        tooltip: '支出を記録',
+        child: const Icon(Icons.edit_note),
+      ),
+    );
   }
 
-  /// 3カードグリッド：収入カード / 試練カード / 加護カード
-  Widget _buildCardGrid(ColorScheme colorScheme) {
-    return Column(
+  /// 🎯 目標タブ
+  Widget _buildGoalTab(ColorScheme colorScheme) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        // 1行目：目標カード + 試練カード
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _buildGoalCard(colorScheme)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildTrialCard(colorScheme)),
+        // EXPゲージ（コンパクト）
+        const SizedBox(height: 4),
+        ExpGaugeWidget(player: _player),
+        const SizedBox(height: 16),
+        // クイックリンク
+        _buildLinkButton('💵 予算を設定', onTap: _openBudgetSettings),
+        _buildLinkButton('🏆 実績', onTap: _openAchievementList),
+        _buildLinkButton('🎯 貯蓄目標', onTap: _openGoalList),
+        _buildLinkButton('📋 取引履歴', onTap: _openTransactionHistory),
+        _buildLinkButton('📊 支出分析', onTap: _openSummary),
+        _buildLinkButton('🔗 アプリ連携', onTap: _openCollaborationDashboard),
+        // 裏面モードリンク
+        if (_canUseUraMode) ...[
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _toggleUraMode,
+            icon: Icon(_isUraMode ? Icons.wb_sunny : Icons.nights_stay),
+            label: Text(_isUraMode ? '表モードに戻る' : '🌌 マスター領域'),
+          ),
+          if (_isUraMode) ...[
+            const SizedBox(height: 12),
+            const AnalysisChartWidget(key: Key('analysisChart'), isVisible: true),
+            const SizedBox(height: 12),
+            const PeriodComparisonSummary(key: Key('periodComparisonSummary')),
           ],
-        ),
-        const SizedBox(height: 12),
-        // 2行目：加護カード（全幅）
-        _buildProtectionCard(colorScheme),
+        ],
       ],
     );
   }
 
-  /// 🎯 目標カード
-  Widget _buildGoalCard(ColorScheme colorScheme) {
+  /// 📜 試練タブ
+  Widget _buildQuestTab(ColorScheme colorScheme) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // 🔮 守護神 簡易表示
+        _buildGuardianBlessingLine(colorScheme),
+        const SizedBox(height: 12),
+        // 試練カード
+        _buildTrialCard(colorScheme),
+        const SizedBox(height: 16),
+        // デイリークエスト
+        _buildDailyQuestSection(colorScheme),
+      ],
+    );
+  }
+
+  /// 🛡️ 加護タブ
+  Widget _buildGuardianTab(ColorScheme colorScheme) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (_player.advisor != null) ...[
+          // 守護神カード
+          _buildAdvisorDetailCard(colorScheme),
+          const SizedBox(height: 16),
+        ] else
+          _buildAdvisorContractPrompt(colorScheme),
+        // テーマ切替
+        if (widget.onToggleTheme != null)
+          IconButton(
+            icon: Icon(widget.themeIcon),
+            tooltip: 'テーマ切替',
+            onPressed: widget.onToggleTheme,
+          ),
+        // 開眼段階
+        _buildLevelBadgeCompact(colorScheme),
+      ],
+    );
+  }
+
+  Widget _buildLinkButton(String label, {required VoidCallback onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: onTap,
+          child: Text(label, style: const TextStyle(fontSize: 15)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdvisorDetailCard(ColorScheme colorScheme) {
+    final advisor = _player.advisor!;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            GoalSpendingGauge(
-              monthlyBudget: _budgetAmount,
-              totalSpent: _monthlyExpenditure,
-              remainingDays: _displayBudget.remainingDays,
-              onTapBudget:
-                  _budgetAmount == 0 ? _openBudgetSettings : null,
-            ),
+            Text(advisor.emoji, style: const TextStyle(fontSize: 48)),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                InkWell(
-                  onTap: _openBudgetSettings,
-                  child: const Text('💵 予算', style: TextStyle(fontSize: 11)),
-                ),
-                InkWell(
-                  onTap: _openAchievementList,
-                  child: const Text('🏆 実績', style: TextStyle(fontSize: 11)),
-                ),
-                InkWell(
-                  onTap: _openGoalList,
-                  child: const Text('🎯 目標', style: TextStyle(fontSize: 11)),
-                ),
-                InkWell(
-                  onTap: _openTransactionHistory,
-                  child: const Text('📋 履歴', style: TextStyle(fontSize: 11)),
-                ),
-                InkWell(
-                  onTap: _openSummary,
-                  child: const Text('📊 分析', style: TextStyle(fontSize: 11)),
-                ),
-                InkWell(
-                  onTap: _openCollaborationDashboard,
-                  child: const Text('🔗 連携', style: TextStyle(fontSize: 11)),
-                ),
-              ],
+            Text(advisor.label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+            const SizedBox(height: 4),
+            Text(advisor.domain, style: TextStyle(color: colorScheme.outline)),
+            const SizedBox(height: 12),
+            Text(advisor.effect, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text('講評: ${advisor.trialStyle}', style: TextStyle(fontSize: 11, color: colorScheme.outline)),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _player.isInCooldown ? null : _openGuardianSwitch,
+              icon: const Icon(Icons.swap_horiz, size: 16),
+              label: Text(_player.isInCooldown ? '守護神切替 (あと${_player.remainingCooldown!.inDays}日)' : '守護神切替',
+                  style: const TextStyle(fontSize: 13)),
             ),
           ],
         ),
@@ -836,7 +622,51 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// 📜 試練カード
+  Widget _buildAdvisorContractPrompt(ColorScheme colorScheme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Text('🔮', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 8),
+            Text('まだ守護神と契約していません', style: TextStyle(fontSize: 16, color: colorScheme.onSurface)),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _openAdvisorSelection,
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('守護神と契約する'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuardianBlessingLine(ColorScheme colorScheme) {
+    final advisor = _player.advisor;
+    if (advisor == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [Colors.amber.withValues(alpha: 0.1), Colors.amber.withValues(alpha: 0.05)]),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Text('🔮', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(child: Text('${advisor.emoji} ${advisor.label}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorScheme.onSurface))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+            child: Text('EXP${advisor.expMultiplierText}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTrialCard(ColorScheme colorScheme) {
     return Card(
       child: Padding(
@@ -845,99 +675,29 @@ class _MainScreenState extends State<MainScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                const Text('📜 試練',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const Spacer(),
-                if (_currentQuest?.isCompleted == true)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '完了',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: colorScheme.onPrimaryContainer),
-                    ),
-                  ),
-              ],
-            ),
+            Row(children: [
+              const Text('📜 試練', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Spacer(),
+              if (_currentQuest?.isCompleted == true)
+                Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: colorScheme.primaryContainer, borderRadius: BorderRadius.circular(12)),
+                    child: Text('完了', style: TextStyle(fontSize: 12, color: colorScheme.onPrimaryContainer))),
+            ]),
             const SizedBox(height: 8),
             if (_player.advisor == null) ...[
-              Text(
-                'まだアドバイザーと契約していない',
-                style: TextStyle(color: colorScheme.outline, fontSize: 12),
-              ),
+              Text('まだ守護神と契約していない', style: TextStyle(color: colorScheme.outline, fontSize: 12)),
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _openAdvisorSelection,
-                  icon: const Icon(Icons.auto_awesome, size: 18),
-                  label: const Text('契約する'),
-                ),
-              ),
-            ] else ...[
-              if (_currentQuest != null) ...[
-                Text(
-                  _currentQuest!.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: colorScheme.onSurface,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _currentQuest!.description,
-                  style: TextStyle(
-                      color: colorScheme.onSurfaceVariant, fontSize: 11),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(_currentQuest!.advisor.emoji,
-                        style: const TextStyle(fontSize: 14)),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        _currentQuest!.advisor.label,
-                        style: TextStyle(
-                            color: colorScheme.outline, fontSize: 11),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (_currentQuest!.suggestedOffering > 0)
-                      Text(
-                        '¥${_currentQuest!.suggestedOffering}',
-                        style: TextStyle(
-                            color: colorScheme.outline, fontSize: 11),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _openTrialQuest,
-                    icon: const Icon(Icons.arrow_forward, size: 16),
-                    label: Text(
-                      _currentQuest!.isCompleted ? '講評を確認' : '試練に臨む',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ),
-              ],
+              SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _openAdvisorSelection, icon: const Icon(Icons.auto_awesome, size: 18), label: const Text('契約する'))),
+            ] else if (_currentQuest != null) ...[
+              Text(_currentQuest!.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorScheme.onSurface)),
+              const SizedBox(height: 4),
+              Text(_currentQuest!.description, style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11)),
+              const SizedBox(height: 8),
+              SizedBox(width: double.infinity, child: OutlinedButton.icon(
+                onPressed: _openTrialQuest,
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: Text(_currentQuest!.isCompleted ? '講評を確認' : '試練に臨む', style: const TextStyle(fontSize: 12)),
+              )),
             ],
           ],
         ),
@@ -945,247 +705,40 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// 🛡️ 加護カード（アドバイザー情報 + 開眼段階 + 裏面モード切替）
-  Widget _buildProtectionCard(ColorScheme colorScheme) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // タイトル行（テーマ切替 + 裏面モード切替）
-            Row(
-              children: [
-                const Text('🛡️ 加護',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const Spacer(),
-                if (widget.onToggleTheme != null)
-                  IconButton(
-                    icon: Icon(widget.themeIcon, size: 20),
-                    tooltip: 'テーマ切替',
-                    onPressed: widget.onToggleTheme,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                if (_canUseUraMode)
-                  IconButton(
-                    icon: Icon(
-                      _isUraMode ? Icons.wb_sunny : Icons.nights_stay,
-                      size: 20,
-                    ),
-                    tooltip:
-                        _isUraMode ? '表モードに戻る' : '裏モードに切替',
-                    onPressed: _toggleUraMode,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // アドバイザー情報
-            if (_player.advisor != null) ...[
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '${_player.advisor!.emoji} ${_player.advisor!.label}',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onPrimaryContainer),
-                ),
-              ),
-              const SizedBox(height: 8),
-              // 効果詳細
-              _buildAdvisorEffectDetail(colorScheme, _player.advisor!),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed:
-                    _player.isInCooldown ? null : _openGuardianSwitch,
-                icon: const Icon(Icons.swap_horiz, size: 16),
-                label: Text(
-                  _player.isInCooldown
-                      ? '守護神切替 (あと${_player.remainingCooldown!.inDays}日)'
-                      : '守護神切替',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ] else
-              TextButton.icon(
-                onPressed: _openAdvisorSelection,
-                icon: const Icon(Icons.auto_awesome, size: 16),
-                label: const Text('アドバイザーと契約'),
-              ),
-            const SizedBox(height: 12),
-            // 開眼段階バッジ（コンパクト版）
-            _buildLevelBadgeCompact(colorScheme),
-            // 裏面モード時の分析チャート・期間比較（加護カード内に収納）
-            if (_isUraMode && _canUseUraMode) ...[
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Center(
-                  child: Text(
-                    '🌌 マスター領域',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber.withValues(alpha: 0.8),
-                      letterSpacing: 4,
-                    ),
-                  ),
-                ),
-              ),
-              const AnalysisChartWidget(
-                key: Key('analysisChart'),
-                isVisible: true,
-              ),
-              const SizedBox(height: 12),
-              const PeriodComparisonSummary(
-                key: Key('periodComparisonSummary'),
-              ),
-            ],
-          ],
-        ),
-      ),
+  Widget _buildDailyQuestSection(ColorScheme colorScheme) {
+    if (!_dailyQuestsLoaded) return const SizedBox.shrink();
+    return ListenableBuilder(
+      listenable: _dailyQuestNotifier,
+      builder: (context, _) {
+        final currentQuests = _dailyQuestNotifier.state?.quests ?? [];
+        final allCompleted = _dailyQuestNotifier.isAllCompleted;
+        return DailyQuestList(
+          quests: currentQuests,
+          isLoading: _dailyQuestNotifier.isLoading && currentQuests.isEmpty,
+          errorMessage: _dailyQuestNotifier.errorMessage,
+          onRetry: () => _loadDailyQuests(),
+          allCompletedEffect: allCompleted ? QuestAchievementEffect(showAllComplete: true) : null,
+          onQuestTap: (quest) {},
+        );
+      },
     );
   }
 
-  /// アドバイザーの効果詳細表示
-  Widget _buildAdvisorEffectDetail(ColorScheme colorScheme, Advisor advisor) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.auto_awesome, size: 14, color: Colors.amber),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  advisor.effect,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Text('🎤', style: TextStyle(fontSize: 12)),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  advisor.trialStyle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'EXP${advisor.expMultiplierText}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 開眼段階バッジ（コンパクト版）
   Widget _buildLevelBadgeCompact(ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colorScheme.secondaryContainer,
-            colorScheme.tertiaryContainer,
-          ],
-        ),
+        gradient: LinearGradient(colors: [colorScheme.secondaryContainer, colorScheme.tertiaryContainer]),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        children: [
-          const Text('🧘', style: TextStyle(fontSize: 20)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '開眼段階: ${_player.levelStage.label}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: colorScheme.onSecondaryContainer,
-                  ),
-                ),
-                Text(
-                  _player.levelStage.description,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color:
-                        colorScheme.onSecondaryContainer.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget? _buildFloatingActionButton() {
-    if (!_canUseUraMode) return null;
-
-    if (_isUraMode) {
-      // 裏面モード → 表に戻るFAB
-      return FloatingActionButton(
-        key: const Key('omoteModeFab'),
-        onPressed: _toggleUraMode,
-        backgroundColor: Colors.amber.shade800,
-        child: const Icon(Icons.wb_sunny, color: Colors.white),
-      );
-    }
-
-    // 表モード → 裏面に切り替えるFAB
-    return FloatingActionButton(
-      key: const Key('uraModeFab'),
-      onPressed: _toggleUraMode,
-      backgroundColor: Colors.indigo.shade800,
-      child: const Icon(Icons.nights_stay, color: Colors.white70),
+      child: Row(children: [
+        const Text('🧘', style: TextStyle(fontSize: 20)),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('開眼段階: ${_player.levelStage.label}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: colorScheme.onSecondaryContainer)),
+          Text(_player.levelStage.description, style: TextStyle(fontSize: 11, color: colorScheme.onSecondaryContainer.withValues(alpha: 0.7))),
+        ])),
+      ]),
     );
   }
 }
