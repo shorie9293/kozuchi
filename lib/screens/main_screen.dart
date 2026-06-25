@@ -23,6 +23,9 @@ import 'package:kozuchi/features/budget/presentation/screens/budget_settings_scr
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 import 'package:kozuchi/features/period_comparison/presentation/widgets/period_comparison_summary.dart';
 import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
+import 'package:kozuchi/features/goals/data/goal_api_service.dart';
+import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
+import 'package:kozuchi/core/infrastructure/env.dart';
 
 /// メイン画面
 ///
@@ -296,6 +299,15 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _openGoalList() {
+    final apiService = GoalApiService(baseUrl: Env.goalsApiUrl);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GoalListScreen(apiService: apiService),
+      ),
+    );
+  }
+
   Future<void> _openIncomeInput() async {
     final result = await Navigator.of(context).push<IncomeResult>(
       MaterialPageRoute(
@@ -551,6 +563,10 @@ class _MainScreenState extends State<MainScreen> {
                 InkWell(
                   onTap: _openAchievementList,
                   child: const Text('🏆 実績', style: TextStyle(fontSize: 11)),
+                ),
+                InkWell(
+                  onTap: _openGoalList,
+                  child: const Text('🎯 目標', style: TextStyle(fontSize: 11)),
                 ),
               ],
             ),
