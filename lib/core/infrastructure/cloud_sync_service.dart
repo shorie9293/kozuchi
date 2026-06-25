@@ -5,17 +5,37 @@ import 'package:kozuchi/domain/models/daily_quest.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/features/weekly_quest/domain/models/weekly_quest.dart';
 
-/// クラウド同期サービス
+// ─── 競合解決の結果型 ──────────────────────────────────────────
+
+/// Result of server save with conflict resolution (last-write-wins).
+sealed class SaveResult<T> {
+  const SaveResult();
+}
+
+/// Local data was newer, uploaded to server.
+class Uploaded<T> extends SaveResult<T> {
+  const Uploaded();
+}
+
+/// Server data was newer, upload skipped. Use [serverData] as source of truth.
+class ServerNewer<T> extends SaveResult<T> {
+  final T serverData;
+  const ServerNewer(this.serverData);
+}
+
+/// No server record exists (first sync). Upload was performed.
+class FirstSync<T> extends SaveResult<T> {
+  const FirstSync();
+}
+
+// ─── 競合解決の判断用列挙型 ──────────────────────────────────
+
+/// Internal conflict resolution decision.
+enum ConflictDecision { upload, useServer, firstSync }
+
+/// Cloud sync service using Supabase for player data persistence.
 ///
-/// Supabase を介してプレイヤーデータの保存・復元を行う。
-/// 匿名認証されたユーザーID をキーに、全テーブルで RLS によるデータ隔離が強制される。
-///
-/// 使用例:
-/// ```dart
-/// final syncService = CloudSyncService(client: Supabase.instance.client);
-/// await syncService.savePlayerState(player, userId: userId);
-/// final player = await syncService.loadPlayerState(userId: userId);
-/// ```
+/// All operations are scoped to the authenticated user via RLS.
 class CloudSyncService {
   final SupabaseClient _client;
 
@@ -23,15 +43,41 @@ class CloudSyncService {
 
   // ─── プレイヤー状態（player_saves） ─────────────────────────────
 
-  /// プレイヤー状態をサーバーに保存（upsert）
+  /// Save player state with conflict resolution (last-write-wins).
   ///
-  /// [player] の toJson() を data カラムに格納し、
-  /// user_id の重複時は上書きする。
-  Future<void> savePlayerState(
+  /// [localUpdatedAt] is the local modification timestamp.
+  /// Compares against server's updated_at: if local is newer, uploads.
+  /// If server is newer, skips upload and returns server version.
+  /// If no server record exists, performs first sync.
+  Future<SaveResult<PlayerModel>> savePlayerState(
     PlayerModel player, {
     required String userId,
+    required DateTime localUpdatedAt,
     int dataVersion = 1,
   }) async {
+    final serverUpdatedAt = await getPlayerUpdatedAt(userId: userId);
+    final decision = resolveConflict(localUpdatedAt, serverUpdatedAt);
+
+    switch (decision) {
+      case ConflictDecision.firstSync:
+        await _doUpsert(userId, player, dataVersion);
+        return const FirstSync<PlayerModel>();
+
+      case ConflictDecision.upload:
+        await _doUpsert(userId, player, dataVersion);
+        return const Uploaded<PlayerModel>();
+
+      case ConflictDecision.useServer:
+        final serverPlayer = await loadPlayerState(userId: userId);
+        return ServerNewer<PlayerModel>(serverPlayer!);
+    }
+  }
+
+  Future<void> _doUpsert(
+    String userId,
+    PlayerModel player,
+    int dataVersion,
+  ) async {
     await _client.from('player_saves').upsert(
       {
         'user_id': userId,
@@ -42,10 +88,9 @@ class CloudSyncService {
     );
   }
 
-  /// プレイヤー状態をサーバーから取得
+  /// Load player state from server.
   ///
-  /// 保存データがない場合は null を返す。
-  /// 呼び出し側は null の場合にデフォルトプレイヤーを使用すべき。
+  /// Returns null if no saved data exists.
   Future<PlayerModel?> loadPlayerState({
     required String userId,
   }) async {
@@ -63,9 +108,9 @@ class CloudSyncService {
     return PlayerModel.fromJson(data);
   }
 
-  /// プレイヤー状態がサーバーで更新された日時を取得
+  /// Get player state last-updated timestamp from server.
   ///
-  /// 競合解決のための比較用。保存データがない場合は null。
+  /// Returns null if no record exists. Used for conflict resolution.
   Future<DateTime?> getPlayerUpdatedAt({
     required String userId,
   }) async {
@@ -83,9 +128,9 @@ class CloudSyncService {
 
   // ─── 支出エントリ（expense_entries） ─────────────────────────────
 
-  /// 支出エントリを一括保存（upsert）
+  /// Save expense entries (upsert).
   ///
-  /// 同じ ID のエントリは上書き、新規は追加。
+  /// Same ID entries are overwritten, new ones inserted.
   Future<void> saveExpenseEntries(
     List<ExpenseEntry> entries, {
     required String userId,
@@ -107,15 +152,11 @@ class CloudSyncService {
     await _client.from('expense_entries').upsert(rows);
   }
 
-  /// 支出エントリを取得（全件または最終同期以降の差分）
-  ///
-  /// [lastSyncAt] を指定すると、その日時以降に更新されたエントリのみ返す。
+  /// Load expense entries (all or diff since last sync).
   Future<List<ExpenseEntry>> loadExpenseEntries({
     required String userId,
     DateTime? lastSyncAt,
   }) async {
-    // gt フィルタは order より先に適用する必要がある
-    // （order() の戻り値が PostgrestTransformBuilder に狭まるため）
     var filter = _client
         .from('expense_entries')
         .select()
@@ -132,7 +173,7 @@ class CloudSyncService {
         .toList();
   }
 
-  /// 支出エントリの全件数を取得（デバッグ・確認用）
+  /// Get total expense entry count (for debugging).
   Future<int> getExpenseCount({required String userId}) async {
     final response = await _client
         .from('expense_entries')
@@ -140,12 +181,12 @@ class CloudSyncService {
         .eq('user_id', userId)
         .count(CountOption.exact);
 
-    return response.count ?? 0; // ignore: dead_null_aware_expression
+    return response.count ?? 0;
   }
 
   // ─── デイリークエスト（daily_quests） ────────────────────────────
 
-  /// デイリークエスト状態を保存（upsert）
+  /// Save daily quest state (upsert).
   Future<void> saveDailyQuests(
     DailyQuestState state, {
     required String userId,
@@ -159,9 +200,7 @@ class CloudSyncService {
     );
   }
 
-  /// デイリークエスト状態を取得
-  ///
-  /// 保存データがない場合は null。
+  /// Load daily quest state.
   Future<DailyQuestState?> loadDailyQuests({
     required String userId,
   }) async {
@@ -180,7 +219,7 @@ class CloudSyncService {
 
   // ─── 週間クエスト（weekly_quests） ──────────────────────────────
 
-  /// 週間クエスト一覧を保存（upsert）
+  /// Save weekly quest list (upsert).
   Future<void> saveWeeklyQuests(
     List<WeeklyQuest> quests, {
     required String userId,
@@ -195,7 +234,7 @@ class CloudSyncService {
     );
   }
 
-  /// 週間クエスト一覧を取得
+  /// Load weekly quest list.
   Future<List<WeeklyQuest>> loadWeeklyQuests({
     required String userId,
   }) async {
@@ -217,9 +256,7 @@ class CloudSyncService {
 
   // ─── 試練クエスト（trial_quest） ────────────────────────────────
 
-  /// 試練クエストを保存（upsert）
-  ///
-  /// [quest] が null の場合はアクティブな試練がない状態として保存。
+  /// Save trial quest (upsert).
   Future<void> saveTrialQuest(
     TrialQuest? quest, {
     required String userId,
@@ -233,9 +270,7 @@ class CloudSyncService {
     );
   }
 
-  /// 試練クエストを取得
-  ///
-  /// アクティブな試練がない場合は null。
+  /// Load trial quest.
   Future<TrialQuest?> loadTrialQuest({
     required String userId,
   }) async {
@@ -254,30 +289,22 @@ class CloudSyncService {
 
   // ─── 全データ一括操作 ──────────────────────────────────────────
 
-  /// 全データをサーバーから一括取得（端末変更・復元用）
-  ///
-  /// 各テーブルから個別に取得するため、RPC 関数が使えない場合の
-  /// フォールバック実装。RLS によりユーザー自身のデータのみ返る。
+  /// Download all data from server (for device migration/restore).
   Future<Map<String, dynamic>> downloadAll({required String userId}) async {
     final results = <String, dynamic>{};
 
-    // プレイヤー状態
     final player = await loadPlayerState(userId: userId);
     results['player_save'] = player?.toJson();
 
-    // 支出エントリ
     final expenses = await loadExpenseEntries(userId: userId);
     results['expense_entries'] = expenses.map((e) => e.toJson()).toList();
 
-    // デイリークエスト
     final daily = await loadDailyQuests(userId: userId);
     results['daily_quests'] = daily?.toJson();
 
-    // 週間クエスト
     final weekly = await loadWeeklyQuests(userId: userId);
     results['weekly_quests'] = weekly.map((e) => e.toJson()).toList();
 
-    // 試練クエスト
     final trial = await loadTrialQuest(userId: userId);
     results['trial_quest'] = trial?.toJson();
 
@@ -286,7 +313,22 @@ class CloudSyncService {
 
   // ─── ヘルパー ──────────────────────────────────────────────────
 
-  /// Supabase から返された行データを ExpenseEntry.fromJson 用に変換
+  /// Resolve conflict by comparing local and server timestamps.
+  ///
+  /// Returns [ConflictDecision.upload] if local is newer,
+  /// [ConflictDecision.useServer] if server is newer or same time,
+  /// [ConflictDecision.firstSync] if no server record exists.
+  static ConflictDecision resolveConflict(
+    DateTime localUpdatedAt,
+    DateTime? serverUpdatedAt,
+  ) {
+    if (serverUpdatedAt == null) return ConflictDecision.firstSync;
+    return localUpdatedAt.isAfter(serverUpdatedAt)
+        ? ConflictDecision.upload
+        : ConflictDecision.useServer;
+  }
+
+  /// Convert Supabase row data to ExpenseEntry JSON format.
   Map<String, dynamic> _rowToExpenseJson(dynamic row) {
     final r = row as Map<String, dynamic>;
     return {

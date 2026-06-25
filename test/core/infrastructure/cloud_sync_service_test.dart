@@ -11,9 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 void main() {
   group('CloudSyncService', () {
     group('constructor', () {
-      test('CloudSyncService が例外なくインスタンス化できること', () {
-        // Supabase.initialize() が完了していないため実クライアントは作れないが、
-        // 型チェックとしてコンストラクタのシグネチャを検証する
+      test('CloudSyncService can be instantiated', () {
         expect(
           CloudSyncService.new,
           isA<CloudSyncService Function({required SupabaseClient client})>(),
@@ -21,17 +19,14 @@ void main() {
       });
     });
 
-    group('_rowToExpenseJson', () {
-      test('Supabase行データを ExpenseEntry JSON に正しく変換すること', () {
-        // _rowToExpenseJson は private だが、loadExpenseEntries 経由で間接的に
-        // テストできる。ここでは変換ロジックを独立関数として検証するため、
-        // 手動で検証する
+    group('_rowToExpenseJson transformation', () {
+      test('converts Supabase row data to ExpenseEntry JSON correctly', () {
         final row = {
           'id': 'test-uuid',
           'amount': 500,
-          'category': '食費',
+          'category': 'food',
           'date': '2026-06-24T08:00:00.000Z',
-          'note': '朝食',
+          'note': 'breakfast',
           'receipt_image_path': '/path/to/receipt.jpg',
         };
 
@@ -46,16 +41,16 @@ void main() {
 
         expect(entry.id, 'test-uuid');
         expect(entry.amount, 500);
-        expect(entry.category, '食費');
-        expect(entry.note, '朝食');
+        expect(entry.category, 'food');
+        expect(entry.note, 'breakfast');
         expect(entry.receiptImagePath, '/path/to/receipt.jpg');
       });
 
-      test('note と receipt_image_path が null でも変換できること', () {
+      test('handles null note and receipt_image_path', () {
         final row = {
           'id': 'test-uuid-2',
           'amount': 1000,
-          'category': '交通費',
+          'category': 'transport',
           'date': '2026-06-24T09:00:00.000Z',
           'note': null,
           'receipt_image_path': null,
@@ -99,9 +94,9 @@ void main() {
       final entry = ExpenseEntry(
         id: 'abc-123',
         amount: 500,
-        category: '食費',
+        category: 'food',
         date: DateTime.utc(2026, 6, 24, 8, 0),
-        note: '朝食',
+        note: 'breakfast',
         receiptImagePath: '/receipts/abc.jpg',
       );
 
@@ -119,7 +114,7 @@ void main() {
       final quest = DailyQuest(
         id: 'dq-001',
         type: DailyQuestType.spendOnSelf,
-        title: '自分に¥1,000使え',
+        title: 'Spend 1000 on yourself',
         targetValue: 1000,
         currentProgress: 500,
       );
@@ -133,22 +128,22 @@ void main() {
 
       expect(restored.quests.length, 1);
       expect(restored.quests[0].id, 'dq-001');
-      expect(restored.quests[0].title, '自分に¥1,000使え');
+      expect(restored.quests[0].title, 'Spend 1000 on yourself');
     });
 
     test('TrialQuest JSON roundtrip', () {
       final quest = TrialQuest(
-        title: '自己投資の試練',
-        description: '今週は学びに¥3,000投資せよ',
+        title: 'Self-investment trial',
+        description: 'Invest 3000 in learning this week',
         suggestedOffering: 3000,
         advisor: Advisor.benzaiten,
         offeringAmount: 2500,
-        offeringPurpose: '技術書購入',
-        offeringNote: 'Dart実践入門',
-        reflection: '学びになった',
-        review: '素晴らしい選択です',
+        offeringPurpose: 'Buy tech book',
+        offeringNote: 'Dart in Practice',
+        reflection: 'Learned a lot',
+        review: 'Excellent choice',
         receiptImagePath: '/receipts/book.jpg',
-        classifiedCategory: '教育費',
+        classifiedCategory: 'education',
       );
 
       final json = quest.toJson();
@@ -163,9 +158,9 @@ void main() {
     test('WeeklyQuest JSON roundtrip', () {
       final quest = WeeklyQuest(
         id: 'wq-001',
-        title: '娯楽費を¥5,000以内に',
-        description: '今週は娯楽費を控えめに',
-        targetCategory: '娯楽',
+        title: 'Keep entertainment under 5000',
+        description: 'Limit entertainment spending this week',
+        targetCategory: 'entertainment',
         budgetLimit: 5000,
         currentAvgSpend: 7200,
         difficulty: QuestDifficulty.medium,
@@ -185,23 +180,96 @@ void main() {
   });
 
   group('CloudSyncService API contracts', () {
-    test('savePlayerState は user_id を必須パラメータとして受け取ること', () {
-      // 型レベルでの検証: 名前付き required パラメータ
+    test('savePlayerState requires user_id parameter', () {
       expect(
         CloudSyncService.new,
-        isA<
-            CloudSyncService Function({
-          required SupabaseClient client,
-        })
-      >(),
+        isA<CloudSyncService Function({required SupabaseClient client})>(),
       );
     });
 
-    test('全メソッドが userId パラメータを受け取ること', () {
-      // コンパイル時チェック: このテストがコンパイルできれば
-      // 各メソッドのシグネチャが正しいことを意味する
-      // 実行時は Supabase 未初期化のため実際の呼び出しは行わない
-      expect(true, isTrue); // コンパイル確認用
+    test('all methods accept userId parameter (compile-time check)', () {
+      // This test passes if compilation succeeds -
+      // verifies method signatures at compile time.
+      // Supabase is not initialized so actual calls are skipped.
+      expect(true, isTrue);
+    });
+  });
+
+  group('SaveResult sealed class', () {
+    test('Uploaded, ServerNewer, FirstSync are SaveResult subtypes', () {
+      expect(const Uploaded<PlayerModel>(), isA<SaveResult<PlayerModel>>());
+      expect(
+        ServerNewer<PlayerModel>(PlayerModel(hp: 100, exp: 0)),
+        isA<SaveResult<PlayerModel>>(),
+      );
+      expect(const FirstSync<PlayerModel>(), isA<SaveResult<PlayerModel>>());
+    });
+
+    test('SaveResult is generic and works with different types', () {
+      expect(const Uploaded<String>(), isA<SaveResult<String>>());
+      expect(const FirstSync<int>(), isA<SaveResult<int>>());
+    });
+
+    test('ServerNewer holds serverData correctly', () {
+      final serverPlayer = PlayerModel(hp: 50000, exp: 42);
+      final result = ServerNewer<PlayerModel>(serverPlayer);
+
+      expect(result.serverData, same(serverPlayer));
+      expect(result.serverData.hp, 50000);
+      expect(result.serverData.exp, 42);
+    });
+
+    test('ServerNewer works with nullable types (TrialQuest?)', () {
+      // TrialQuest? is nullable, ServerNewer<TrialQuest?> should accept null
+      final resultWithQuest = ServerNewer<TrialQuest?>(
+        TrialQuest(title: 'test', description: 'desc', suggestedOffering: 100,
+          advisor: Advisor.daikokuten),
+      );
+      expect(resultWithQuest.serverData, isNotNull);
+
+      final resultWithNull = ServerNewer<TrialQuest?>(null);
+      expect(resultWithNull.serverData, isNull);
+    });
+
+    test('Uploaded and FirstSync have const constructors', () {
+      const u1 = Uploaded<PlayerModel>();
+      const u2 = Uploaded<PlayerModel>();
+      expect(identical(u1, u2), isTrue);
+
+      const f1 = FirstSync<PlayerModel>();
+      const f2 = FirstSync<PlayerModel>();
+      expect(identical(f1, f2), isTrue);
+    });
+
+    test('pattern matching on SaveResult works with switch', () {
+      final SaveResult<PlayerModel> result = ServerNewer<PlayerModel>(
+        PlayerModel(hp: 100, exp: 0));
+
+      final label = switch (result) {
+        Uploaded() => 'uploaded',
+        ServerNewer(:final serverData) => 'server_newer_hp_${serverData.hp}',
+        FirstSync() => 'first_sync',
+      };
+
+      expect(label, 'server_newer_hp_100');
+    });
+
+    test('first sync returns FirstSync pattern', () {
+      final SaveResult<PlayerModel> result = const FirstSync<PlayerModel>();
+      final isFirst = switch (result) {
+        FirstSync() => true,
+        _ => false,
+      };
+      expect(isFirst, isTrue);
+    });
+
+    test('upload returns Uploaded pattern', () {
+      final SaveResult<PlayerModel> result = const Uploaded<PlayerModel>();
+      final isUpload = switch (result) {
+        Uploaded() => true,
+        _ => false,
+      };
+      expect(isUpload, isTrue);
     });
   });
 }
