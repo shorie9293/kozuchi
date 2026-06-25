@@ -633,8 +633,6 @@ class _MainScreenState extends State<MainScreen> {
       return const SizedBox.shrink();
     }
 
-    final quests = _dailyQuestNotifier.state?.quests ?? [];
-
     return ListenableBuilder(
       listenable: _dailyQuestNotifier,
       builder: (context, _) {
