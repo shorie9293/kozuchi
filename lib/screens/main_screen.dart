@@ -25,6 +25,8 @@ import 'package:kozuchi/features/period_comparison/presentation/widgets/period_c
 import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
+import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
+import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
 
 /// メイン画面
@@ -308,6 +310,22 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _openTransactionHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const TransactionHistoryPage(),
+      ),
+    );
+  }
+
+  void _openSummary() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SummaryScreen(),
+      ),
+    );
+  }
+
   Future<void> _openIncomeInput() async {
     final result = await Navigator.of(context).push<IncomeResult>(
       MaterialPageRoute(
@@ -567,6 +585,14 @@ class _MainScreenState extends State<MainScreen> {
                 InkWell(
                   onTap: _openGoalList,
                   child: const Text('🎯 目標', style: TextStyle(fontSize: 11)),
+                ),
+                InkWell(
+                  onTap: _openTransactionHistory,
+                  child: const Text('📋 履歴', style: TextStyle(fontSize: 11)),
+                ),
+                InkWell(
+                  onTap: _openSummary,
+                  child: const Text('📊 分析', style: TextStyle(fontSize: 11)),
                 ),
               ],
             ),
