@@ -257,6 +257,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   void _onExpenseRecorded(int amount, String category) {
+    // 月間支出集計に記録
+    const DailyBudgetService().recordSpending(amount);
+    setState(() {
+      _monthlyExpenditure += amount;
+    });
+
     final completed = _dailyQuestNotifier.detectAction(
       QuestAction.expenseRecorded(amount: amount, category: category),
     );
