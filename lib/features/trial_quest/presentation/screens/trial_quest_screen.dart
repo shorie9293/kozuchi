@@ -208,6 +208,8 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
                       ],
                     ),
                   ),
+                  // 完了条件セクション
+                  _buildCompletionConditions(colorScheme),
                   const SizedBox(height: 16),
                   // 説明
                   Text(
@@ -380,6 +382,133 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  /// 完了条件セクションを構築する
+  Widget _buildCompletionConditions(ColorScheme colorScheme) {
+    final isOfferingDone = _quest.isOfferingRecorded;
+    final isReflectionDone = _quest.isReflectionRecorded;
+    final completedSteps = (isOfferingDone ? 1 : 0) + (isReflectionDone ? 1 : 0);
+    final totalSteps = 2;
+    final allDone = _quest.isCompleted;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: allDone
+            ? Colors.green.withValues(alpha: 0.1)
+            : colorScheme.primaryContainer.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: allDone
+              ? Colors.green.withValues(alpha: 0.4)
+              : colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ヘッダー：タイトル＋進捗
+          Row(
+            children: [
+              Icon(
+                allDone ? Icons.check_circle : Icons.flag_outlined,
+                size: 18,
+                color: allDone ? Colors.green : colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                allDone ? '✓ クエスト完了' : '完了条件',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: allDone ? Colors.green.shade700 : colorScheme.primary,
+                ),
+              ),
+              const Spacer(),
+              // 進捗表示: Step 1/2 形式
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: allDone
+                      ? Colors.green.withValues(alpha: 0.15)
+                      : colorScheme.surface.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  allDone ? '✓ $totalSteps/$totalSteps' : '$completedSteps/$totalSteps',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: allDone ? Colors.green.shade700 : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Step1: 支出を記録する
+          _buildStepRow(
+            stepNumber: 1,
+            label: '支出を記録する',
+            isDone: isOfferingDone,
+            colorScheme: colorScheme,
+          ),
+          const SizedBox(height: 4),
+          // Step2: 振り返りを書く
+          _buildStepRow(
+            stepNumber: 2,
+            label: '振り返りを書く',
+            isDone: isReflectionDone,
+            colorScheme: colorScheme,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 個別ステップ行
+  Widget _buildStepRow({
+    required int stepNumber,
+    required String label,
+    required bool isDone,
+    required ColorScheme colorScheme,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          isDone ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 16,
+          color: isDone ? Colors.green : colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          'Step $stepNumber: ',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: isDone
+                ? Colors.green.shade600
+                : colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: isDone
+                ? Colors.green.shade600
+                : colorScheme.onSurface,
+            decoration: isDone ? TextDecoration.lineThrough : null,
+          ),
+        ),
+        if (isDone) ...[
+          const SizedBox(width: 4),
+          const Icon(Icons.check, size: 12, color: Colors.green),
+        ],
+      ],
     );
   }
 

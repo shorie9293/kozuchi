@@ -61,8 +61,26 @@ class DailyQuestCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
               ],
+              // 条件ヒント（達成条件がひと目でわかる）
+              if (!isDone && !isFailed)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiaryContainer.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _conditionHint,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.tertiary,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
               // 進捗バー（二値型クエスト以外）
               if (!_isBinaryQuest) _buildProgressBar(colorScheme, progress),
               const SizedBox(height: 6),
@@ -78,6 +96,22 @@ class DailyQuestCard extends StatelessWidget {
   /// 二値型クエスト（目標値0または1で、進捗表示が不要なもの）
   bool get _isBinaryQuest =>
       quest.targetValue == 0 || quest.targetValue == 1;
+
+  /// タイプ別の条件説明テキスト
+  String get _conditionHint {
+    switch (quest.type) {
+      case DailyQuestType.spendOnSelf:
+        return '自己投資カテゴリ（書籍・趣味・美容・教育費など）の支出で進捗';
+      case DailyQuestType.receiptScan:
+        return '支出時にレシートを撮影すると進捗';
+      case DailyQuestType.newCategory:
+        return '最近使っていないカテゴリで支出すると達成';
+      case DailyQuestType.underBudget:
+        return '支出合計が予算以内なら達成、超過で失敗';
+      case DailyQuestType.noSpending:
+        return '支出が発生したら失敗';
+    }
+  }
 
   /// ヘッダー行
   Widget _buildHeader(
