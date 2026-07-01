@@ -6,7 +6,8 @@ import 'package:kozuchi/features/satori/data/satori_event_dispatcher.dart';
 /// SATORI変動理由を吹き出しで表示するツールチップエフェクト
 ///
 /// [SatoriEventDispatcher.lastEvent] から最新のSATORI変動理由を取得し、
-/// アニメーション付きの吹き出しとして表示する。
+/// アニメーション付きの吹き出しとして表示する。また、[EffectInstance.definition.parameters]
+/// 経由で守護神の称賛メッセージ（guardianPraise）やコンボ情報（isCombo）も表示する。
 ///
 /// アニメーション仕様:
 /// - 0〜200ms: fade-in（透明度 0→1）
@@ -90,10 +91,22 @@ class _SatoriTooltipEffectState extends State<SatoriTooltipEffect>
 
   @override
   Widget build(BuildContext context) {
-    final event = _event;
-    if (event == null) return const SizedBox.shrink();
+    final params = widget.instance.definition.parameters ?? {};
+    final isCombo = params['isCombo'] as bool? ?? false;
+    final guardianPraise = _getGuardianPraise(params);
+    final comboCount = params['comboCount'] as int? ?? 0;
 
-    final isIncrease = event.direction == SatoriDirection.increase;
+    // コンボ表示専用の場合は別レイアウト
+    if (isCombo) {
+      return _buildComboDisplay(comboCount);
+    }
+
+    final event = _event;
+    if (event == null && guardianPraise == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isIncrease = event?.direction == SatoriDirection.increase;
     final colorScheme = Theme.of(context).colorScheme;
 
     // 増加時：緑系、減少時：赤系
@@ -106,7 +119,7 @@ class _SatoriTooltipEffectState extends State<SatoriTooltipEffect>
             Colors.red.shade100.withValues(alpha: 0.95);
 
     final arrow = isIncrease ? '⬆️' : '⬇️';
-    final deltaText = '${arrow} ${event.delta} EXP';
+    final deltaText = event != null ? '${arrow} ${event.delta} EXP' : '';
 
     return Positioned(
       top: widget.instance.position.dy,
@@ -141,30 +154,132 @@ class _SatoriTooltipEffectState extends State<SatoriTooltipEffect>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          event.reason,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: isIncrease
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onErrorContainer,
+                        if (event != null) ...[
+                          Text(
+                            event.reason,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: isIncrease
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onErrorContainer,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
+                          const SizedBox(height: 4),
+                          Text(
+                            deltaText,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isIncrease
+                                  ? colorScheme.onPrimaryContainer
+                                      .withValues(alpha: 0.7)
+                                  : colorScheme.onErrorContainer
+                                      .withValues(alpha: 0.7),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                        // 守護神の称賛メッセージ
+                        if (guardianPraise != null) ...[
+                          const SizedBox(height: 4),
+                          const Divider(height: 1),
+                          const SizedBox(height: 4),
+                          Text(
+                            guardianPraise,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.amber.shade800,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 守護神の称賛メッセージをパラメータから取得する
+  String? _getGuardianPraise(Map<String, dynamic> params) {
+    final praise = params['guardianPraise'];
+    if (praise is String && praise.isNotEmpty) return praise;
+    // 後方互換性: パラメータではなく理由に含まれている場合
+    return null;
+  }
+
+  /// コンボ表示用のWidget
+  Widget _buildComboDisplay(int comboCount) {
+    // コンボ数に応じて色を変化
+    final comboColor = comboCount >= 5
+        ? Colors.purple
+        : comboCount >= 3
+            ? Colors.orange
+            : Colors.amber;
+
+    return Positioned(
+      top: widget.instance.position.dy,
+      left: 0,
+      right: 0,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _opacity.value,
+            child: SlideTransition(
+              position: _slide,
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 32),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: comboColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: comboColor.withValues(alpha: 0.5),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: comboColor.withValues(alpha: 0.3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
                         ),
-                        const SizedBox(height: 4),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          deltaText,
+                          '🔥' * (comboCount ~/ 2).clamp(1, 3),
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${comboCount}連続記録!',
                           style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: isIncrease
-                                ? colorScheme.onPrimaryContainer
-                                    .withValues(alpha: 0.7)
-                                : colorScheme.onErrorContainer
-                                    .withValues(alpha: 0.7),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: comboColor,
                           ),
-                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '🔥' * (comboCount ~/ 2).clamp(1, 3),
+                          style: const TextStyle(fontSize: 20),
                         ),
                       ],
                     ),

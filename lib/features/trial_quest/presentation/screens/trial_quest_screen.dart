@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
@@ -89,6 +90,10 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
           MediaQuery.of(context).size.height / 2,
         ),
       );
+      // 画面フラッシュ演出（爽快感向上）
+      EffectManager.of(context).playEffect('offering_flash', Offset.zero);
+      // 触覚フィードバック
+      HapticFeedback.mediumImpact();
     }
   }
 

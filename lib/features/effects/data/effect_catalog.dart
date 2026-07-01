@@ -36,7 +36,7 @@ class EffectCatalog {
       'coin_scatter': const EffectDefinition(
         name: 'coin_scatter',
         duration: Duration(seconds: 2),
-        particleCount: 12,
+        particleCount: 20,
       ),
       'cherry_snow': const EffectDefinition(
         name: 'cherry_snow',
@@ -59,7 +59,7 @@ class EffectCatalog {
       'satori_increase': const EffectDefinition(
         name: 'satori_increase',
         duration: Duration(milliseconds: 1500),
-        particleCount: 8,
+        particleCount: 16,
       ),
       'dark_curtain': const EffectDefinition(
         name: 'dark_curtain',
@@ -78,6 +78,11 @@ class EffectCatalog {
       'test_flash': const EffectDefinition(
         name: 'test_flash',
         duration: Duration.zero,
+      ),
+      'offering_flash': const EffectDefinition(
+        name: 'offering_flash',
+        duration: Duration(milliseconds: 400),
+        isFullScreen: true,
       ),
     });
   }

@@ -24,6 +24,7 @@ import 'package:kozuchi/features/effects/presentation/effects/cherry_blizzard_ef
 import 'package:kozuchi/features/effects/presentation/effects/pillar_of_light_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/guardian_switch_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/dark_curtain_effect.dart';
+import 'package:kozuchi/features/effects/presentation/effects/offering_flash_effect.dart';
 import 'package:kozuchi/features/weekly_report/presentation/screens/weekly_report_screen.dart';
 import 'package:kozuchi/screens/main_screen.dart';
 
@@ -237,6 +238,7 @@ class _MyAppState extends State<MyApp> {
       'satori_tooltip' => SatoriTooltipEffect(instance: instance),
       'satori_increase' => SatoriIncreaseEffect(instance: instance),
       'dark_curtain' => DarkCurtainEffect(instance: instance),
+      'offering_flash' => OfferingFlashEffect(instance: instance),
       _ => const SizedBox.shrink(),
     };
   }

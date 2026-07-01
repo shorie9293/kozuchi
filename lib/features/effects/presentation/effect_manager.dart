@@ -126,6 +126,11 @@ class EffectManagerState extends State<EffectManager> {
       playEffect('light_pillar', position);
     }
 
+    // コンボ演出（コンボ数2以上で強化）
+    if (event.comboCount >= 2) {
+      _playComboEffect(event.comboCount);
+    }
+
     // 全増加イベント → 光の粒子（SATORI表示領域付近）
     final size = context.size ?? Size.zero;
     // SATORI値は画面上部のExpGaugeWidget右側に表示されるため、
@@ -146,12 +151,34 @@ class EffectManagerState extends State<EffectManager> {
     final size = context.size ?? Size.zero;
     // 画面中央上部に吹き出しを表示
     final position = Offset(size.width / 2, size.height * 0.15);
-    playEffect('satori_tooltip', position,
-        parameters: {
-          'reason': event.reason,
-          'direction': event.direction.name,
-          'delta': event.delta,
-        });
+    final params = <String, dynamic>{
+      'reason': event.reason,
+      'direction': event.direction.name,
+      'delta': event.delta,
+    };
+    // 守護神の称賛メッセージがあればパラメータに含める
+    if (event.guardianPraise != null) {
+      params['guardianPraise'] = event.guardianPraise;
+    }
+    // コンボ情報があればパラメータに含める
+    if (event.comboCount >= 2) {
+      params['comboCount'] = event.comboCount;
+    }
+    playEffect('satori_tooltip', position, parameters: params);
+  }
+
+  /// コンボ演出を再生する
+  void _playComboEffect(int comboCount) {
+    final size = context.size ?? Size.zero;
+    // 画面中央にコンボ表示
+    final position = Offset(size.width / 2, size.height * 0.35);
+    playEffect('satori_tooltip', position, parameters: {
+      'reason': '連続記録 x$comboCount!',
+      'direction': 'increase',
+      'delta': comboCount,
+      'isCombo': true,
+      'comboCount': comboCount,
+    });
   }
 
   /// エフェクトを再生する

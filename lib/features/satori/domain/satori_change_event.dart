@@ -33,6 +33,12 @@ class SatoriChangeEvent {
   /// 追加コンテキスト（アドバイザー名など）
   final String? context;
 
+  /// 守護神の称賛メッセージ（支出記録直後に表示）
+  final String? guardianPraise;
+
+  /// 連続記録時のコンボ数（0=コンボなし）
+  final int comboCount;
+
   const SatoriChangeEvent({
     required this.direction,
     required this.reason,
@@ -40,12 +46,15 @@ class SatoriChangeEvent {
     required this.newValue,
     required this.delta,
     this.context,
+    this.guardianPraise,
+    this.comboCount = 0,
   });
 
   @override
   String toString() {
     final arrow = direction == SatoriDirection.increase ? '↑' : '↓';
-    return 'SatoriChangeEvent($arrow +$delta: "$reason", $oldValue → $newValue)';
+    final combo = comboCount > 1 ? ' [${comboCount}連続]' : '';
+    return 'SatoriChangeEvent($arrow +$delta: "$reason"$combo, $oldValue → $newValue)';
   }
 
   @override
@@ -57,9 +66,20 @@ class SatoriChangeEvent {
         other.oldValue == oldValue &&
         other.newValue == newValue &&
         other.delta == delta &&
-        other.context == context;
+        other.context == context &&
+        other.guardianPraise == guardianPraise &&
+        other.comboCount == comboCount;
   }
 
   @override
-  int get hashCode => Object.hash(direction, reason, oldValue, newValue, delta, context);
+  int get hashCode => Object.hash(
+        direction,
+        reason,
+        oldValue,
+        newValue,
+        delta,
+        context,
+        guardianPraise,
+        comboCount,
+      );
 }
