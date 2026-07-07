@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/screens/main_screen.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/level_stage.dart';
 
@@ -17,6 +19,16 @@ Widget wrapMainScreen({PlayerModel? player}) {
 }
 
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    try {
+      await Supabase.initialize(
+        url: 'https://test.supabase.co',
+        anonKey: 'test-key',
+      );
+    } catch (_) {}
+  });
+
   group('MainScreen - 裏面モード', () {
     testWidgets('レベルMAX段階で裏面切り替えFABが表示される', (tester) async {
       // レベルMAX段階のプレイヤー（EXP 100）

@@ -3,9 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/trial_quest_screen.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kozuchi/domain/models/advisor.dart';
 
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    try {
+      await Supabase.initialize(
+        url: 'https://test.supabase.co',
+        anonKey: 'test-key',
+      );
+    } catch (_) {}
+  });
+
   group('TrialQuestScreen', () {
     testWidgets('試練のタイトルと説明が表示される', (tester) async {
       final quest = TrialQuest(

@@ -41,16 +41,16 @@ void main() {
       expect(json['title'], 'コンビニ誘惑を断て');
       expect(json['description'], '3日間コンビニで無駄遣いせず、必要なものだけ買う');
       expect(json['suggestedOffering'], 500);
-      expect(json['advisor'], 'investmentMentor');
+      expect(json['advisor'], 'bishamonten');
       expect(json['isCompleted'], false);
     });
 
     test('advisorが正しい文字列キーで出力されること（全4種）', () async {
       final deities = {
-        Advisor.daikokuten: 'lifePlanner',
-        Advisor.benzaiten: 'careerCoach',
-        Advisor.bishamonten: 'investmentMentor',
-        Advisor.kichijoten: 'wellnessAdvisor',
+        Advisor.daikokuten: 'daikokuten',
+        Advisor.benzaiten: 'benzaiten',
+        Advisor.bishamonten: 'bishamonten',
+        Advisor.kichijoten: 'kichijoten',
       };
 
       for (final entry in deities.entries) {

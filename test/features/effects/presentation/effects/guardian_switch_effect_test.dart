@@ -11,7 +11,7 @@ void main() {
       duration: Duration(seconds: 4),
       isFullScreen: true,
       parameters: {
-        'oldAdvisor': 0, // lifePlanner
+        'oldAdvisor': 0, // daikokuten
         'newAdvisor': 1, // careerCoach
       },
     );

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service.dart';
+import 'package:kozuchi/features/benzaiten/data/benzaiten_book_bonus_service.dart';
 import 'package:kozuchi/domain/models/advisor.dart';
 
 void main() {
@@ -10,7 +10,7 @@ void main() {
   late String filePath;
 
   setUp(() {
-    tempDir = Directory.systemTemp.createTempSync('careerCoach_test_');
+    tempDir = Directory.systemTemp.createTempSync('benzaiten_test_');
     filePath = '${tempDir.path}/tsundoku_book_events.json';
   });
 
@@ -25,7 +25,7 @@ void main() {
   }
 
   group('CareerCoachBookBonusService', () {
-    test('Returns null when advisor is lifePlanner', () async {
+    test('Returns null when advisor is daikokuten', () async {
       final service = CareerCoachBookBonusService(filePath: filePath);
       await writeTestJson({
         'event': 'book_added',
@@ -39,7 +39,7 @@ void main() {
       expect(result, isNull);
     });
 
-    test('Returns null when advisor is investmentMentor', () async {
+    test('Returns null when advisor is bishamonten', () async {
       final service = CareerCoachBookBonusService(filePath: filePath);
       await writeTestJson({
         'event': 'book_added',

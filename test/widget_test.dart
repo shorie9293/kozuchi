@@ -3,8 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/main.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    try {
+      await Supabase.initialize(
+        url: 'https://test.supabase.co',
+        anonKey: 'test-key',
+      );
+    } catch (_) {}
+  });
+
   testWidgets('アプリ起動時にHPバーとEXPゲージが表示される', (tester) async {
     // SharedPreferencesのモックを事前設定（_loadSavedStateで必要）
     SharedPreferences.setMockInitialValues({});

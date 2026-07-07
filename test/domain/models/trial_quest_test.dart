@@ -69,7 +69,7 @@ void main() {
           'title': '誰かと食事を共にせよ',
           'description': '友人や家族と食事をし、会計を済ませよ',
           'suggestedOffering': 3000,
-          'advisor': 'lifePlanner',
+          'advisor': 'daikokuten',
           'offeringAmount': 2500,
           'offeringPurpose': '技術書を購入',
           'offeringNote': 'Flutterの本',
@@ -135,7 +135,7 @@ void main() {
         expect(json['title'], '本を買って智慧を得よ');
         expect(json['description'], '本を一冊購入せよ');
         expect(json['suggestedOffering'], 2000);
-        expect(json['advisor'], 'careerCoach');
+        expect(json['advisor'], 'benzaiten');
         expect(json['offeringAmount'], 2500);
         expect(json['offeringPurpose'], '技術書');
         expect(json['offeringNote'], 'メモ');
