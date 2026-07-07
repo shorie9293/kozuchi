@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kozuchi/features/benzaiten/data/benzaiten_book_bonus_service.dart';
+import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service.dart';
 import 'package:kozuchi/domain/models/advisor.dart';
 
 void main() {
