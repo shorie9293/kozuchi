@@ -76,7 +76,7 @@ class AchievementApiModel {
 
   static String _formatNumber(int n) {
     if (n >= 10000) {
-      return '${(n / 10000).toStringAsFixed(0)}万';
+      return '${(n ~/ 10000)}万';
     }
     return n.toString();
   }
