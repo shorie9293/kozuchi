@@ -106,8 +106,8 @@ void main() {
         ),
       );
 
-      expect(find.text('支出を記録する'), findsOneWidget);
-      await tester.tap(find.text('支出を記録する'));
+      // ElevatedButton.iconのアイコンでタップ
+      await tester.tap(find.byIcon(Icons.paid));
       await tester.pumpAndSettle();
       expect(find.text('支出の記録'), findsOneWidget);
     });
@@ -131,8 +131,8 @@ void main() {
         ),
       );
 
-      expect(find.text('振り返りを書く'), findsOneWidget);
-      await tester.tap(find.text('振り返りを書く'));
+      // ElevatedButton.iconのアイコンでタップ
+      await tester.tap(find.byIcon(Icons.edit_note).last);
       await tester.pumpAndSettle();
       expect(find.text('振り返り'), findsOneWidget);
     });

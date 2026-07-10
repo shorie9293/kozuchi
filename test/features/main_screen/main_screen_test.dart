@@ -7,13 +7,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/level_stage.dart';
+import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
 
 /// テスト用にMainScreenをラップするヘルパー
-Widget wrapMainScreen({PlayerModel? player}) {
+Widget wrapMainScreen({PlayerModel? player, ThemeMode? themeMode, IconData? themeIcon, VoidCallback? onToggleTheme}) {
   return MaterialApp(
     home: MainScreen(
       key: AppKeys.mainScreen,
       initialPlayer: player,
+      themeMode: themeMode ?? ThemeMode.system,
+      themeIcon: themeIcon ?? Icons.brightness_auto,
+      onToggleTheme: onToggleTheme,
     ),
   );
 }
@@ -30,56 +34,70 @@ void main() {
   });
 
   group('MainScreen - 裏面モード', () {
-    testWidgets('レベルMAX段階で裏面切り替えFABが表示される', (tester) async {
+    testWidgets('レベルMAX段階で裏面切り替えボタンが表示される', (tester) async {
       // レベルMAX段階のプレイヤー（EXP 100）
       final player = PlayerModel(
         hp: 100000,
         exp: 100,
       );
       await tester.pumpWidget(wrapMainScreen(player: player));
+      // 非同期ロードの完了を待つ
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
 
       // レベルMAX段階であることを確認
       expect(player.levelStage, LevelStage.kuu);
 
-      // Ura mode FABが表示される
-      expect(find.byKey(const Key('uraModeFab')), findsOneWidget);
+      // ListViewをスクロールしてボタンを可視化
+      await tester.dragUntilVisible(
+        find.text('🌌 マスター領域'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('🌌 マスター領域'), findsOneWidget);
     });
 
-    testWidgets('レベルMAX段階未到達では裏面切り替えFABが表示されない', (tester) async {
+    testWidgets('レベルMAX段階未到達では裏面切り替えボタンが表示されない', (tester) async {
       final player = PlayerModel(
         hp: 100000,
-        exp: 50, // レベル2段階
+        exp: 50,
       );
       await tester.pumpWidget(wrapMainScreen(player: player));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      // レベルMAX段階未到達
       expect(player.levelStage, isNot(LevelStage.kuu));
-
-      // FABは表示されない
-      expect(find.byKey(const Key('uraModeFab')), findsNothing);
+      expect(find.text('🌌 マスター領域'), findsNothing);
     });
 
-    testWidgets('裏面モードに切り替えると支出可視化ツリーとマスター領域ラベルが表示される', (tester) async {
+    testWidgets('裏面モードに切り替えると支出可視化ツリーが表示される', (tester) async {
       final player = PlayerModel(
         hp: 100000,
         exp: 100,
       );
       await tester.pumpWidget(wrapMainScreen(player: player));
-
-      // 裏面モードに切り替え
-      await tester.tap(find.byKey(const Key('uraModeFab')));
-      // pumpAndSettleはAnalysisChartWidgetの繰り返しアニメーションでタイムアウトするためpumpを使用
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // マスター領域ラベルが表示される
-      expect(find.byKey(const Key('kuuWorldLabel')), findsOneWidget);
+      // ListViewをスクロールしてボタンを可視化
+      await tester.dragUntilVisible(
+        find.text('🌌 マスター領域'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('🌌 マスター領域'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // 支出可視化ツリーが表示される
       expect(find.byKey(const Key('analysisChart')), findsOneWidget);
-
-      // 表に戻るFABが表示される
-      expect(find.byKey(const Key('omoteModeFab')), findsOneWidget);
+      expect(find.text('表モードに戻る'), findsOneWidget);
     });
 
     testWidgets('裏面モードから表モードに戻せる', (tester) async {
@@ -88,75 +106,75 @@ void main() {
         exp: 100,
       );
       await tester.pumpWidget(wrapMainScreen(player: player));
-
-      // 裏面に切り替え
-      await tester.tap(find.byKey(const Key('uraModeFab')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // 裏面モード確認
-      expect(find.byKey(const Key('kuuWorldLabel')), findsOneWidget);
-
-      // 表に戻るFABが見えるようにスクロール
-      await tester.ensureVisible(find.byKey(const Key('omoteModeFab')));
+      // ListViewをスクロールしてボタンを可視化
+      await tester.dragUntilVisible(
+        find.text('🌌 マスター領域'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('🌌 マスター領域'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
       // 表に戻る
-      await tester.tap(find.byKey(const Key('omoteModeFab')));
+      await tester.ensureVisible(find.text('表モードに戻る'));
+      await tester.pump();
+      await tester.tap(find.text('表モードに戻る'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // マスター領域ラベルが消える
-      expect(find.byKey(const Key('kuuWorldLabel')), findsNothing);
-
-      // 裏面切り替えFABが再表示
-      expect(find.byKey(const Key('uraModeFab')), findsOneWidget);
+      // 裏面ツリーが消える
+      expect(find.byKey(const Key('analysisChart')), findsNothing);
+      expect(find.text('🌌 マスター領域'), findsOneWidget);
     });
 
-    testWidgets('レベルMAX段階時、表モードではHPバーが通常表示される', (tester) async {
+    testWidgets('レベルMAX段階時、表モードではGoalSpendingGaugeが表示される', (tester) async {
       final player = PlayerModel(
         hp: 100000,
         exp: 100,
       );
       await tester.pumpWidget(wrapMainScreen(player: player));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      // 表モードではHPバー残高が表示される
-      expect(find.text('¥100,000'), findsOneWidget);
+      expect(find.byType(GoalSpendingGauge), findsOneWidget);
     });
   });
 
   group('MainScreen - 表モード', () {
-    testWidgets('表モードでHPバーとEXPゲージが初期表示される', (tester) async {
-      // デフォルトプレイヤー（exp=0, hp=100000）
+    testWidgets('表モードでGoalSpendingGaugeとEXPゲージが初期表示される', (tester) async {
       final player = PlayerModel();
       await tester.pumpWidget(wrapMainScreen(player: player));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      // EXPゲージラベルが表示される
+      // タブを目標タブに固定（デフォルト）
       expect(find.text('🧘 EXP（悟りゲージ）'), findsOneWidget);
-      // HPバー残高が表示される
-      expect(find.text('¥100,000'), findsOneWidget);
+      expect(find.byType(GoalSpendingGauge), findsOneWidget);
     });
 
-    testWidgets('表モードでクエスト開始FABが表示される', (tester) async {
-      // レベルMAX段階のプレイヤー（EXP 100）
+    testWidgets('表モードで支出記録FABが表示される', (tester) async {
       final player = PlayerModel(
         hp: 100000,
         exp: 100,
       );
       await tester.pumpWidget(wrapMainScreen(player: player));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      // レベルMAX段階であることを確認
       expect(player.levelStage, LevelStage.kuu);
 
-      // 表モードでは裏面切り替えFAB（クエスト開始FAB相当）が表示される
-      final fab = find.byKey(const Key('uraModeFab'));
+      final fab = find.byType(FloatingActionButton);
       expect(fab, findsOneWidget);
-      // FABの中にnights_stayアイコンがある
       expect(
         find.descendant(
           of: fab,
-          matching: find.byIcon(Icons.nights_stay),
+          matching: find.byIcon(Icons.edit_note),
         ),
         findsOneWidget,
       );
@@ -164,8 +182,11 @@ void main() {
 
     testWidgets('WidgetKeyが設定されている', (tester) async {
       await tester.pumpWidget(wrapMainScreen());
-      // AppKeys.mainScreenがScaffoldに設定されている
-      expect(find.byKey(AppKeys.mainScreen), findsOneWidget);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // AppKeys.mainScreenがScaffoldに設定されている（複数widgetに付与される可能性あり）
+      expect(find.byKey(AppKeys.mainScreen), findsWidgets);
     });
 
     testWidgets('初期プレイヤーのEXP値が正しく表示される', (tester) async {
@@ -174,19 +195,19 @@ void main() {
         exp: 42,
       );
       await tester.pumpWidget(wrapMainScreen(player: player));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // EXP値42が表示される
       expect(find.text('42'), findsOneWidget);
-      // HPバーに¥50,000が表示される
-      expect(find.text('¥50,000'), findsOneWidget);
+      expect(find.byType(GoalSpendingGauge), findsOneWidget);
     });
 
     testWidgets('main screen renders without errors', (tester) async {
-      // デフォルトプレイヤーでエラーなく描画されることを確認
       await tester.pumpWidget(wrapMainScreen(player: PlayerModel()));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      // AppKeys.mainScreenがMainScreenに設定されている（Scaffoldにも同じKeyが設定されているためfindsWidgetsを使用）
       expect(find.byKey(AppKeys.mainScreen), findsWidgets);
       expect(find.text('打ち出の小槌'), findsOneWidget);
     });
@@ -200,8 +221,13 @@ void main() {
           initialPlayer: PlayerModel(hp: 100000, exp: 0),
         ),
       ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.byKey(const Key('themeToggleButton')), findsNothing);
+      // テーマアイコンは表示されない（全タブを検索）
+      expect(find.byIcon(Icons.brightness_auto), findsNothing);
+      expect(find.byIcon(Icons.light_mode), findsNothing);
+      expect(find.byIcon(Icons.dark_mode), findsNothing);
     });
 
     testWidgets('onToggleTheme が設定されている場合トグルボタンが表示される', (tester) async {
@@ -209,10 +235,18 @@ void main() {
         home: MainScreen(
           onToggleTheme: () {},
           initialPlayer: PlayerModel(hp: 100000, exp: 0),
+          themeIcon: Icons.light_mode,
         ),
       ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.byKey(const Key('themeToggleButton')), findsOneWidget);
+      // 加護タブ（3番目）にテーマ切替があるのでタブ切替
+      await tester.tap(find.text('🛡️ 加護'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byIcon(Icons.light_mode), findsOneWidget);
     });
 
     testWidgets('テーマが light の場合 light_mode アイコンが表示される', (tester) async {
@@ -224,6 +258,11 @@ void main() {
           themeIcon: Icons.light_mode,
         ),
       ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('🛡️ 加護'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byIcon(Icons.light_mode), findsOneWidget);
     });
@@ -237,6 +276,11 @@ void main() {
           themeIcon: Icons.dark_mode,
         ),
       ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('🛡️ 加護'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byIcon(Icons.dark_mode), findsOneWidget);
     });
@@ -250,6 +294,11 @@ void main() {
           themeIcon: Icons.brightness_auto,
         ),
       ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('🛡️ 加護'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byIcon(Icons.brightness_auto), findsOneWidget);
     });
@@ -260,10 +309,25 @@ void main() {
         home: MainScreen(
           onToggleTheme: () => called = true,
           initialPlayer: PlayerModel(hp: 100000, exp: 0),
+          themeIcon: Icons.light_mode,
         ),
       ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('🛡️ 加護'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      await tester.tap(find.byKey(const Key('themeToggleButton')));
+      // アイコンを可視化してからタップ
+      await tester.dragUntilVisible(
+        find.byTooltip('テーマ切替'),
+        find.byType(ListView).last,
+        const Offset(0, -200),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byTooltip('テーマ切替'));
+      await tester.pump();
       expect(called, isTrue);
     });
 
@@ -280,10 +344,15 @@ void main() {
         ),
       ));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      // ダークモードでもタイトルが表示されている
       expect(find.text('打ち出の小槌'), findsOneWidget);
-      // dark_mode アイコンが表示されている
+
+      // 加護タブに移動してアイコン確認
+      await tester.tap(find.text('🛡️ 加護'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
       expect(find.byIcon(Icons.dark_mode), findsOneWidget);
     });
   });
