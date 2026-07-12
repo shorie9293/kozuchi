@@ -57,3 +57,4 @@ coverage/
 
 # Environment secrets (Supabase credentials, API keys)
 .env
+server/kozuchi.db
