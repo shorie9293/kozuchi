@@ -92,12 +92,13 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline, size: 48, color: TakamagaharaColors.vermilion),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
+                // 朱色(vermilion #E85050)は和紙白背景で約4.9:1（AA 本文相当）を担保
+                style: const TextStyle(color: TakamagaharaColors.vermilion),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(

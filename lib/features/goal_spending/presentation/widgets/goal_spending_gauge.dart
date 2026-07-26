@@ -161,7 +161,7 @@ class GoalSpendingGauge extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           // 消化率バー
-          _buildProgressBar(barColor, displayPercent),
+          _buildProgressBar(context, barColor, displayPercent),
           const SizedBox(height: 10),
           // 数値グリッド
           _buildStatsGrid(colorScheme, barColor),
@@ -170,7 +170,7 @@ class GoalSpendingGauge extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBar(Color barColor, double displayPercent) {
+  Widget _buildProgressBar(BuildContext context, Color barColor, double displayPercent) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -179,7 +179,8 @@ class GoalSpendingGauge extends StatelessWidget {
           children: [
             Text(
               '消化率',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              // キャプションはテーマの bodySmall を使用（AA 準拠: ライト深紫80% / ダーク薄金75%）
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
             ),
             Text(
               '${_usagePercent.toStringAsFixed(0)}%',
