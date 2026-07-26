@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kozuchi/domain/models/advisor.dart';
+import 'package:kozuchi/domain/models/gold_luck_buff.dart';
 import 'package:kozuchi/domain/models/level_stage.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 
@@ -62,6 +63,38 @@ void main() {
 
     test('生活防衛ラインは固定値30,000円', () {
       expect(PlayerModel.livingDefenseLine, 30000);
+    });
+
+    group('addHp', () {
+      test('残高に指定額を加算できる', () {
+        final player = PlayerModel(hp: 50000);
+        final updated = player.addHp(30000);
+        expect(updated.hp, 80000);
+      });
+
+      test('加算後のHPは元のEXPを保持する', () {
+        final player = PlayerModel(hp: 50000, exp: 100);
+        final updated = player.addHp(30000);
+        expect(updated.exp, 100);
+      });
+
+      test('加算後にアドバイザー契約状態を保持する', () {
+        final player = PlayerModel(hp: 50000, advisor: Advisor.daikokuten);
+        final updated = player.addHp(30000);
+        expect(updated.advisor, Advisor.daikokuten);
+      });
+
+      test('金運上昇バフが有効な場合は倍率が適用される', () {
+        final buff = GoldLuckBuff(
+          multiplier: 2.0,
+          expiresAt: DateTime.now().add(const Duration(days: 1)),
+          source: 'test',
+          activatedAt: DateTime.now(),
+        );
+        final player = PlayerModel(hp: 50000, goldLuckBuff: buff);
+        final updated = player.addHp(10000);
+        expect(updated.hp, 70000);
+      });
     });
   });
 }
