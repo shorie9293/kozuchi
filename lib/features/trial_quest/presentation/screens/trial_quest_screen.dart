@@ -6,6 +6,7 @@ import 'package:kozuchi/domain/classifier/classifier_service.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/offering_input_screen.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/reflection_screen.dart';
 import 'package:kozuchi/features/trial_quest/domain/ai_review_service.dart';
+import 'package:kozuchi/domain/models/exp_calculation.dart';
 import 'package:kozuchi/features/effects/presentation/effect_manager.dart';
 
 /// 試練クエスト画面
@@ -150,8 +151,12 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
 
   int _calculateExpGain(TrialQuest quest, [double multiplier = 1.0]) {
     if (quest.offeringAmount == null) return 0;
-    final base = 5 + (quest.offeringAmount! / 1000).floor();
-    return (base * multiplier).round();
+    final advisorMultiplier = _player.advisor?.expMultiplier ?? 1.0;
+    return calculateQuestExpGain(
+      offeringAmount: quest.offeringAmount!,
+      aiMultiplier: multiplier,
+      advisorMultiplier: advisorMultiplier,
+    );
   }
 
   String _generateMockReview(TrialQuest quest) {

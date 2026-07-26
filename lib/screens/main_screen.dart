@@ -511,6 +511,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   /// 🎯 目標タブ
+  ///
+  /// v2.0刷新: 6つの独立した全幅ボタンを2列のコンパクトグリッドに再構成。
+  /// 視覚ノイズを減らし、一画面により多くの情報を高密度に配置する。
   Widget _buildGoalTab(ColorScheme colorScheme) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -519,13 +522,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         const SizedBox(height: 4),
         ExpGaugeWidget(player: _player),
         const SizedBox(height: 16),
-        // クイックリンク
-        _buildLinkButton('💵 予算を設定', onTap: _openBudgetSettings),
-        _buildLinkButton('🏆 実績', onTap: _openAchievementList),
-        _buildLinkButton('🎯 貯蓄目標', onTap: _openGoalList),
-        _buildLinkButton('📋 取引履歴', onTap: _openTransactionHistory),
-        _buildLinkButton('📊 支出分析', onTap: _openSummary),
-        _buildLinkButton('🔗 アプリ連携', onTap: _openCollaborationDashboard),
+        // クイックリンク — 2列グリッドで情報密度向上
+        _buildQuickLinkGrid(colorScheme),
         // 裏面モードリンク
         if (_canUseUraMode) ...[
           const SizedBox(height: 16),
@@ -586,16 +584,35 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildLinkButton(String label, {required VoidCallback onTap}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: SizedBox(
-        width: double.infinity,
-        child: OutlinedButton(
-          onPressed: onTap,
-          child: Text(label, style: const TextStyle(fontSize: 15)),
-        ),
-      ),
+  /// v2.0刷新: 全幅ボタン群を2列のコンパクトグリッドに集約し、
+  /// 視覚ノイズを減らしつつ一画面での情報密度を上げる。
+  Widget _buildQuickLinkGrid(ColorScheme colorScheme) {
+    final links = <_QuickLink>[
+      _QuickLink('💵 予算を設定', _openBudgetSettings),
+      _QuickLink('🏆 実績', _openAchievementList),
+      _QuickLink('🎯 貯蓄目標', _openGoalList),
+      _QuickLink('📋 取引履歴', _openTransactionHistory),
+      _QuickLink('📊 支出分析', _openSummary),
+      _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
+    ];
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 2.6,
+      children: [
+        for (final link in links)
+          OutlinedButton(
+            onPressed: link.onTap,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              alignment: Alignment.centerLeft,
+            ),
+            child: Text(link.label, style: const TextStyle(fontSize: 13)),
+          ),
+      ],
     );
   }
 
@@ -611,8 +628,28 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             Text(advisor.label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
             const SizedBox(height: 4),
             Text(advisor.domain, style: TextStyle(color: colorScheme.outline)),
-            const SizedBox(height: 12),
-            Text(advisor.effect, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(advisor.role, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorScheme.onSurface), textAlign: TextAlign.center),
+            const SizedBox(height: 6),
+            // 加護（機能的影響）
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.auto_awesome, size: 14, color: Colors.amber),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(advisor.blessing, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.amber.shade800)),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 8),
             Text('講評: ${advisor.trialStyle}', style: TextStyle(fontSize: 11, color: colorScheme.outline)),
             const SizedBox(height: 12),
@@ -666,7 +703,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-            child: Text('EXP${advisor.expMultiplierText}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
+            child: Text(advisor.expMultiplierText, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
           ),
         ],
       ),
@@ -747,4 +784,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       ]),
     );
   }
+}
+
+class _QuickLink {
+  final String label;
+  final VoidCallback onTap;
+  const _QuickLink(this.label, this.onTap);
 }
