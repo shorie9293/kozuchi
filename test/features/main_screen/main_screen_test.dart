@@ -356,4 +356,50 @@ void main() {
       expect(find.byIcon(Icons.dark_mode), findsOneWidget);
     });
   });
+
+  group('MainScreen - v2.0 収入記録（残高調整）', () {
+    testWidgets('クイックリンクに「収入を記録」が表示される', (tester) async {
+      await tester.pumpWidget(
+        wrapMainScreen(player: PlayerModel(hp: 50000, exp: 0)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('💰 収入を記録'), findsOneWidget);
+    });
+
+    testWidgets('収入を記録するとホームの残高表示が更新される', (tester) async {
+      await tester.pumpWidget(
+        wrapMainScreen(player: PlayerModel(hp: 50000, exp: 0)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 収入入力画面を開く
+      await tester.tap(find.text('💰 収入を記録'));
+      await tester.pumpAndSettle();
+
+      // 金額と収入源を入力
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入金額（円）'),
+        '30000',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入源'),
+        '給与',
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, '収入を記録する'));
+      // ホームへ戻る＋SnackBar表示。WashiBackgroundの無限アニメーションがあるため
+      // pumpAndSettle はタイムアウトする。明示的な pump ループで状態反映を待つ。
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      // 残高が加算されてホームに反映されること。
+      // HPバーはカンマ区切りで表示するため、「¥80,000」となる。
+      expect(find.text('¥80,000'), findsOneWidget);
+      // 記録前の残高（¥50,000）はもう表示されない
+      expect(find.text('¥50,000'), findsNothing);
+    });
+  });
 }

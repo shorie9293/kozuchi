@@ -24,6 +24,7 @@ import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service
 import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
+import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
 import 'package:kozuchi/features/budget/domain/daily_budget.dart';
@@ -36,6 +37,7 @@ import 'package:kozuchi/features/achievements/presentation/widgets/achievement_u
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
+import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
 import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
 import 'package:kozuchi/features/collaboration_dashboard/presentation/screens/collaboration_dashboard_screen.dart';
@@ -436,6 +438,27 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => CollaborationDashboardScreen(player: _player)));
   }
 
+  /// 収入入力画面 — v2.0刷新: 残高調整不可を解決する入口
+  ///
+  /// IncomeInputScreen で記録した収入を PlayerModel.addHp で加算し、
+  /// 即座に状態反映＋永続化する。これによりホームの残高表示が更新される。
+  Future<void> _openIncomeInput() async {
+    final result = await Navigator.of(context).push<IncomeResult>(
+      MaterialPageRoute(
+        builder: (_) => IncomeInputScreen(player: _player),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _player = result.updatedPlayer);
+      _persistState();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('💰 収入を記録しました: ¥${result.amount}（${result.source}）'),
+        ),
+      );
+    }
+  }
+
   bool get _canUseUraMode => _player.levelStage == LevelStage.kuu;
 
   @override
@@ -518,6 +541,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // HPバー（残高）— v2.0刷新: 収入記録の結果を即座に視覚確認できるよう配置
+        HpBarWidget(
+          player: _player,
+          budgetAmount: _budgetAmount,
+          monthlyExpenditure: _monthlyExpenditure,
+        ),
+        const SizedBox(height: 16),
         // EXPゲージ（コンパクト）
         const SizedBox(height: 4),
         ExpGaugeWidget(player: _player),
@@ -588,6 +618,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   /// 視覚ノイズを減らしつつ一画面での情報密度を上げる。
   Widget _buildQuickLinkGrid(ColorScheme colorScheme) {
     final links = <_QuickLink>[
+      _QuickLink('💰 収入を記録', _openIncomeInput),
       _QuickLink('💵 予算を設定', _openBudgetSettings),
       _QuickLink('🏆 実績', _openAchievementList),
       _QuickLink('🎯 貯蓄目標', _openGoalList),
