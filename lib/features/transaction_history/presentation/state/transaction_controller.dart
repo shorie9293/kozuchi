@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:kozuchi/domain/models/transaction_model.dart';
+import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_history/data/transaction_service.dart';
 
@@ -37,6 +38,10 @@ import 'package:kozuchi/features/transaction_history/data/transaction_service.da
 class TransactionController extends ChangeNotifier {
   final TransactionService _service;
 
+  /// CSVインポート・定期取引などで生成されたローカル取引の保存先。
+  /// null の場合は API 取引のみを表示する（従来動作）。
+  final LocalTransactionRepository? _localRepository;
+
   List<TransactionModel> _transactions = [];
   bool _isLoading = false;
   String? _error;
@@ -46,7 +51,9 @@ class TransactionController extends ChangeNotifier {
   TransactionController({
     required TransactionService service,
     TransactionFilter? initialFilter,
+    LocalTransactionRepository? localRepository,
   })  : _service = service,
+        _localRepository = localRepository,
         _filter = initialFilter ?? const TransactionFilter();
 
   // ── 公開ゲッター ──────────────────────────────────
@@ -96,7 +103,20 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _transactions = await _service.fetchTransactions(filter: _filter);
+      var fetched = await _service.fetchTransactions(filter: _filter);
+
+      // ローカル取引（CSVインポート・定期取引）を統合する
+      final localRepo = _localRepository;
+      if (localRepo != null) {
+        final local = await localRepo.loadAll();
+        if (local.isNotEmpty) {
+          fetched = [...fetched, ...local];
+          // 日時の降順に整列
+          fetched.sort((a, b) => b.datetime.compareTo(a.datetime));
+        }
+      }
+
+      _transactions = fetched;
       _error = null;
       _hasFetched = true;
     } catch (e) {

@@ -38,6 +38,9 @@ import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
+import 'package:kozuchi/features/csv_import/presentation/screens/csv_import_screen.dart';
+import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_recorder.dart';
+import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
 import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
 import 'package:kozuchi/features/collaboration_dashboard/presentation/screens/collaboration_dashboard_screen.dart';
@@ -94,6 +97,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     _dailyQuestNotifier = DailyQuestNotifier();
     _loadSavedState();
     _loadDailyQuests();
+    _runRecurringAutoRecord();
+  }
+
+  /// アプリ起動時に定期取引を自動記録する（fire-and-forget）。
+  Future<void> _runRecurringAutoRecord() async {
+    try {
+      await const RecurringAutoRecorder().run();
+    } catch (_) {
+      // 自動記録の失敗はアプリ起動を妨げない
+    }
   }
 
   @override
@@ -430,6 +443,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TransactionHistoryPage()));
   }
 
+  void _openCsvImport() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CsvImportScreen()));
+  }
+
+  void _openRecurringTransaction() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecurringTransactionScreen()));
+  }
+
   void _openSummary() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
   }
@@ -623,6 +644,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🏆 実績', _openAchievementList),
       _QuickLink('🎯 貯蓄目標', _openGoalList),
       _QuickLink('📋 取引履歴', _openTransactionHistory),
+      _QuickLink('📥 CSV取り込み', _openCsvImport),
+      _QuickLink('🔁 定期取引', _openRecurringTransaction),
       _QuickLink('📊 支出分析', _openSummary),
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
     ];

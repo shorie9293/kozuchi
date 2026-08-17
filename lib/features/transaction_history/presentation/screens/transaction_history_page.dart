@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_filter/presentation/widgets/transaction_filter_bar.dart';
 import 'package:kozuchi/features/transaction_history/data/transaction_service.dart';
@@ -26,7 +27,15 @@ class TransactionHistoryPage extends StatefulWidget {
   /// null の場合はデフォルトの [TransactionController] を生成する。
   final TransactionController? controller;
 
-  const TransactionHistoryPage({super.key, this.controller});
+  /// ローカル取引（CSVインポート・定期取引）の保存先。
+  /// null の場合は API 取引のみを表示する（従来動作）。
+  final LocalTransactionRepository? localRepository;
+
+  const TransactionHistoryPage({
+    super.key,
+    this.controller,
+    this.localRepository,
+  });
 
   @override
   State<TransactionHistoryPage> createState() => _TransactionHistoryPageState();
@@ -46,6 +55,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       _controller = TransactionController(
         service: TransactionService(),
         initialFilter: _defaultFilter(),
+        localRepository: widget.localRepository,
       );
       _ownsController = true;
     }
