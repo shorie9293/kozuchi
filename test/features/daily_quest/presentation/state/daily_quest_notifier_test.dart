@@ -162,17 +162,29 @@ void main() {
 
       final allCount = notifier.state!.quests.length;
 
-      // 最初のクエストを完了させる
-      final firstQuest = notifier.state!.quests.first;
-      if (firstQuest.type != DailyQuestType.noSpending) {
-        notifier.updateQuestProgress(firstQuest.id, firstQuest.targetValue);
+      // 完了可能なクエスト（noSpending以外）を探して完了させる。
+      // noSpendingは進捗更新が無意味（二値型）なため対象外。
+      // ランダム割当で先頭がnoSpendingになる場合があるため、
+      // 「最初のクエスト」ではなく「完了可能なクエスト」を明示的に選択する。
+      DailyQuest? completable;
+      for (final quest in notifier.state!.quests) {
+        if (quest.type != DailyQuestType.noSpending) {
+          completable = quest;
+          break;
+        }
+      }
+
+      if (completable != null) {
+        notifier.updateQuestProgress(completable.id, completable.targetValue);
       }
 
       final pending = notifier.pendingQuests;
-      // 少なくとも1つは完了している
-      if (allCount > 1) {
+      // 完了可能なクエストが存在する場合は、その分だけ未完了数が減る
+      if (completable != null && allCount > 1) {
         expect(pending.length, lessThan(allCount));
       }
+      // 未完了クエストに完了済みが混ざらないことを保証する
+      expect(pending.every((q) => !q.isCompleted), isTrue);
     });
 
     test('loadQuestsForTodayで日跨ぎ時にSATORIペナルティが記録される', () async {
