@@ -45,6 +45,12 @@ import 'package:kozuchi/features/transaction_history/presentation/screens/transa
 import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
 import 'package:kozuchi/features/collaboration_dashboard/presentation/screens/collaboration_dashboard_screen.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
+import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
+import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
+import 'package:kozuchi/domain/services/expense_entry_recording_service.dart';
+import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
+import 'package:kozuchi/domain/services/expense_repository.dart';
+import 'package:kozuchi/domain/classifier/classifier_service.dart';
 
 /// メイン画面
 ///
@@ -57,6 +63,9 @@ class MainScreen extends StatefulWidget {
   final IconData themeIcon;
   final VoidCallback? onToggleTheme;
 
+  /// 支出明細の保存先。null の場合は Supabase（expense_entries）を使用する。
+  final ExpenseRepository? expenseRepository;
+
   const MainScreen({
     super.key,
     this.initialPlayer,
@@ -65,6 +74,7 @@ class MainScreen extends StatefulWidget {
     this.themeMode = ThemeMode.system,
     this.themeIcon = Icons.brightness_auto,
     this.onToggleTheme,
+    this.expenseRepository,
   });
 
   @override
@@ -87,6 +97,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   DailyBudget _displayBudget = DailyBudget.empty();
 
   late final TabController _tabController;
+  ExpenseRepository? _expenseRepository;
 
   @override
   void initState() {
@@ -278,6 +289,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _monthlyExpenditure += amount;
     });
 
+    // 個別明細（ExpenseEntry）を Supabase expense_entries に保存（案B・一本化）
+    _recordExpenseDetail(amount, category);
+
     final completed = _dailyQuestNotifier.detectAction(
       QuestAction.expenseRecorded(amount: amount, category: category),
     );
@@ -294,6 +308,38 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         }
       }
     }
+  }
+
+  /// 支出明細（ExpenseEntry）をリポジトリ経由で保存する（fire-and-forget）。
+  ///
+  /// 保存失敗や Supabase 未認証でも記録フローを妨げないよう防御する。
+  void _recordExpenseDetail(int amount, String category) {
+    try {
+      final classification = ClassifierService.instance.classify(category);
+      final service = ExpenseEntryRecordingService(
+        repository: _getExpenseRepository(),
+      );
+      // fire-and-forget: 失敗は service 内で null に丸められる
+      service.record(
+        amount: amount,
+        category: classification.category,
+        note: category,
+      );
+    } catch (_) {
+      // 明細保存の失敗は記録フローを中断させない
+    }
+  }
+
+  /// 支出明細の保存先リポジトリを取得する。
+  ///
+  /// [expenseRepository] が注入されていればそれを用い、null なら
+  /// Supabase（expense_entries）を遅延初期化する。
+  ExpenseRepository _getExpenseRepository() {
+    if (widget.expenseRepository != null) return widget.expenseRepository!;
+    return _expenseRepository ??= SupabaseExpenseRepository(
+      cloudStore: CloudSyncService(client: SupabaseProvider.client),
+      userIdProvider: () => SupabaseProvider.currentUserId,
+    );
   }
 
   TrialQuest _createInitialQuest() {

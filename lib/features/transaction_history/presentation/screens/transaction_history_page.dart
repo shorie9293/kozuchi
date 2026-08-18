@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
+import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
+import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_filter/presentation/widgets/transaction_filter_bar.dart';
-import 'package:kozuchi/features/transaction_history/data/transaction_service.dart';
 import 'package:kozuchi/features/transaction_history/presentation/state/transaction_controller.dart';
 import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_widget.dart';
 
@@ -52,8 +54,13 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       _controller = widget.controller!;
       _ownsController = false;
     } else {
+      // 案B: 取引履歴は Supabase `expense_entries`（支出明細）を正とする。
+      // 旧 localhost:8080 API（TransactionService）には依存しない。
       _controller = TransactionController(
-        service: TransactionService(),
+        expenseRepository: SupabaseExpenseRepository(
+          cloudStore: CloudSyncService(client: SupabaseProvider.client),
+          userIdProvider: () => SupabaseProvider.currentUserId,
+        ),
         initialFilter: _defaultFilter(),
         localRepository: widget.localRepository,
       );

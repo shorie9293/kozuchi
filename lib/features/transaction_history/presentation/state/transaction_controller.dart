@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:kozuchi/domain/models/transaction_model.dart';
+import 'package:kozuchi/domain/services/expense_entry_mapper.dart';
+import 'package:kozuchi/domain/services/expense_repository.dart';
 import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_history/data/transaction_service.dart';
@@ -11,35 +13,18 @@ import 'package:kozuchi/features/transaction_history/data/transaction_service.da
 /// [ChangeNotifier] を継承し、フィルタ変更・データ取得・
 /// loading/error/data 状態の一元管理を行う。
 ///
-/// ## 使用例
-/// ```dart
-/// final controller = TransactionController(service: myService);
-///
-/// // フィルタ変更時（TransactionFilterBar の onChanged から）
-/// controller.updateFilter(newFilter); // 自動的にデータ再取得
-///
-/// // UI で ListenableBuilder を使って状態を購読
-/// ListenableBuilder(
-///   listenable: controller,
-///   builder: (context, _) {
-///     if (controller.isLoading) return CircularProgressIndicator();
-///     if (controller.error != null) return ErrorWidget(controller.error!);
-///     return ListView(
-///       children: controller.transactions
-///           .map((t) => TransactionListItem(transaction: t))
-///           .toList(),
-///     );
-///   },
-/// );
-///
-/// // 再取得（フィルタ変更なしのリフレッシュ）
-/// controller.refetch();
-/// ```
+/// データソースは複数あり、統合表示される（案B・履歴一本化）:
+/// - [expenseRepository]: Supabase `expense_entries`（支出明細）
+/// - [localRepository]: ローカル取引（CSVインポート・定期取引）
+/// - [service]: 旧 API 取引（localhost:8080）。非推奨・移行用
 class TransactionController extends ChangeNotifier {
-  final TransactionService _service;
+  final TransactionService? _service;
+
+  /// Supabase 支出明細（`expense_entries`）の保存先。
+  final ExpenseRepository? _expenseRepository;
 
   /// CSVインポート・定期取引などで生成されたローカル取引の保存先。
-  /// null の場合は API 取引のみを表示する（従来動作）。
+  /// null の場合はローカル取引を表示しない。
   final LocalTransactionRepository? _localRepository;
 
   List<TransactionModel> _transactions = [];
@@ -49,11 +34,13 @@ class TransactionController extends ChangeNotifier {
   bool _hasFetched = false;
 
   TransactionController({
-    required TransactionService service,
+    TransactionService? service,
     TransactionFilter? initialFilter,
     LocalTransactionRepository? localRepository,
+    ExpenseRepository? expenseRepository,
   })  : _service = service,
         _localRepository = localRepository,
+        _expenseRepository = expenseRepository,
         _filter = initialFilter ?? const TransactionFilter();
 
   // ── 公開ゲッター ──────────────────────────────────
@@ -82,8 +69,7 @@ class TransactionController extends ChangeNotifier {
 
   /// フィルタ条件を更新し、自動的にデータを再取得する
   ///
-  /// [filter] が現在のフィルタと等しい場合は何もしない
-  /// （無駄な API コールを避ける）。
+  /// [filter] が現在のフィルタと等しい場合は何もしない。
   void updateFilter(TransactionFilter filter) {
     if (filter == _filter) return;
     _filter = filter;
@@ -92,29 +78,39 @@ class TransactionController extends ChangeNotifier {
 
   // ── データ取得 ──────────────────────────────────
 
-  /// 取引データを API から取得する
+  /// 取引データを取得する
   ///
-  /// ロード中は [isLoading]=true、取得成功で [transactions] 更新、
-  /// 失敗時は [error] にエラーメッセージが入る。
-  /// いずれの場合も [notifyListeners] で UI に通知する。
+  /// Supabase 支出明細 + ローカル取引（+ 旧API取引）を統合し、
+  /// 日時の降順に整列する。ロード中は [isLoading]=true、
+  /// 取得成功で [transactions] 更新、失敗時は [error] にエラーメッセージ。
   Future<void> fetchTransactions() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      var fetched = await _service.fetchTransactions(filter: _filter);
+      final fetched = <TransactionModel>[];
 
-      // ローカル取引（CSVインポート・定期取引）を統合する
+      // 旧 API 取引（移行用。未指定なら無視）
+      final apiService = _service;
+      if (apiService != null) {
+        fetched.addAll(await apiService.fetchTransactions(filter: _filter));
+      }
+
+      // Supabase 支出明細（expense_entries）を統合
+      final expenseRepo = _expenseRepository;
+      if (expenseRepo != null) {
+        final expenseTxs = await _loadExpenseTransactions(expenseRepo);
+        fetched.addAll(expenseTxs);
+      }
+
+      // ローカル取引（CSVインポート・定期取引）を統合
       final localRepo = _localRepository;
       if (localRepo != null) {
-        final local = await localRepo.loadAll();
-        if (local.isNotEmpty) {
-          fetched = [...fetched, ...local];
-          // 日時の降順に整列
-          fetched.sort((a, b) => b.datetime.compareTo(a.datetime));
-        }
+        fetched.addAll(await localRepo.loadAll());
       }
+
+      fetched.sort((a, b) => b.datetime.compareTo(a.datetime));
 
       _transactions = fetched;
       _error = null;
@@ -130,16 +126,28 @@ class TransactionController extends ChangeNotifier {
   }
 
   /// 現在のフィルタ条件でデータを再取得する
-  ///
-  /// [fetchTransactions] のエイリアス。
-  /// フィルタ変更を伴わない単純な再読込に使用する。
   Future<void> refetch() => fetchTransactions();
+
+  // ── 内部ヘルパー ─────────────────────────────────
+
+  /// 支出明細を日付範囲・種別フィルタで取得し取引モデルへ変換する。
+  Future<List<TransactionModel>> _loadExpenseTransactions(
+    ExpenseRepository repo,
+  ) async {
+    // 収入フィルタ時は支出明細を表示しない
+    if (_filter.type == TransactionFilterType.income) return const [];
+
+    final startDay = _filter.startDate ?? DateTime(2000);
+    final endDay = _filter.endDate ?? DateTime(2100);
+    final entries = await repo.getEntries(start: startDay, end: endDay);
+    return ExpenseEntryMapper.toTransactionModels(entries);
+  }
 
   // ── 破棄 ──────────────────────────────────────
 
   @override
   void dispose() {
-    _service.dispose();
+    _service?.dispose();
     super.dispose();
   }
 }

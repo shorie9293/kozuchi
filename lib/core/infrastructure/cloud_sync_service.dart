@@ -3,6 +3,7 @@ import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/expense_entry.dart';
 import 'package:kozuchi/domain/models/daily_quest.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
+import 'package:kozuchi/domain/services/expense_cloud_store.dart';
 import 'package:kozuchi/features/weekly_quest/domain/models/weekly_quest.dart';
 
 // ─── Conflict resolution result types ──────────────────────────
@@ -33,7 +34,9 @@ class FirstSync<T> extends SaveResult<T> {
 enum ConflictDecision { upload, useServer, firstSync }
 
 /// Cloud sync service using Supabase for player data persistence.
-class CloudSyncService {
+///
+/// [ExpenseCloudStore] を実装し、支出明細の保存/取得を提供する。
+class CloudSyncService implements ExpenseCloudStore {
   final SupabaseClient _client;
 
   CloudSyncService({required SupabaseClient client}) : _client = client;
