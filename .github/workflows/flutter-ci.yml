@@ -39,6 +39,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: 📝 Create .env
+        run: |
+          cat > .env << 'ENVEOF'
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          ACHIEVEMENT_API_URL=${{ secrets.ACHIEVEMENT_API_URL }}
+          ENVEOF
+
       - name: Run static analysis (flutter analyze)
         run: flutter analyze --no-fatal-infos
 
