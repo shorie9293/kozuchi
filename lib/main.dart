@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:app_links/app_links.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:kozuchi/core/theme/theme_repository.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
@@ -36,6 +40,19 @@ Uri? _pendingInitialDeepLink;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ━━━ Firebase 運用監視基盤（Crashlytics クラッシュ検知 + Analytics KPI計測）━━━
+  try {
+    await Firebase.initializeApp();
+    // Analytics: セッション開始を記録し DAU/定着率のKPI計測を有効化
+    unawaited(FirebaseAnalytics.instance.logAppOpen());
+    // クラッシュ検知: Flutterフレームワーク内の致命的エラーを Crashlytics へ送信
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    debugPrint('[kozuchi] ✅ Firebase 初期化完了');
+  } catch (e) {
+    // テスト環境や Firebase 未設定時はアプリ起動を妨げず継続する
+    debugPrint('[kozuchi] ⚠️ Firebase初期化失敗（アプリは継続）: $e');
+  }
 
   // .env から環境変数を読み込み
   await dotenv.load();
