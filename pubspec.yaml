@@ -48,12 +48,15 @@ dependencies:
   firebase_core: ^4.13.0
   firebase_crashlytics: ^5.2.7
   firebase_analytics: ^12.4.6
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
+  mocktail: ^1.0.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

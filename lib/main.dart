@@ -11,6 +11,7 @@ import 'package:kozuchi/core/theme/theme_repository.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/core/infrastructure/deep_link_service.dart';
+import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/tutorial/data/kozuchi_tutorial_service.dart';
 import 'package:kozuchi/features/tutorial/presentation/kozuchi_tutorial_overlay.dart';
@@ -77,6 +78,18 @@ void main() async {
 
   // 支出分類器を初期化
   await ClassifierService.instance.initialize();
+
+  // ── ローカル通知基盤の初期化（記帳リマインド・予算超過アラート）──
+  try {
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+    // 設定が有効な場合のみデイリー記帳リマインドをスケジュールする
+    await notificationService.scheduleDailyReminder();
+    debugPrint('[kozuchi] ✅ 通知基盤初期化完了');
+  } catch (e) {
+    // 通知初期化失敗時もアプリ起動は継続する
+    debugPrint('[kozuchi] ⚠️ 通知基盤初期化失敗（アプリは継続）: $e');
+  }
 
   // ── ディープリンクハンドリングの初期化 ──
   final appLinks = AppLinks();
