@@ -21,6 +21,8 @@ import 'package:kozuchi/features/analysis_chart/presentation/widgets/analysis_ch
 import 'package:kozuchi/features/shared/data/kozuchi_quest_exporter.dart';
 import 'package:kozuchi/features/shared/data/player_repository.dart';
 import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service.dart';
+import 'package:kozuchi/features/careerCoach/domain/career_coach_review_service.dart';
+import 'package:kozuchi/features/careerCoach/presentation/screens/career_coach_screen.dart';
 import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
@@ -505,6 +507,22 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => CollaborationDashboardScreen(player: _player)));
   }
 
+  /// キャリアコーチ（弁財天アドバイザー）講評画面を開く
+  void _openCareerCoach() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CareerCoachScreen(
+          reviewData: CareerCoachReviewData(
+            weeklyIncome: _player.hp,
+            weeklyExpenditure: _monthlyExpenditure,
+            monthlyExpenditure: _monthlyExpenditure,
+            guardian: _player.advisor ?? Advisor.benzaiten,
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 収入入力画面 — v2.0刷新: 残高調整不可を解決する入口
   ///
   /// IncomeInputScreen で記録した収入を PlayerModel.addHp で加算し、
@@ -694,6 +712,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🔁 定期取引', _openRecurringTransaction),
       _QuickLink('📊 支出分析', _openSummary),
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
+      _QuickLink('🧘 キャリアコーチ', _openCareerCoach),
     ];
     return GridView.count(
       crossAxisCount: 2,

@@ -402,4 +402,31 @@ void main() {
       expect(find.text('¥50,000'), findsNothing);
     });
   });
+
+  group('MainScreen - キャリアコーチ導線', () {
+    testWidgets('クイックリンクからキャリアコーチ講評画面へ遷移できる', (tester) async {
+      await tester.pumpWidget(
+        wrapMainScreen(player: PlayerModel(hp: 50000, exp: 0)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // クイックリンクグリッドの末尾項目までスクロール
+      await tester.dragUntilVisible(
+        find.text('🧘 キャリアコーチ'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('🧘 キャリアコーチ'));
+      // 画面遷移。講評生成はAIフォールバックで完了するため pump で進める
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(find.text('キャリアコーチ'), findsOneWidget);
+      expect(find.text('弁財天アドバイザー'), findsOneWidget);
+    });
+  });
 }
