@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/core/widgets/washi_background.dart';
 import 'package:kozuchi/domain/models/gold_luck_buff.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
+import 'package:kozuchi/features/achievements/data/cross_app_achievement_aggregator.dart';
 import 'package:kozuchi/features/collaboration_dashboard/data/collaboration_stats_service.dart';
 
 /// 連携ダッシュボード画面
@@ -16,10 +17,25 @@ class CollaborationDashboardScreen extends StatefulWidget {
   /// テスト用に注入可能なサービス
   final CollaborationStatsService statsService;
 
+  /// 三現世制覇判定用のクロスアプリ実績集計サービス
+  ///
+  /// 共有ストレージから rpg-task/tsundoku-quest の実績を読み取る。
+  /// テスト時は `basePath` を一時ディレクトリに注入して実体で検証可能。
+  final CrossAppAchievementAggregator aggregator;
+
+  /// kozuchi 側の「金獲得量」
+  ///
+  /// kozuchi には「生涯金獲得総額」という明確な単一値が存在しないため、
+  /// 呼び出し元から注入可能にしている。デフォルトは保守的に 0。
+  /// （将来、生涯金獲得量の蓄積フィールドが追加されたらそこから渡すこと。）
+  final int goldEarned;
+
   const CollaborationDashboardScreen({
     super.key,
     required this.player,
     this.statsService = const CollaborationStatsService(),
+    this.aggregator = const CrossAppAchievementAggregator(),
+    this.goldEarned = 0,
   });
 
   @override
@@ -30,11 +46,14 @@ class CollaborationDashboardScreen extends StatefulWidget {
 class _CollaborationDashboardScreenState
     extends State<CollaborationDashboardScreen> {
   late Future<CollaborationStats> _statsFuture;
+  late Future<ThreeWorldsStatus> _threeWorldsFuture;
 
   @override
   void initState() {
     super.initState();
     _statsFuture = widget.statsService.loadStats(widget.player);
+    _threeWorldsFuture = widget.aggregator
+        .checkThreeWorldsConquest(goldEarned: widget.goldEarned);
   }
 
   @override
@@ -77,6 +96,9 @@ class _CollaborationDashboardScreenState
                   const SizedBox(height: 16),
                   // セクション3: rpg-task 討伐ボーナス履歴
                   _buildBonusHistorySection(colorScheme, stats),
+                  const SizedBox(height: 16),
+                  // セクション4: 三現世制覇進捗
+                  _buildThreeWorldsSection(colorScheme),
                 ],
               ),
             );
@@ -449,6 +471,162 @@ class _CollaborationDashboardScreenState
                 fontWeight: FontWeight.bold,
                 color: Colors.amber,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 三現世制覇 進捗カード
+  Widget _buildThreeWorldsSection(ColorScheme colorScheme) {
+    return Card(
+      key: const Key('threeWorldsConquestCard'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: FutureBuilder<ThreeWorldsStatus>(
+          future: _threeWorldsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final status = snapshot.data;
+            final conditions = status?.conditions ??
+                const ThreeWorldsConditions(
+                  enemiesDefeated: 0,
+                  booksRead: 0,
+                  goldEarned: 0,
+                );
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('🌏', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Text(
+                      '三現世制覇',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (status?.allMet == true) ...[
+                  _buildConquestBanner(colorScheme),
+                  const SizedBox(height: 12),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildConquestTile(
+                        icon: '🗡️',
+                        label: '敵討伐',
+                        value: '${conditions.enemiesDefeated}/10',
+                        colorScheme: colorScheme,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildConquestTile(
+                        icon: '📚',
+                        label: '読了',
+                        value: '${conditions.booksRead}/5',
+                        colorScheme: colorScheme,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildConquestTile(
+                        icon: '⭐',
+                        label: '金獲得',
+                        value: '${conditions.goldEarned}/1000',
+                        colorScheme: colorScheme,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// 三現世制覇達成バナー
+  Widget _buildConquestBanner(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.amber.withValues(alpha: 0.25),
+            Colors.orange.withValues(alpha: 0.15),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Text('🏆', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '三現世制覇達成！',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.amber.shade800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 進捗タイル（三現世制覇用）
+  Widget _buildConquestTile({
+    required String icon,
+    required String label,
+    required String value,
+    required ColorScheme colorScheme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text('$icon $label',
+              style: TextStyle(
+                fontSize: 11,
+                color: colorScheme.onSurfaceVariant,
+              )),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
             ),
           ),
         ],
