@@ -26,6 +26,13 @@ class PlayerModel {
   /// 同じ段階への2度目の到達ではアニメーションを再表示しない
   final Set<String> seenStages;
 
+  /// 生涯金獲得総額（円）
+  ///
+  /// 収入（addHp）で実際に獲得した金額を累積する。金運上昇バフの倍率適用後の
+  /// 実際の獲得額が加算される。三現世制覇Aggregator（連携ダッシュボード）の
+  /// 金獲得条件に実データを供給するために用いる。
+  final int lifetimeGoldEarned;
+
   /// 生活防衛ライン（固定値。このラインを下回るとピンチ状態）
   static const int livingDefenseLine = 30000;
 
@@ -64,6 +71,7 @@ class PlayerModel {
       lastSwitchTimestamp: DateTime.now(),
       goldLuckBuff: goldLuckBuff,
       seenStages: seenStages,
+      lifetimeGoldEarned: lifetimeGoldEarned,
     );
   }
 
@@ -74,8 +82,10 @@ class PlayerModel {
     this.lastSwitchTimestamp,
     this.goldLuckBuff,
     this.seenStages = const <String>{},
+    this.lifetimeGoldEarned = 0,
   }) : assert(hp >= 0, 'HPは0以上である必要があります'),
-       assert(exp >= 0, 'EXPは0以上である必要があります');
+       assert(exp >= 0, 'EXPは0以上である必要があります'),
+       assert(lifetimeGoldEarned >= 0, '生涯金獲得総額は0以上である必要があります');
 
   /// 開眼段階（EXP値から自動計算）
   LevelStage get levelStage =>
@@ -107,6 +117,7 @@ class PlayerModel {
       seenStages: json['seenStages'] != null
           ? Set<String>.from(json['seenStages'] as List<dynamic>)
           : const <String>{},
+      lifetimeGoldEarned: json['lifetimeGoldEarned'] as int? ?? 0,
     );
   }
 
@@ -119,6 +130,7 @@ class PlayerModel {
       'lastSwitchTimestamp': lastSwitchTimestamp?.toIso8601String(),
       'goldLuckBuff': goldLuckBuff?.toJson(),
       'seenStages': seenStages.toList(),
+      'lifetimeGoldEarned': lifetimeGoldEarned,
     };
   }
 
@@ -131,6 +143,7 @@ class PlayerModel {
       advisor: advisor,
       goldLuckBuff: goldLuckBuff,
       seenStages: seenStages,
+      lifetimeGoldEarned: lifetimeGoldEarned,
     );
   }
 
@@ -142,11 +155,14 @@ class PlayerModel {
       advisor: advisor,
       goldLuckBuff: goldLuckBuff,
       seenStages: seenStages,
+      lifetimeGoldEarned: lifetimeGoldEarned,
     );
   }
 
   /// HP（残高）を増加（収入・残高調整用）
   /// 金運上昇バフが有効な場合は倍率を適用する
+  ///
+  /// 実際に獲得した金額（倍率適用後）を [lifetimeGoldEarned] に累積する。
   PlayerModel addHp(int amount) {
     final multiplier = goldLuckBuff?.isActive == true ? goldLuckBuff!.multiplier : 1.0;
     final boostedAmount = (amount * multiplier).round();
@@ -156,6 +172,7 @@ class PlayerModel {
       advisor: advisor,
       goldLuckBuff: goldLuckBuff,
       seenStages: seenStages,
+      lifetimeGoldEarned: lifetimeGoldEarned + boostedAmount,
     );
   }
 
@@ -167,6 +184,7 @@ class PlayerModel {
       advisor: deity,
       goldLuckBuff: goldLuckBuff,
       seenStages: seenStages,
+      lifetimeGoldEarned: lifetimeGoldEarned,
     );
   }
 
@@ -182,6 +200,7 @@ class PlayerModel {
       lastSwitchTimestamp: lastSwitchTimestamp,
       goldLuckBuff: buff,
       seenStages: seenStages,
+      lifetimeGoldEarned: lifetimeGoldEarned,
     );
   }
 
@@ -196,6 +215,7 @@ class PlayerModel {
       lastSwitchTimestamp: lastSwitchTimestamp,
       goldLuckBuff: goldLuckBuff,
       seenStages: updatedSeen,
+      lifetimeGoldEarned: lifetimeGoldEarned,
     );
   }
 

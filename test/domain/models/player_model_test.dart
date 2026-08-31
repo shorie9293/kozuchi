@@ -95,6 +95,45 @@ void main() {
         final updated = player.addHp(10000);
         expect(updated.hp, 70000);
       });
+
+      test('addHpで実際の金獲得量が生涯金獲得総額に累積される', () {
+        final player = PlayerModel(hp: 50000);
+        final updated = player.addHp(30000);
+        expect(updated.lifetimeGoldEarned, 30000);
+      });
+
+      test('複数回のaddHpで生涯金獲得総額が累積される', () {
+        final player = PlayerModel(hp: 50000).addHp(10000).addHp(20000);
+        expect(player.lifetimeGoldEarned, 30000);
+      });
+
+      test('金運上昇バフ時は倍率適用後の実際の獲得額が生涯金獲得総額に累積される', () {
+        final buff = GoldLuckBuff(
+          multiplier: 2.0,
+          expiresAt: DateTime.now().add(const Duration(days: 1)),
+          source: 'test',
+          activatedAt: DateTime.now(),
+        );
+        final player = PlayerModel(hp: 50000, goldLuckBuff: buff).addHp(10000);
+        expect(player.lifetimeGoldEarned, 20000);
+      });
+    });
+
+    group('lifetimeGoldEarned 永続化', () {
+      test('fromJsonでlifetimeGoldEarnedを復元する', () {
+        final player = PlayerModel.fromJson({'lifetimeGoldEarned': 500});
+        expect(player.lifetimeGoldEarned, 500);
+      });
+
+      test('lifetimeGoldEarned未指定の既存データは0に移行する', () {
+        final player = PlayerModel.fromJson({'hp': 50000});
+        expect(player.lifetimeGoldEarned, 0);
+      });
+
+      test('toJsonにlifetimeGoldEarnedを含める', () {
+        final player = PlayerModel(lifetimeGoldEarned: 800);
+        expect(player.toJson()['lifetimeGoldEarned'], 800);
+      });
     });
   });
 }

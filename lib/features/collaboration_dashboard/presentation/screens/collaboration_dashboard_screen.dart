@@ -25,17 +25,16 @@ class CollaborationDashboardScreen extends StatefulWidget {
 
   /// kozuchi 側の「金獲得量」
   ///
-  /// kozuchi には「生涯金獲得総額」という明確な単一値が存在しないため、
-  /// 呼び出し元から注入可能にしている。デフォルトは保守的に 0。
-  /// （将来、生涯金獲得量の蓄積フィールドが追加されたらそこから渡すこと。）
-  final int goldEarned;
+  /// 未指定（null）の場合は [PlayerModel.lifetimeGoldEarned]（生涯金獲得総額）から
+  /// 実値を供給する。テスト等で固定値を注入したい場合のみ明示指定する。
+  final int? goldEarned;
 
   const CollaborationDashboardScreen({
     super.key,
     required this.player,
     this.statsService = const CollaborationStatsService(),
     this.aggregator = const CrossAppAchievementAggregator(),
-    this.goldEarned = 0,
+    this.goldEarned,
   });
 
   @override
@@ -52,8 +51,10 @@ class _CollaborationDashboardScreenState
   void initState() {
     super.initState();
     _statsFuture = widget.statsService.loadStats(widget.player);
+    // goldEarned 未指定時は player の生涯金獲得総額から実データを供給する
+    final goldEarned = widget.goldEarned ?? widget.player.lifetimeGoldEarned;
     _threeWorldsFuture = widget.aggregator
-        .checkThreeWorldsConquest(goldEarned: widget.goldEarned);
+        .checkThreeWorldsConquest(goldEarned: goldEarned);
   }
 
   @override

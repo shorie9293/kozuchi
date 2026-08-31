@@ -23,12 +23,16 @@ class _MockStatsService extends CollaborationStatsService {
 class _StubAggregator extends CrossAppAchievementAggregator {
   final ThreeWorldsStatus status;
 
+  /// checkThreeWorldsConquest に渡された goldEarned を記録する（実データ供給検証用）
+  int? lastGoldEarned;
+
   _StubAggregator(this.status) : super();
 
   @override
   Future<ThreeWorldsStatus> checkThreeWorldsConquest({
     required int goldEarned,
   }) async {
+    lastGoldEarned = goldEarned;
     return status;
   }
 }
@@ -120,6 +124,31 @@ void main() {
       expect(find.text('0/5'), findsOneWidget);
       expect(find.text('0/1000'), findsOneWidget);
       expect(find.text('三現世制覇達成！'), findsNothing);
+    });
+
+    testWidgets('goldEarned引数未指定時はplayerのlifetimeGoldEarnedから実値を供給する', (tester) async {
+      final aggregator = _StubAggregator(ThreeWorldsStatus(
+        conditions: const ThreeWorldsConditions(
+          enemiesDefeated: 0,
+          booksRead: 0,
+          goldEarned: 700,
+        ),
+        allMet: false,
+      ));
+
+      await tester.pumpWidget(MaterialApp(
+        home: CollaborationDashboardScreen(
+          player: PlayerModel(hp: 100000, exp: 50, lifetimeGoldEarned: 700),
+          statsService: _MockStatsService(_emptyStats()),
+          aggregator: aggregator,
+        ),
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // player.lifetimeGoldEarned が aggregator に実データとして渡される
+      expect(aggregator.lastGoldEarned, 700);
+      expect(find.text('700/1000'), findsOneWidget);
     });
   });
 }
