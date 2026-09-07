@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
@@ -49,6 +50,11 @@ void main() async {
     unawaited(FirebaseAnalytics.instance.logAppOpen());
     // クラッシュ検知: Flutterフレームワーク内の致命的エラーを Crashlytics へ送信
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    // ゾーン外の非同期エラー（Platformレベル）も Crashlytics へ送信
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
     debugPrint('[kozuchi] ✅ Firebase 初期化完了');
   } catch (e) {
     // テスト環境や Firebase 未設定時はアプリ起動を妨げず継続する
