@@ -9,6 +9,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:kozuchi/core/theme/theme_repository.dart';
+import 'package:kozuchi/core/infrastructure/app_lock_gate.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/core/infrastructure/deep_link_service.dart';
@@ -240,22 +241,24 @@ class _MyAppState extends State<MyApp> {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _themeMode,
-      home: ErrorBoundary(
-        child: EffectManager(
-          catalog: EffectCatalog.defaultCatalog(),
-          effectBuilder: _buildEffect,
-          child: _showTutorial
-              ? _TutorialRoot(
-                  onComplete: _onTutorialComplete,
-                  themeMode: _themeMode,
-                  themeIcon: themeIcon,
-                  onToggleTheme: _toggleThemeMode,
-                )
-              : MainScreen(
-                  themeMode: _themeMode,
-                  themeIcon: themeIcon,
-                  onToggleTheme: _toggleThemeMode,
-                ),
+      home: AppLockGate(
+        unlockedBuilder: (context) => ErrorBoundary(
+          child: EffectManager(
+            catalog: EffectCatalog.defaultCatalog(),
+            effectBuilder: _buildEffect,
+            child: _showTutorial
+                ? _TutorialRoot(
+                    onComplete: _onTutorialComplete,
+                    themeMode: _themeMode,
+                    themeIcon: themeIcon,
+                    onToggleTheme: _toggleThemeMode,
+                  )
+                : MainScreen(
+                    themeMode: _themeMode,
+                    themeIcon: themeIcon,
+                    onToggleTheme: _toggleThemeMode,
+                  ),
+          ),
         ),
       ),
     );

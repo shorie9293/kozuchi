@@ -37,6 +37,7 @@ import 'package:kozuchi/features/achievements/data/achievement_service.dart';
 import 'package:kozuchi/features/achievements/presentation/screens/achievement_list_screen.dart';
 import 'package:kozuchi/features/achievements/presentation/widgets/achievement_unlock_overlay.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
+import 'package:kozuchi/core/infrastructure/app_lock_settings_screen.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
@@ -499,6 +500,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecurringTransactionScreen()));
   }
 
+  /// アプリロック（パスコード・生体認証）設定画面を開く
+  void _openAppLockSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AppLockSettingsScreen()),
+    );
+  }
+
   void _openSummary() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
   }
@@ -713,6 +721,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('📊 支出分析', _openSummary),
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
       _QuickLink('🧘 キャリアコーチ', _openCareerCoach),
+      _QuickLink('🔒 アプリロック', _openAppLockSettings),
     ];
     return GridView.count(
       crossAxisCount: 2,
