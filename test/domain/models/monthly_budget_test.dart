@@ -67,4 +67,18 @@ void main() {
       expect(original.amount, 100000);
     });
   });
+
+  group('MonthlyBudget.previousYearMonth', () {
+    test('通常月は前月を返す', () {
+      expect(MonthlyBudget.previousYearMonth(from: '2026-06'), '2026-05');
+    });
+
+    test('1月は前年12月を返す', () {
+      expect(MonthlyBudget.previousYearMonth(from: '2026-01'), '2025-12');
+    });
+
+    test('不正な形式でも例外を投げない', () {
+      expect(MonthlyBudget.previousYearMonth(from: 'garbage'), isNotEmpty);
+    });
+  });
 }

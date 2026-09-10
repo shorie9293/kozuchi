@@ -53,6 +53,22 @@ class MonthlyBudget {
     return '${now.year}-$month';
   }
 
+  /// 指定した年月の「前月」を YYYY-MM 形式で返す
+  ///
+  /// [from] を省略した場合は現在月の前月を返す。
+  /// 1月を指定した場合は前年12月を返す。
+  static String previousYearMonth({String? from}) {
+    final base = from ?? currentYearMonth();
+    final parts = base.split('-');
+    final now = DateTime.now();
+    final year = (parts.isNotEmpty ? int.tryParse(parts[0]) : null) ?? now.year;
+    final month =
+        (parts.length > 1 ? int.tryParse(parts[1]) : null) ?? now.month;
+    final prev = DateTime(year, month - 1);
+    final prevMonth = prev.month.toString().padLeft(2, '0');
+    return '${prev.year}-$prevMonth';
+  }
+
   /// 予算額のみを更新したコピーを返す
   MonthlyBudget copyWith({int? amount, double? warningThreshold}) {
     return MonthlyBudget(

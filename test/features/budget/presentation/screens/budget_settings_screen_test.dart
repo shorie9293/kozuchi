@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kozuchi/domain/models/monthly_budget.dart';
+import 'package:kozuchi/features/budget/data/rollover_settings_repository.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
 
@@ -9,17 +10,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late BudgetRepository repository;
+  late RolloverSettingsRepository rolloverRepository;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     repository = const BudgetRepository();
+    rolloverRepository = const RolloverSettingsRepository();
   });
 
-  Widget buildTestWidget({VoidCallback? onSaved}) {
+  Widget buildTestWidget({
+    VoidCallback? onSaved,
+    RolloverSettingsRepository? rollover,
+  }) {
     return MaterialApp(
       home: BudgetSettingsScreen(
         repository: repository,
         onSaved: onSaved,
+        rolloverRepository: rollover ?? rolloverRepository,
       ),
     );
   }
@@ -117,6 +124,61 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(callbackCalled, isTrue);
+    });
+  });
+
+  group('BudgetSettingsScreen 予算繰り越し', () {
+    testWidgets('繰り越しカードが表示される', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.text('予算の繰り越し'), findsOneWidget);
+      expect(find.byType(Switch), findsOneWidget);
+    });
+
+    testWidgets('繰り越し無効時は中立メッセージが表示される', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.text('先月の繰越・超過はありません'), findsOneWidget);
+    });
+
+    testWidgets('繰り越し有効時は前月残額がプレビューされる', (tester) async {
+      final prevMonth = MonthlyBudget.previousYearMonth();
+      await repository.saveBudget(
+        MonthlyBudget(yearMonth: prevMonth, amount: 100000),
+      );
+      await repository.saveMonthlySpending(prevMonth, 60000);
+      await rolloverRepository.setEnabled(true);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('先月からの繰越: ¥40000'), findsOneWidget);
+      expect(find.textContaining('実質予算 ¥40000'), findsOneWidget);
+    });
+
+    testWidgets('前月超過時は警告が表示される', (tester) async {
+      final prevMonth = MonthlyBudget.previousYearMonth();
+      await repository.saveBudget(
+        MonthlyBudget(yearMonth: prevMonth, amount: 100000),
+      );
+      await repository.saveMonthlySpending(prevMonth, 130000);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('先月の超過: ¥30000'), findsOneWidget);
+    });
+
+    testWidgets('スイッチを切り替えると設定が永続化される', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      expect((await rolloverRepository.load()).enabled, isTrue);
     });
   });
 }
