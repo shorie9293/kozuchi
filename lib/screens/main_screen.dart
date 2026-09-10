@@ -46,6 +46,7 @@ import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_rec
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
 import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
+import 'package:kozuchi/features/asset_trend/presentation/screens/asset_trend_screen.dart';
 import 'package:kozuchi/features/collaboration_dashboard/presentation/screens/collaboration_dashboard_screen.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
@@ -511,6 +512,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
   }
 
+  /// 資産推移（残高・月次純資産の累積トラッキング）画面を開く
+  void _openAssetTrend() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AssetTrendScreen()),
+    );
+  }
+
   void _openCollaborationDashboard() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => CollaborationDashboardScreen(player: _player)));
   }
@@ -719,6 +727,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('📥 CSV取り込み', _openCsvImport),
       _QuickLink('🔁 定期取引', _openRecurringTransaction),
       _QuickLink('📊 支出分析', _openSummary),
+      _QuickLink('📈 資産推移', _openAssetTrend),
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
       _QuickLink('🧘 キャリアコーチ', _openCareerCoach),
       _QuickLink('🔒 アプリロック', _openAppLockSettings),
