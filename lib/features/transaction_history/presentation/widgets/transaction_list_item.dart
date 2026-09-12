@@ -8,7 +8,14 @@ import 'package:kozuchi/domain/models/transaction_model.dart';
 class TransactionListItem extends StatelessWidget {
   final TransactionModel transaction;
 
-  const TransactionListItem({super.key, required this.transaction});
+  /// タップ時のコールバック（タグ付け導線など）。null なら非タップ。
+  final VoidCallback? onTap;
+
+  const TransactionListItem({
+    super.key,
+    required this.transaction,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,11 +26,20 @@ class TransactionListItem extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: _buildRow(colorScheme, amountColor),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRow(ColorScheme colorScheme, Color amountColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
             // 金額
             SizedBox(
               width: 100,
@@ -65,9 +81,7 @@ class TransactionListItem extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
   }
 
   /// 金額を ¥ 付きカンマ区切りでフォーマットする。

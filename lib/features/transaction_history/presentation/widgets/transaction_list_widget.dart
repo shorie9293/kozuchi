@@ -24,12 +24,16 @@ class TransactionListWidget extends StatelessWidget {
   /// リトライボタン押下時のコールバック。
   final VoidCallback? onRetry;
 
+  /// 取引アイテムのタップ時コールバック（タグ付け導線など）。
+  final void Function(TransactionModel transaction)? onTransactionTap;
+
   const TransactionListWidget({
     super.key,
     this.transactions = const [],
     this.isLoading = false,
     this.errorMessage,
     this.onRetry,
+    this.onTransactionTap,
   });
 
   @override
@@ -195,8 +199,12 @@ class TransactionListWidget extends StatelessWidget {
       padding: const EdgeInsets.only(top: 4, bottom: 4),
       itemCount: transactions.length,
       itemBuilder: (context, index) {
+        final transaction = transactions[index];
         return TransactionListItem(
-          transaction: transactions[index],
+          transaction: transaction,
+          onTap: onTransactionTap == null
+              ? null
+              : () => onTransactionTap!(transaction),
         );
       },
     );

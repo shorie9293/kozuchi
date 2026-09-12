@@ -53,6 +53,7 @@ echo "✅ shard 2/3 passed"
 echo ""
 echo "[5/5] 🧪 test shard 3/3 (features B)..."
 flutter test --no-pub -j 1 \
+  test/features/asset_trend/ \
   test/features/income/ \
   test/features/main_screen/ \
   test/features/pinch_zone/ \
@@ -62,6 +63,7 @@ flutter test --no-pub -j 1 \
   test/features/shared/ \
   test/features/spending_chart/ \
   test/features/summary_chart/ \
+  test/features/tags/ \
   test/features/transaction_filter/ \
   test/features/transaction_history/ \
   test/features/trial_quest/ \

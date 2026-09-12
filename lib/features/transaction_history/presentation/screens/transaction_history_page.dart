@@ -8,6 +8,13 @@ import 'package:kozuchi/features/transaction_filter/domain/models/transaction_fi
 import 'package:kozuchi/features/transaction_filter/presentation/widgets/transaction_filter_bar.dart';
 import 'package:kozuchi/features/transaction_history/presentation/state/transaction_controller.dart';
 import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_widget.dart';
+import 'package:kozuchi/domain/models/transaction_model.dart';
+import 'package:kozuchi/features/tags/data/tag_repository.dart';
+import 'package:kozuchi/features/tags/domain/models/tagged_transaction.dart';
+import 'package:kozuchi/features/tags/presentation/screens/tag_management_screen.dart';
+import 'package:kozuchi/features/tags/presentation/screens/tag_summary_screen.dart';
+import 'package:kozuchi/features/tags/presentation/tag_app_keys.dart';
+import 'package:kozuchi/features/tags/presentation/widgets/tag_assignment_dialog.dart';
 
 /// 取引履歴一覧画面。
 ///
@@ -33,10 +40,14 @@ class TransactionHistoryPage extends StatefulWidget {
   /// null の場合は API 取引のみを表示する（従来動作）。
   final LocalTransactionRepository? localRepository;
 
+  /// タグの永続化リポジトリ（試練で差し替え可能）。
+  final TagRepository tagRepository;
+
   const TransactionHistoryPage({
     super.key,
     this.controller,
     this.localRepository,
+    this.tagRepository = const TagRepository(),
   });
 
   @override
@@ -91,10 +102,69 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     );
   }
 
+  /// タグ定義と紐付けを読み込んでタグ別集計画面へ遷移する。
+  Future<void> _openTagSummary(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    await navigator.push(
+      MaterialPageRoute(
+        builder: (_) => TagSummaryLoaderScreen(
+          transactions: _controller.transactions,
+          repository: widget.tagRepository,
+        ),
+      ),
+    );
+  }
+
+  /// 取引にタグを割り当てる（タグ定義が無ければ案内を表示）。
+  Future<void> _assignTags(TransactionModel transaction) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final tags = await widget.tagRepository.loadTags();
+    if (!mounted) return;
+    if (tags.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('タグがありません。タグ管理から作成してください。')),
+      );
+      return;
+    }
+
+    final key = TaggedTransaction.keyOfTransaction(transaction);
+    final selected = await widget.tagRepository.tagsFor(key);
+    if (!mounted) return;
+
+    final result = await showTagAssignmentDialog(
+      context,
+      tags: tags,
+      selectedTagIds: selected,
+    );
+    if (result == null) return;
+    await widget.tagRepository.assignTags(key, result);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('取引履歴')),
+      appBar: AppBar(
+        title: const Text('取引履歴'),
+        actions: [
+          IconButton(
+            key: TagAppKeys.historyTagManageButton,
+            tooltip: 'タグ管理',
+            icon: const Icon(Icons.sell_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    TagManagementScreen(repository: widget.tagRepository),
+              ),
+            ),
+          ),
+          IconButton(
+            key: TagAppKeys.historyTagSummaryButton,
+            tooltip: 'タグ別集計',
+            icon: const Icon(Icons.label_outline),
+            onPressed: () => _openTagSummary(context),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // ── フィルタバー（上部固定） ──
@@ -112,6 +182,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   isLoading: _controller.isLoading,
                   errorMessage: _controller.error,
                   onRetry: () => _controller.refetch(),
+                  onTransactionTap: _assignTags,
                 );
               },
             ),
