@@ -55,6 +55,7 @@ echo "[5/5] 🧪 test shard 3/3 (features B)..."
 flutter test --no-pub -j 1 \
   test/features/asset_trend/ \
   test/features/income/ \
+  test/features/installment/ \
   test/features/main_screen/ \
   test/features/pinch_zone/ \
   test/features/receipt_scanner/ \

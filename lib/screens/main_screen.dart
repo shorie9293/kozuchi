@@ -42,6 +42,8 @@ import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
 import 'package:kozuchi/features/csv_import/presentation/screens/csv_import_screen.dart';
+import 'package:kozuchi/features/installment/presentation/screens/installment_screen.dart';
+import 'package:kozuchi/features/installment/presentation/screens/subscription_screen.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_recorder.dart';
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
@@ -501,6 +503,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecurringTransactionScreen()));
   }
 
+  /// 分割払い（残債）管理画面を開く
+  void _openInstallment() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InstallmentScreen()));
+  }
+
+  /// サブスク管理画面を開く
+  void _openSubscription() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
+  }
+
   /// アプリロック（パスコード・生体認証）設定画面を開く
   void _openAppLockSettings() {
     Navigator.of(context).push(
@@ -726,6 +738,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('📋 取引履歴', _openTransactionHistory),
       _QuickLink('📥 CSV取り込み', _openCsvImport),
       _QuickLink('🔁 定期取引', _openRecurringTransaction),
+      _QuickLink('🧾 分割払い', _openInstallment),
+      _QuickLink('🔄 サブスク', _openSubscription),
       _QuickLink('📊 支出分析', _openSummary),
       _QuickLink('📈 資産推移', _openAssetTrend),
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
