@@ -40,13 +40,15 @@ flutter test --no-pub -j 1 \
   test/features/careerCoach/ \
   test/features/collaboration_dashboard/ \
   test/features/csv_export/ \
+  test/features/csv_import/ \
   test/features/daily_quest/ \
   test/features/effects/ \
   test/features/exp_gauge/ \
   test/features/goal/ \
   test/features/goals/ \
   test/features/goal_spending/ \
-  test/features/hp_bar/
+  test/features/hp_bar/ \
+  test/features/recurring_transaction/
 echo "✅ shard 2/3 passed"
 
 # --- Step 5: Test shard 3/3 (features グループB) ---
@@ -70,6 +72,7 @@ flutter test --no-pub -j 1 \
   test/features/trial_quest/ \
   test/features/tsundoku/ \
   test/features/tutorial/ \
+  test/features/wallet/ \
   test/features/weekly_quest/ \
   test/features/weekly_report/
 echo "✅ shard 3/3 passed"

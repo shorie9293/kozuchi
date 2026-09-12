@@ -48,6 +48,7 @@ import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_rec
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
 import 'package:kozuchi/features/summary_chart/presentation/screens/summary_screen.dart';
+import 'package:kozuchi/features/wallet/presentation/screens/wallet_management_screen.dart';
 import 'package:kozuchi/features/asset_trend/presentation/screens/asset_trend_screen.dart';
 import 'package:kozuchi/features/collaboration_dashboard/presentation/screens/collaboration_dashboard_screen.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
@@ -513,6 +514,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
   }
 
+  /// 財布・口座の管理画面を開く
+  void _openWallets() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const WalletManagementScreen()),
+    );
+  }
+
   /// アプリロック（パスコード・生体認証）設定画面を開く
   void _openAppLockSettings() {
     Navigator.of(context).push(
@@ -740,6 +748,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🔁 定期取引', _openRecurringTransaction),
       _QuickLink('🧾 分割払い', _openInstallment),
       _QuickLink('🔄 サブスク', _openSubscription),
+      _QuickLink('👛 財布・口座', _openWallets),
       _QuickLink('📊 支出分析', _openSummary),
       _QuickLink('📈 資産推移', _openAssetTrend),
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
