@@ -8,6 +8,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
+import 'package:kozuchi/core/theme/text_scale_repository.dart';
 import 'package:kozuchi/core/theme/theme_repository.dart';
 import 'package:kozuchi/core/infrastructure/app_lock_gate.dart';
 import 'package:kozuchi/core/infrastructure/env.dart';
@@ -161,15 +162,18 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late bool _showTutorial;
   ThemeMode _themeMode = ThemeMode.system;
+  double _textScale = TextScaleSetting.normalScale;
   bool _themeLoaded = false;
   bool _firstFrameHandled = false;
   final ThemeRepository _themeRepo = const ThemeRepository();
+  final TextScaleRepository _textScaleRepo = const TextScaleRepository();
 
   @override
   void initState() {
     super.initState();
     _showTutorial = widget.isFirstLaunch;
     _loadThemeMode();
+    _loadTextScale();
     // 初回フレーム後に保留中のディープリンクを処理
     WidgetsBinding.instance.addPostFrameCallback(_onFirstFrame);
   }
@@ -213,6 +217,22 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  /// 保存された文字サイズ倍率を読み込む（未保存は1.0）。
+  Future<void> _loadTextScale() async {
+    final saved = await _textScaleRepo.loadScale();
+    if (mounted) {
+      setState(() => _textScale = TextScaleSetting.normalized(saved));
+    }
+  }
+
+  /// 文字サイズを変更し、永続化する。
+  Future<void> _changeTextScale(double scale) async {
+    await _textScaleRepo.saveScale(scale);
+    if (mounted) {
+      setState(() => _textScale = scale);
+    }
+  }
+
   void _onTutorialComplete() {
     KozuchiTutorialService.markCompleted();
     setState(() => _showTutorial = false);
@@ -241,6 +261,12 @@ class _MyAppState extends State<MyApp> {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _themeMode,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(_textScale),
+        ),
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: AppLockGate(
         unlockedBuilder: (context) => ErrorBoundary(
           child: EffectManager(
@@ -257,6 +283,8 @@ class _MyAppState extends State<MyApp> {
                     themeMode: _themeMode,
                     themeIcon: themeIcon,
                     onToggleTheme: _toggleThemeMode,
+                    textScale: _textScale,
+                    onScaleChanged: _changeTextScale,
                   ),
           ),
         ),

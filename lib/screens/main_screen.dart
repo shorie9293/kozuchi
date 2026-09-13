@@ -57,6 +57,7 @@ import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
 import 'package:kozuchi/domain/services/expense_entry_recording_service.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/domain/services/expense_repository.dart';
+import 'package:kozuchi/screens/text_scale_settings_screen.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
 
 /// メイン画面
@@ -69,6 +70,8 @@ class MainScreen extends StatefulWidget {
   final ThemeMode themeMode;
   final IconData themeIcon;
   final VoidCallback? onToggleTheme;
+  final double? textScale;
+  final ValueChanged<double>? onScaleChanged;
 
   /// 支出明細の保存先。null の場合は Supabase（expense_entries）を使用する。
   final ExpenseRepository? expenseRepository;
@@ -81,6 +84,8 @@ class MainScreen extends StatefulWidget {
     this.themeMode = ThemeMode.system,
     this.themeIcon = Icons.brightness_auto,
     this.onToggleTheme,
+    this.textScale,
+    this.onScaleChanged,
     this.expenseRepository,
   });
 
@@ -528,6 +533,18 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
+  /// 文字サイズ設定画面を開く
+  void _openTextScaleSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TextScaleSettingsScreen(
+          currentScale: widget.textScale ?? 1.0,
+          onScaleChanged: widget.onScaleChanged ?? (_) {},
+        ),
+      ),
+    );
+  }
+
   void _openSummary() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
   }
@@ -754,6 +771,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
       _QuickLink('🧘 キャリアコーチ', _openCareerCoach),
       _QuickLink('🔒 アプリロック', _openAppLockSettings),
+      _QuickLink('🔠 文字サイズ', _openTextScaleSettings),
     ];
     return GridView.count(
       crossAxisCount: 2,
