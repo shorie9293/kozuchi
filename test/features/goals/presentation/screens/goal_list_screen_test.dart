@@ -341,5 +341,43 @@ void main() {
       // RefreshIndicatorが存在することを確認
       expect(find.byType(RefreshIndicator), findsOneWidget);
     });
+
+    // ── 達成予測行（#37） ──────────────────────────
+
+    testWidgets('active目標カードに達成予測行が表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: GoalListScreen(apiService: _createService(_listMockClient())),
+      ));
+      await tester.pumpAndSettle();
+
+      // active 目標（goal-001・2026-06-24 作成・残 25000）の予測行が
+      // いずれかの予測メッセージとして1件以上表示される
+      final forecastTexts = [
+        find.textContaining('達成見込み'),
+        find.textContaining('必要'),
+        find.textContaining('ペース'),
+        find.textContaining('期限（'),
+      ];
+      final found = forecastTexts.any((f) => f.evaluate().isNotEmpty);
+      expect(found, isTrue);
+    });
+
+    testWidgets('完了目標には達成済み予測が表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: GoalListScreen(apiService: _createService(_listMockClient())),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('達成済み'), findsOneWidget);
+    });
+
+    testWidgets('中止目標には中止予測が表示される', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: GoalListScreen(apiService: _createService(_listMockClient())),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('中止'), findsOneWidget);
+    });
   });
 }

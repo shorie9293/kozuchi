@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/features/goals/data/goal.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
+import 'package:kozuchi/features/goals/data/goal_forecast.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_form_screen.dart';
 
 /// 目標一覧画面
@@ -336,6 +337,18 @@ class _GoalCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
+              // 達成予測行
+              Text(
+                GoalForecastService.forecast(goal, now: DateTime.now())
+                    .forecastSummary(goal.deadline),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isCompleted
+                      ? Colors.green
+                      : forecastColorOf(goal, colorScheme),
+                ),
+              ),
+              const SizedBox(height: 8),
+
               // 期限 + 削除ボタン
               Row(
                 children: [
@@ -384,5 +397,14 @@ class _GoalCard extends StatelessWidget {
 
   String _formatDate(DateTime dt) {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 予測行の色（期限オーバー=orange・通常=薄字）
+  Color forecastColorOf(Goal goal, ColorScheme colorScheme) {
+    final forecast = GoalForecastService.forecast(goal, now: DateTime.now());
+    if (!forecast.isOnTrack && forecast.remainingAmount > 0) {
+      return Colors.orange;
+    }
+    return colorScheme.onSurface.withValues(alpha: 0.5);
   }
 }
