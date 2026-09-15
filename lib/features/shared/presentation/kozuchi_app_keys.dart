@@ -30,4 +30,15 @@ class KozuchiAppKeys {
 
   static Key recurringTxDeleteButton(String id) =>
       Key('recurringTx_deleteButton_$id');
+
+  // ── 月次レポート ──
+  static const Key monthlyReportEntry = Key('monthlyReportEntry');
+  static const Key monthlyReportScreen = Key('monthlyReportScreen');
+  static const Key monthlyReportCard = Key('monthlyReportCard');
+  static const Key monthlyReportPrevMonth = Key('monthlyReportPrevMonth');
+  static const Key monthlyReportNextMonth = Key('monthlyReportNextMonth');
+  static const Key monthlyReportShareButton = Key('monthlyReportShareButton');
+  static const Key monthlyReportEmpty = Key('monthlyReportEmpty');
+  static const Key monthlyReportTotalExpense = Key('monthlyReportTotalExpense');
+  static const Key monthlyReportBalance = Key('monthlyReportBalance');
 }

@@ -59,6 +59,7 @@ flutter test --no-pub -j 1 \
   test/features/income/ \
   test/features/installment/ \
   test/features/main_screen/ \
+  test/features/monthly_report/ \
   test/features/pinch_zone/ \
   test/features/receipt_scanner/ \
   test/features/rpg_task_bonus/ \

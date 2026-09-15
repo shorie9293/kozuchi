@@ -8,6 +8,8 @@ import 'package:kozuchi/features/spending_chart/presentation/widgets/daily_bar_c
 import 'package:kozuchi/features/summary_chart/domain/category_pie_data.dart';
 import 'package:kozuchi/features/summary_chart/presentation/widgets/category_pie_chart_widget.dart';
 import 'package:kozuchi/core/widgets/washi_background.dart';
+import 'package:kozuchi/features/monthly_report/presentation/screens/monthly_report_screen.dart';
+import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
 
 /// 支出サマリー画面
 ///
@@ -143,6 +145,22 @@ class _SummaryScreenState extends State<SummaryScreen> {
         ),
         title: const Text('支出サマリー'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            key: KozuchiAppKeys.monthlyReportEntry,
+            icon: const Icon(Icons.ios_share),
+            tooltip: '月次レポート',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => MonthlyReportScreen(
+                    repository: widget.repository,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: WashiBackground(
         child: _buildBody(colorScheme),
