@@ -67,6 +67,7 @@ flutter test --no-pub -j 1 \
   test/features/shared/ \
   test/features/spending_chart/ \
   test/features/summary_chart/ \
+  test/features/quick_template/ \
   test/features/tags/ \
   test/features/transaction_filter/ \
   test/features/transaction_history/ \

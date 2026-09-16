@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
+import 'package:kozuchi/features/quick_template/data/quick_template_repository.dart';
+import 'package:kozuchi/features/quick_template/domain/models/expense_template.dart';
+import 'package:kozuchi/features/quick_template/domain/quick_template_service.dart';
+import 'package:kozuchi/features/quick_template/presentation/widgets/quick_template_bar.dart';
 import 'package:kozuchi/features/receipt_scanner/data/receipt_ocr_service.dart';
 import 'package:kozuchi/features/receipt_scanner/data/mlkit_receipt_ocr_service.dart';
 import 'package:kozuchi/features/receipt_scanner/presentation/screens/receipt_scanner_screen.dart';
@@ -33,10 +37,14 @@ class OfferingInputScreen extends StatefulWidget {
   final TrialQuest quest;
   final PlayerModel player;
 
+  /// クイックテンプレートの永続化先（省略時は SharedPreferences 実装）。
+  final QuickTemplateRepository? templateRepository;
+
   const OfferingInputScreen({
     super.key,
     required this.quest,
     required this.player,
+    this.templateRepository,
   });
 
   @override
@@ -50,6 +58,8 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
   late final TextEditingController _noteController;
   String? _receiptImagePath;
   String? _selectedCategory;
+  List<ExpenseTemplate> _templates = [];
+  late final QuickTemplateRepository _templateRepository;
 
   static const Map<String, String> _categoryEmojis = {
     '食費': '🍙',
@@ -74,6 +84,38 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     _noteController = TextEditingController();
     // 用途入力に応じて自動分類
     _purposeController.addListener(_autoClassify);
+    _templateRepository = widget.templateRepository ??
+        const SharedPreferencesQuickTemplateRepository();
+    _loadTemplates();
+  }
+
+  /// クイックテンプレートを読み込む。
+  Future<void> _loadTemplates() async {
+    final templates = await _templateRepository.loadTemplates();
+    if (!mounted) return;
+    setState(() => _templates = templates);
+  }
+
+  /// テンプレート適用: 入力欄へ流し込み、使用記録を更新する。
+  Future<void> _applyTemplate(ExpenseTemplateDraft draft) async {
+    setState(() {
+      _amountController.text = draft.amount.toString();
+      _purposeController.text = draft.purpose;
+      _selectedCategory = draft.category;
+    });
+    if (_templates.isEmpty) return;
+    final target = _templates.firstWhere(
+      (t) =>
+          t.amount == draft.amount &&
+          t.purpose == draft.purpose &&
+          t.category == draft.category,
+      orElse: () => _templates.first,
+    );
+    final used = QuickTemplateService.applyTemplate(target, DateTime.now());
+    final updated = QuickTemplateService.upsert(_templates, used);
+    await _templateRepository.saveTemplates(updated);
+    if (!mounted) return;
+    setState(() => _templates = updated);
   }
 
   @override
@@ -188,6 +230,13 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+
+              // クイックテンプレート（よく使う支出のワンタップ登録）
+              QuickTemplateBar(
+                templates: QuickTemplateService.frequentTemplates(_templates),
+                onSelected: _applyTemplate,
               ),
               const SizedBox(height: 16),
 
