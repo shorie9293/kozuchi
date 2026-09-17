@@ -27,6 +27,9 @@ class TransactionListWidget extends StatelessWidget {
   /// 取引アイテムのタップ時コールバック（タグ付け導線など）。
   final void Function(TransactionModel transaction)? onTransactionTap;
 
+  /// レシート原本ボタン押下時コールバック。
+  final void Function(TransactionModel transaction)? onReceiptTap;
+
   const TransactionListWidget({
     super.key,
     this.transactions = const [],
@@ -34,6 +37,7 @@ class TransactionListWidget extends StatelessWidget {
     this.errorMessage,
     this.onRetry,
     this.onTransactionTap,
+    this.onReceiptTap,
   });
 
   @override
@@ -205,6 +209,9 @@ class TransactionListWidget extends StatelessWidget {
           onTap: onTransactionTap == null
               ? null
               : () => onTransactionTap!(transaction),
+          onReceiptTap: onReceiptTap == null
+              ? null
+              : () => onReceiptTap!(transaction),
         );
       },
     );

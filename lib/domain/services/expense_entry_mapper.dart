@@ -21,6 +21,7 @@ class ExpenseEntryMapper {
       purpose: entry.note ?? entry.category,
       category: entry.category,
       datetime: entry.date.toIso8601String(),
+      receiptImagePath: entry.receiptImagePath,
     );
   }
 

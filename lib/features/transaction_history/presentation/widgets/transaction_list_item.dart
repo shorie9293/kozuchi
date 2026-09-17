@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
+import 'package:kozuchi/features/receipt_viewer/presentation/receipt_viewer_app_keys.dart';
 
 /// 取引リストの1件を表示するプレゼンテーショナルWidget。
 ///
@@ -11,10 +12,14 @@ class TransactionListItem extends StatelessWidget {
   /// タップ時のコールバック（タグ付け導線など）。null なら非タップ。
   final VoidCallback? onTap;
 
+  /// レシート原本ボタン押下時のコールバック。null なら非タップ。
+  final VoidCallback? onReceiptTap;
+
   const TransactionListItem({
     super.key,
     required this.transaction,
     this.onTap,
+    this.onReceiptTap,
   });
 
   @override
@@ -80,6 +85,17 @@ class TransactionListItem extends StatelessWidget {
                 color: colorScheme.outline,
               ),
             ),
+            // レシート原本ボタン（パスがある場合のみ表示）
+            if ((transaction.receiptImagePath ?? '').trim().isNotEmpty)
+              IconButton(
+                key: ReceiptViewerAppKeys.receiptButtonFor(
+                  transaction.datetime,
+                  transaction.amount,
+                ),
+                tooltip: 'レシート原本を見る',
+                icon: const Icon(Icons.receipt_long_outlined),
+                onPressed: onReceiptTap,
+              ),
           ],
         );
   }

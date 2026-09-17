@@ -15,11 +15,15 @@ class TransactionModel {
   /// 日時（ISO 8601 形式）
   final String datetime;
 
+  /// レシート原本画像のパス（任意）
+  final String? receiptImagePath;
+
   const TransactionModel({
     required this.amount,
     required this.purpose,
     required this.category,
     required this.datetime,
+    this.receiptImagePath,
   });
 
   /// 収入かどうか（amount >= 0）
@@ -35,6 +39,7 @@ class TransactionModel {
       purpose: json['purpose'] as String? ?? '',
       category: json['category'] as String? ?? '',
       datetime: json['datetime'] as String? ?? '',
+      receiptImagePath: json['receiptImagePath'] as String?,
     );
   }
 
@@ -45,6 +50,7 @@ class TransactionModel {
       'purpose': purpose,
       'category': category,
       'datetime': datetime,
+      'receiptImagePath': receiptImagePath,
     };
   }
 }

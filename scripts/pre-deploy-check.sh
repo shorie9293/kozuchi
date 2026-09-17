@@ -62,6 +62,7 @@ flutter test --no-pub -j 1 \
   test/features/monthly_report/ \
   test/features/pinch_zone/ \
   test/features/receipt_scanner/ \
+  test/features/receipt_viewer/ \
   test/features/rpg_task_bonus/ \
   test/features/satori/ \
   test/features/shared/ \

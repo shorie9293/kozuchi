@@ -6,6 +6,7 @@ import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_filter/presentation/widgets/transaction_filter_bar.dart';
+import 'package:kozuchi/features/receipt_viewer/presentation/screens/receipt_image_viewer_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/state/transaction_controller.dart';
 import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_widget.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
@@ -140,6 +141,17 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     await widget.tagRepository.assignTags(key, result);
   }
 
+  /// 取引に紐づくレシート原本画像を閲覧する。
+  void _openReceipt(TransactionModel transaction) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReceiptImageViewerScreen(
+          path: transaction.receiptImagePath,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -183,6 +195,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   errorMessage: _controller.error,
                   onRetry: () => _controller.refetch(),
                   onTransactionTap: _assignTags,
+                  onReceiptTap: _openReceipt,
                 );
               },
             ),
