@@ -5,6 +5,7 @@ import 'package:kozuchi/domain/models/monthly_budget.dart';
 import 'package:kozuchi/features/budget/data/rollover_settings_repository.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
+import 'package:kozuchi/features/budget/presentation/widgets/spending_pace_widget.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -179,6 +180,32 @@ void main() {
       await tester.pumpAndSettle();
 
       expect((await rolloverRepository.load()).enabled, isTrue);
+    });
+  });
+
+  group('BudgetSettingsScreen - 支出ペースと月末着地予測（配線）', () {
+    testWidgets('予算未設定なら案内の1行カードが表示される', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SpendingPaceWidget), findsOneWidget);
+      expect(find.text('月末着地予測には予算設定が必要です'), findsOneWidget);
+    });
+
+    testWidgets('予算設定済みなら着地見込みが表示される', (tester) async {
+      final currentMonth = MonthlyBudget.currentYearMonth();
+      await repository.saveBudget(
+        MonthlyBudget(yearMonth: currentMonth, amount: 100000),
+      );
+      await repository.saveMonthlySpending(currentMonth, 30000);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(SpendingPaceWidget.forecastKey), findsOneWidget);
+      expect(find.textContaining('着地見込み'), findsOneWidget);
+      // 予算未設定の案内は出ないこと
+      expect(find.text('月末着地予測には予算設定が必要です'), findsNothing);
     });
   });
 }

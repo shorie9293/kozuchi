@@ -3,6 +3,9 @@ import 'package:kozuchi/domain/models/monthly_budget.dart';
 import 'package:kozuchi/features/budget/data/rollover_settings_repository.dart';
 import 'package:kozuchi/features/budget/domain/budget_rollover.dart';
 import 'package:kozuchi/features/budget/domain/budget_rollover_service.dart';
+import 'package:kozuchi/features/budget/domain/spending_pace.dart';
+import 'package:kozuchi/features/budget/domain/spending_pace_service.dart';
+import 'package:kozuchi/features/budget/presentation/widgets/spending_pace_widget.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 
 /// 月間予算設定画面
@@ -40,12 +43,23 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
   /// 前月実績から算出した繰り越しプレビュー
   BudgetRollover _rollover = const BudgetRollover(baseBudget: 0);
 
+  /// 当月の支出ペースと月末着地予測
+  SpendingPace _spendingPace = SpendingPaceService().compute(
+    totalSpent: 0,
+    monthlyBudget: 0,
+    now: DateTime.now(),
+  );
+
+  /// 支出ペース予測の読み込み中フラグ
+  bool _paceLoading = true;
+
   @override
   void initState() {
     super.initState();
     _currentMonth = MonthlyBudget.currentYearMonth();
     _amountController = TextEditingController();
     _loadExistingBudget();
+    _loadSpendingPace();
   }
 
   @override
@@ -62,6 +76,23 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
     await _refreshRollover();
     if (mounted) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// 当月の支出一実績と予算から支出ペース予測を読み込む
+  Future<void> _loadSpendingPace() async {
+    final budget = await widget.repository.loadBudget(_currentMonth);
+    final spent = await widget.repository.loadMonthlySpending(_currentMonth);
+    final pace = SpendingPaceService().compute(
+      totalSpent: spent,
+      monthlyBudget: budget?.amount ?? 0,
+      now: DateTime.now(),
+    );
+    if (mounted) {
+      setState(() {
+        _spendingPace = pace;
+        _paceLoading = false;
+      });
     }
   }
 
@@ -118,6 +149,7 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
     final budget = MonthlyBudget(yearMonth: _currentMonth, amount: amount);
     await widget.repository.saveBudget(budget);
     await _refreshRollover();
+    await _loadSpendingPace();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,6 +203,13 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
 
                     // 予算繰り越しカード
                     _buildRolloverCard(colorScheme),
+                    const SizedBox(height: 24),
+
+                    // 支出ペースと月末着地予測
+                    SpendingPaceWidget(
+                      pace: _spendingPace,
+                      isLoading: _paceLoading,
+                    ),
                     const SizedBox(height: 24),
 
                     // 説明文

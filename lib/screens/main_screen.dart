@@ -30,6 +30,9 @@ import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart'
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
 import 'package:kozuchi/features/budget/domain/daily_budget.dart';
+import 'package:kozuchi/features/budget/domain/spending_pace.dart';
+import 'package:kozuchi/features/budget/domain/spending_pace_service.dart';
+import 'package:kozuchi/features/budget/presentation/widgets/spending_pace_widget.dart';
 import 'package:kozuchi/features/budget/data/daily_budget_service.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 import 'package:kozuchi/features/period_comparison/presentation/widgets/period_comparison_summary.dart';
@@ -107,6 +110,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _monthlyExpenditure = 0;
   double _warningThreshold = 0.8;
   DailyBudget _displayBudget = DailyBudget.empty();
+
+  /// 支出ペースと月末着地予測（予算未設定時は unknown）
+  SpendingPace _spendingPace = SpendingPaceService().compute(
+    totalSpent: 0,
+    monthlyBudget: 0,
+    now: DateTime.now(),
+  );
 
   late final TabController _tabController;
   ExpenseRepository? _expenseRepository;
@@ -196,6 +206,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           _monthlyExpenditure = dailyBudget.totalSpent;
           _warningThreshold = threshold;
           _displayBudget = dailyBudget;
+          _recomputeSpendingPace();
         });
       }
       await _dailyQuestNotifier.loadQuestsForToday(
@@ -483,9 +494,19 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         _monthlyExpenditure = dailyBudget.totalSpent;
         _warningThreshold = threshold;
         _displayBudget = dailyBudget;
+        _recomputeSpendingPace();
       });
     }
     _loadDailyQuests();
+  }
+
+  /// 現在の予算額・当月支出から支出ペースと月末着地予測を再計算する
+  void _recomputeSpendingPace() {
+    _spendingPace = SpendingPaceService().compute(
+      totalSpent: _monthlyExpenditure,
+      monthlyBudget: _budgetAmount,
+      now: DateTime.now(),
+    );
   }
 
   void _openAchievementList() {
@@ -638,6 +659,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   onTapBudget: _budgetAmount == 0 ? _openBudgetSettings : null,
                 ),
               ),
+              // 支出ペースと月末着地予測（予算設定済みのみ）
+              if (_spendingPace.isBudgetSet)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: SpendingPaceWidget(pace: _spendingPace),
+                ),
               // 警告バナー
               if (_player.isPinchState)
                 PinchZoneWarningBanner(player: _player),
