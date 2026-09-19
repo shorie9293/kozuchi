@@ -15,7 +15,7 @@
 - **Image**: image_picker
 - **Env**: flutter_dotenv (`flutter_dotenv: ^5.2.1`)
 - **Monorepo Packages**: takamagahara_ui (`../../packages/`)
-- **Current Version**: 1.3.1+38
+- **Current Version**: 1.3.12+52
 
 ## Project Structure
 
@@ -81,5 +81,5 @@ All must pass before deployment.
 ## Pitfalls
 
 - **analyze warning = CI failure**: `--no-fatal-infos` only suppresses `info`, not `warning`. Always run `flutter analyze --no-fatal-infos` before pushing.
-- **Monorepo packages**: CI clones packages from `shorie9293/takamagahara` repo. Locally they're at `../../packages/`.
+- **Monorepo packages**: CI clones packages from `shorie9293/takamagahara-packages` repo. Locally they're at `../../packages/`.
 - **flutter_dotenv**: `.env` must be present at build time. CI generates it from GitHub Secrets.
