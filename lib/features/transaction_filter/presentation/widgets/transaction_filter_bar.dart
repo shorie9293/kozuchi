@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
+import 'package:kozuchi/features/transaction_filter/presentation/transaction_query_app_keys.dart';
 
 /// 取引一覧のフィルタバーWidget。
 ///
-/// 種別トグル（全件/収入/支出）と日付範囲選択（開始〜終了）を提供する。
+/// 種別トグル（全件/収入/支出）と日付範囲選択（開始〜終了）に加え、
+/// キーワード入力・カテゴリチップ・タグチップによる絞り込みを提供する。
 /// ユーザー操作のたびに [onChanged] で新しい [TransactionFilter] を発火する。
 ///
 /// ## 使い方
@@ -13,6 +16,8 @@ import 'package:kozuchi/features/transaction_filter/domain/models/transaction_fi
 /// TransactionFilterBar(
 ///   initialFilter: const TransactionFilter(),
 ///   onChanged: (filter) => print(filter.type),
+///   availableCategories: ['食費', '交通費'],
+///   availableTags: [ExpenseTag(id: 't1', name: '旅行')],
 /// )
 /// ```
 ///
@@ -24,13 +29,21 @@ class TransactionFilterBar extends StatefulWidget {
   final TransactionFilter initialFilter;
 
   /// フィルタ変更時に発火するコールバック。
-  /// 種別切替・日付選択のたびに呼ばれる。
+  /// 種別切替・日付選択・キーワード入力・チップ選択のたびに呼ばれる。
   final ValueChanged<TransactionFilter> onChanged;
+
+  /// 選択可能なカテゴリ一覧（取引から集めた一意集合など）。既定は空（非表示）。
+  final List<String> availableCategories;
+
+  /// 選択可能なタグ一覧。既定は空（非表示）。
+  final List<ExpenseTag> availableTags;
 
   const TransactionFilterBar({
     super.key,
     required this.initialFilter,
     required this.onChanged,
+    this.availableCategories = const [],
+    this.availableTags = const [],
   });
 
   @override
@@ -41,6 +54,9 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
   late TransactionFilterType _type;
   late DateTime? _startDate;
   late DateTime? _endDate;
+  late TextEditingController _keywordController;
+  late Set<String> _categories;
+  late Set<String> _tagIds;
 
   @override
   void initState() {
@@ -48,6 +64,17 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
     _type = widget.initialFilter.type;
     _startDate = widget.initialFilter.startDate;
     _endDate = widget.initialFilter.endDate;
+    _keywordController = TextEditingController(
+      text: widget.initialFilter.keyword,
+    );
+    _categories = Set<String>.of(widget.initialFilter.categories);
+    _tagIds = Set<String>.of(widget.initialFilter.tagIds);
+  }
+
+  @override
+  void dispose() {
+    _keywordController.dispose();
+    super.dispose();
   }
 
   void _emitFilter() {
@@ -56,6 +83,9 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
         type: _type,
         startDate: _startDate,
         endDate: _endDate,
+        keyword: _keywordController.text,
+        categories: Set<String>.of(_categories),
+        tagIds: Set<String>.of(_tagIds),
       ),
     );
   }
@@ -111,11 +141,9 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
         builder: (context, constraints) {
           // 幅が狭い（〜480px）は縦積み、広ければ横並び
           final isNarrow = constraints.maxWidth < 480;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── 種別トグル ──
-              Semantics(
+          final sections = <Widget>[
+            // ── 種別トグル ──
+            Semantics(
                 label: '取引種別フィルタ',
                 child: SegmentedButton<TransactionFilterType>(
                   segments: const [
@@ -181,9 +209,126 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
                   ],
                 ),
               ),
+          ];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...sections,
+              // ── キーワード入力 ──
+              _buildKeywordField(cs),
+              // ── カテゴリチップ ──
+              if (widget.availableCategories.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildCategoryChips(cs),
+              ],
+              // ── タグチップ ──
+              if (widget.availableTags.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildTagChips(cs),
+              ],
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// ── キーワード入力 ──────────────────────────────
+  Widget _buildKeywordField(ColorScheme cs) {
+    return Semantics(
+      label: 'キーワード検索フィルタ',
+      child: TextField(
+        key: TransactionQueryAppKeys.keywordField,
+        controller: _keywordController,
+        textInputAction: TextInputAction.search,
+        onChanged: (_) => _emitFilter(),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'キーワードで検索',
+          prefixIcon: const Icon(Icons.search, size: 20),
+          suffixIcon: _keywordController.text.isEmpty
+              ? null
+              : IconButton(
+                  key: TransactionQueryAppKeys.keywordClear,
+                  tooltip: 'キーワードをクリア',
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    _keywordController.clear();
+                    _emitFilter();
+                  },
+                ),
+          border: const OutlineInputBorder(),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        style: TextStyle(color: cs.onSurface),
+      ),
+    );
+  }
+
+  /// ── カテゴリチップ群（横スクロール可） ─────────────
+  Widget _buildCategoryChips(ColorScheme cs) {
+    return Semantics(
+      label: 'カテゴリフィルタ',
+      child: SizedBox(
+        height: 40,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (final category in widget.availableCategories)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  key: TransactionQueryAppKeys.categoryChip(category),
+                  label: Text(category),
+                  selected: _categories.contains(category),
+                  showCheckmark: false,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: (selected) {
+                    setState(() {
+                      selected
+                          ? _categories.add(category)
+                          : _categories.remove(category);
+                    });
+                    _emitFilter();
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ── タグチップ群（横スクロール可・選択状態はタグIDで保持） ──
+  Widget _buildTagChips(ColorScheme cs) {
+    return Semantics(
+      label: 'タグフィルタ',
+      child: SizedBox(
+        height: 40,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (final tag in widget.availableTags)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  key: TransactionQueryAppKeys.tagChip(tag.id),
+                  label: Text(tag.name),
+                  selected: _tagIds.contains(tag.id),
+                  showCheckmark: false,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: (selected) {
+                    setState(() {
+                      selected ? _tagIds.add(tag.id) : _tagIds.remove(tag.id);
+                    });
+                    _emitFilter();
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
