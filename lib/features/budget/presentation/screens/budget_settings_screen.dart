@@ -6,6 +6,8 @@ import 'package:kozuchi/features/budget/domain/budget_rollover_service.dart';
 import 'package:kozuchi/features/budget/domain/spending_pace.dart';
 import 'package:kozuchi/features/budget/domain/spending_pace_service.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/spending_pace_widget.dart';
+import 'package:kozuchi/features/budget/presentation/category_budget_app_keys.dart';
+import 'package:kozuchi/features/budget/presentation/screens/category_budget_screen.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
 
 /// 月間予算設定画面
@@ -168,6 +170,18 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
       appBar: AppBar(
         title: const Text('月間予算設定'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            key: CategoryBudgetAppKeys.openButton,
+            icon: const Icon(Icons.category_outlined),
+            tooltip: 'カテゴリ別予算',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const CategoryBudgetScreen(),
+              ),
+            ),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
