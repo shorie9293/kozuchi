@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
 import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
+import 'package:kozuchi/features/calendar/presentation/calendar_app_keys.dart';
+import 'package:kozuchi/features/calendar/presentation/transaction_calendar_screen.dart';
 import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
@@ -235,6 +237,14 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
             tooltip: 'タグ別集計',
             icon: const Icon(Icons.label_outline),
             onPressed: () => _openTagSummary(context),
+          ),
+          IconButton(
+            key: CalendarAppKeys.openButton,
+            tooltip: '取引カレンダー',
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TransactionCalendarScreen()),
+            ),
           ),
         ],
       ),
