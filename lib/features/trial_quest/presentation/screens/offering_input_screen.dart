@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
+import 'package:kozuchi/features/category_ledger/data/category_ledger_repository.dart';
+import 'package:kozuchi/features/category_ledger/domain/category_ledger.dart';
+import 'package:kozuchi/features/category_ledger/domain/category_ledger_service.dart';
 import 'package:kozuchi/features/quick_template/data/quick_template_repository.dart';
 import 'package:kozuchi/features/quick_template/domain/models/expense_template.dart';
 import 'package:kozuchi/features/quick_template/domain/quick_template_service.dart';
@@ -40,11 +43,15 @@ class OfferingInputScreen extends StatefulWidget {
   /// クイックテンプレートの永続化先（省略時は SharedPreferences 実装）。
   final QuickTemplateRepository? templateRepository;
 
+  /// カテゴリ台帳の永続化先（省略時は SharedPreferences 実装）。
+  final CategoryLedgerRepository? categoryLedgerRepository;
+
   const OfferingInputScreen({
     super.key,
     required this.quest,
     required this.player,
     this.templateRepository,
+    this.categoryLedgerRepository,
   });
 
   @override
@@ -61,18 +68,12 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
   List<ExpenseTemplate> _templates = [];
   late final QuickTemplateRepository _templateRepository;
 
-  static const Map<String, String> _categoryEmojis = {
-    '食費': '🍙',
-    '娯楽': '🎮',
-    '交通': '🚃',
-    '光熱費': '💡',
-    '交際費': '🎁',
-    'その他': '📦',
-  };
+  /// カテゴリ台帳から読み込んだ選択肢（読込完了までは既定カテゴリ）
+  List<String> _categories = CategoryLedger.defaults().categories;
 
-  static const List<String> _categories = [
-    '食費', '娯楽', '交通', '光熱費', '交際費', 'その他'
-  ];
+  /// 読み込んだカテゴリ台帳（自動分類名を正準名へ寄せるのに使う）
+  CategoryLedger _ledger = CategoryLedger.defaults();
+  late final CategoryLedgerRepository _categoryLedgerRepository;
 
   @override
   void initState() {
@@ -86,7 +87,24 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     _purposeController.addListener(_autoClassify);
     _templateRepository = widget.templateRepository ??
         const SharedPreferencesQuickTemplateRepository();
+    _categoryLedgerRepository = widget.categoryLedgerRepository ??
+        const SharedPreferencesCategoryLedgerRepository();
     _loadTemplates();
+    _loadCategories();
+  }
+
+  /// カテゴリ台帳を読み込む（破損時は台帳側が既定へフォールバックする）
+  Future<void> _loadCategories() async {
+    try {
+      final ledger = await _categoryLedgerRepository.loadLedger();
+      if (!mounted) return;
+      setState(() {
+        _ledger = ledger;
+        _categories = ledger.categories;
+      });
+    } catch (_) {
+      // 例外は画面に漏らさず暫定表示のままにする
+    }
   }
 
   /// クイックテンプレートを読み込む。
@@ -132,7 +150,12 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     if (text.length >= 2 && _selectedCategory == null) {
       final result = ClassifierService.instance.classify(text);
       if (result.isClassified) {
-        setState(() => _selectedCategory = result.category);
+        // 分類辞書の語尾（例: 交通）を台帳の正準名（例: 交通費）へ寄せる。
+        // 寄せないと取引が台帳に無い孤立カテゴリとして記録される。
+        final resolved = const CategoryLedgerService()
+                .resolveName(_ledger, result.category) ??
+            result.category;
+        setState(() => _selectedCategory = resolved);
       }
     }
   }
@@ -284,7 +307,8 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: _categories.map((cat) => ChoiceChip(
-                  label: Text('${_categoryEmojis[cat]} $cat',
+                  label: Text(
+                      '${CategoryLedgerService().emojiFor(cat)} $cat',
                       style: const TextStyle(fontSize: 13)),
                   selected: _selectedCategory == cat,
                   selectedColor:

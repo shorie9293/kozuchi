@@ -5,6 +5,7 @@ import 'package:kozuchi/domain/models/monthly_budget.dart';
 import 'package:kozuchi/domain/services/expense_aggregation_service.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/budget/data/category_budget_repository.dart';
+import 'package:kozuchi/features/category_ledger/data/category_ledger_repository.dart';
 import 'package:kozuchi/features/budget/domain/category_budget_aggregator.dart';
 import 'package:kozuchi/features/budget/domain/category_budget_service.dart';
 import 'package:kozuchi/features/budget/domain/category_budget_status.dart';
@@ -31,6 +32,9 @@ class CategoryBudgetScreen extends StatefulWidget {
   /// 現在日時（試練で固定日時を注入できるように）
   final DateTime Function()? clock;
 
+  /// カテゴリ台帳の永続化先（[categories] が null のとき台帳から読む）
+  final CategoryLedgerRepository categoryLedgerRepository;
+
   const CategoryBudgetScreen({
     super.key,
     this.repository = const CategoryBudgetRepository(),
@@ -38,6 +42,8 @@ class CategoryBudgetScreen extends StatefulWidget {
     this.categories,
     this.yearMonth,
     this.clock,
+    this.categoryLedgerRepository =
+        const SharedPreferencesCategoryLedgerRepository(),
   });
 
   @override
@@ -58,7 +64,21 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
     _yearMonth = widget.yearMonth ?? MonthlyBudget.currentYearMonth();
     _categories =
         widget.categories ?? ExpenseAggregationService.defaultCategories;
+    if (widget.categories == null) {
+      _loadLedgerCategories();
+    }
     _reload();
+  }
+
+  /// 台帳からカテゴリ一覧を読む（破損時は台帳側が既定へフォールバック）
+  Future<void> _loadLedgerCategories() async {
+    try {
+      final ledger = await widget.categoryLedgerRepository.loadLedger();
+      if (!mounted) return;
+      setState(() => _categories = ledger.categories);
+    } catch (_) {
+      // 例外は握りつぶし、既定カテゴリのままにする
+    }
   }
 
   /// 予算と支出を再読込する
