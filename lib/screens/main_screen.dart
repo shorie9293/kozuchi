@@ -47,6 +47,7 @@ import 'package:kozuchi/features/income/presentation/screens/income_input_screen
 import 'package:kozuchi/features/csv_import/presentation/screens/csv_import_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/installment_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/subscription_screen.dart';
+import 'package:kozuchi/features/installment/presentation/screens/upcoming_billing_screen.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_recorder.dart';
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
@@ -540,6 +541,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
   }
 
+  /// 支払い予定（次回請求スケジュール）画面を開く
+  void _openUpcomingBilling() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UpcomingBillingScreen()));
+  }
+
   /// 財布・口座の管理画面を開く
   void _openWallets() {
     Navigator.of(context).push(
@@ -791,6 +797,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('📥 CSV取り込み', _openCsvImport),
       _QuickLink('🔁 定期取引', _openRecurringTransaction),
       _QuickLink('🧾 分割払い', _openInstallment),
+      _QuickLink('📅 支払い予定', _openUpcomingBilling),
       _QuickLink('🔄 サブスク', _openSubscription),
       _QuickLink('👛 財布・口座', _openWallets),
       _QuickLink('📊 支出分析', _openSummary),

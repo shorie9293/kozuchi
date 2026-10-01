@@ -37,4 +37,16 @@ class InstallmentAppKeys {
   static const Key amountField = Key('installment_amountField');
   static const Key countField = Key('installment_countField');
   static const Key dialogSaveButton = Key('installment_dialogSaveButton');
+
+  // ── 支払い予定画面 ──
+  static const Key upcomingScreen = Key('upcoming_billing_screen');
+  static const Key upcomingEmpty = Key('upcoming_billing_empty');
+  static const Key upcomingTotal = Key('upcoming_billing_total');
+  static const Key upcomingCount = Key('upcoming_billing_count');
+
+  static Key upcomingWindowChip(int days) => Key('upcoming_billing_window_$days');
+
+  static Key upcomingBillingTile(String id) => Key('upcoming_billing_tile_$id');
+
+  static Key upcomingDateGroup(String yyyymmdd) => Key('upcoming_billing_group_$yyyymmdd');
 }
