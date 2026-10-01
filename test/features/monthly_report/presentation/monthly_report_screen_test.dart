@@ -134,6 +134,7 @@ Future<void> _pumpScreen(
   ReportCardCapture? capture,
   ReportCardExporter? exporter,
   DateTime? initialMonth,
+  DateTime? now,
 }) async {
   // カード全体が縦に収まるよう縦長ビューポートにする
   tester.view.physicalSize = const Size(1200, 2400);
@@ -148,6 +149,7 @@ Future<void> _pumpScreen(
         capture: capture,
         exporter: exporter,
         initialMonth: initialMonth ?? DateTime(2026, 9, 1),
+        now: now ?? DateTime(2026, 9, 15),
       ),
     ),
   );
@@ -167,6 +169,7 @@ void main() {
           home: MonthlyReportScreen(
             repository: _FakeExpenseRepository(september),
             initialMonth: DateTime(2026, 9, 1),
+            now: DateTime(2026, 9, 15),
           ),
         ),
       );

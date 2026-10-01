@@ -22,12 +22,16 @@ class MonthlyReportScreen extends StatefulWidget {
   /// 初期表示月（null なら現在月）
   final DateTime? initialMonth;
 
+  /// 「現在」の日時（null なら DateTime.now()）。テストで決定論的にするため注入可能。
+  final DateTime? now;
+
   const MonthlyReportScreen({
     super.key,
     this.repository,
     this.capture,
     this.exporter,
     this.initialMonth,
+    this.now,
   });
 
   @override
@@ -113,7 +117,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   }
 
   bool get _isFutureMonth {
-    final now = DateTime.now();
+    final now = widget.now ?? DateTime.now();
     final nowPeriod = MonthlyReportPeriod(year: now.year, month: now.month);
     return _period.year > nowPeriod.year ||
         (_period.year == nowPeriod.year && _period.month > nowPeriod.month);
