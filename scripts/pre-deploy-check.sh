@@ -61,6 +61,7 @@ flutter test --no-pub -j 1 \
   test/features/income/ \
   test/features/installment/ \
   test/features/main_screen/ \
+  test/features/notification_settings/ \
   test/features/monthly_report/ \
   test/features/pinch_zone/ \
   test/features/receipt_scanner/ \

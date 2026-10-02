@@ -28,6 +28,7 @@ import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.d
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
 import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
+import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
 import 'package:kozuchi/features/budget/domain/daily_budget.dart';
 import 'package:kozuchi/features/budget/domain/spending_pace.dart';
@@ -572,6 +573,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
+  /// 通知設定画面を開く
+  void _openNotificationSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+    );
+  }
+
   void _openSummary() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
   }
@@ -806,6 +814,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🧘 キャリアコーチ', _openCareerCoach),
       _QuickLink('🔒 アプリロック', _openAppLockSettings),
       _QuickLink('🔠 文字サイズ', _openTextScaleSettings),
+      _QuickLink('🔔 通知設定', _openNotificationSettings),
     ];
     return GridView.count(
       crossAxisCount: 2,
