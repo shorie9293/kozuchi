@@ -8,9 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/level_stage.dart';
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
+import 'package:kozuchi/features/income/domain/services/income_repository.dart';
 
 /// テスト用にMainScreenをラップするヘルパー
-Widget wrapMainScreen({PlayerModel? player, ThemeMode? themeMode, IconData? themeIcon, VoidCallback? onToggleTheme}) {
+Widget wrapMainScreen({PlayerModel? player, ThemeMode? themeMode, IconData? themeIcon, VoidCallback? onToggleTheme, IncomeRepository? incomeRepository}) {
   return MaterialApp(
     home: MainScreen(
       key: AppKeys.mainScreen,
@@ -18,6 +19,7 @@ Widget wrapMainScreen({PlayerModel? player, ThemeMode? themeMode, IconData? them
       themeMode: themeMode ?? ThemeMode.system,
       themeIcon: themeIcon ?? Icons.brightness_auto,
       onToggleTheme: onToggleTheme,
+      incomeRepository: incomeRepository,
     ),
   );
 }
@@ -400,6 +402,64 @@ void main() {
       expect(find.text('¥80,000'), findsOneWidget);
       // 記録前の残高（¥50,000）はもう表示されない
       expect(find.text('¥50,000'), findsNothing);
+    });
+
+    testWidgets('収入を記録すると収入明細がリポジトリに永続化される', (tester) async {
+      final incomeRepo = InMemoryIncomeRepository();
+      await tester.pumpWidget(
+        wrapMainScreen(
+          player: PlayerModel(hp: 50000, exp: 0),
+          incomeRepository: incomeRepo,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(find.text('💰 収入を記録'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入金額（円）'),
+        '30000',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入源'),
+        '給与',
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, '収入を記録する'));
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      // fire-and-forget の保存完了を待つ
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final entries = await incomeRepo.getAllEntries();
+      expect(entries.length, 1);
+      expect(entries.first.amount, 30000);
+      expect(entries.first.source, '給与');
+    });
+
+    testWidgets('クイックリンクから収入分析画面へ遷移できる', (tester) async {
+      await tester.pumpWidget(
+        wrapMainScreen(
+          player: PlayerModel(hp: 50000, exp: 0),
+          incomeRepository: InMemoryIncomeRepository(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.scrollUntilVisible(
+        find.text('📈 収入分析'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('📈 収入分析'));
+      await tester.pumpAndSettle();
+
+      // 記録ゼロなら空状態
+      expect(find.text('収入の記録はまだない'), findsOneWidget);
     });
   });
 

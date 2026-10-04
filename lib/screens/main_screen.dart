@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/widgets/washi_background.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
@@ -45,6 +46,10 @@ import 'package:kozuchi/core/infrastructure/app_lock_settings_screen.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
+import 'package:kozuchi/features/income/presentation/screens/income_analysis_screen.dart';
+import 'package:kozuchi/features/income/domain/models/income_entry.dart';
+import 'package:kozuchi/features/income/domain/services/income_repository.dart';
+import 'package:kozuchi/features/income/domain/services/income_entry_recording_service.dart';
 import 'package:kozuchi/features/csv_import/presentation/screens/csv_import_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/installment_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/subscription_screen.dart';
@@ -81,6 +86,9 @@ class MainScreen extends StatefulWidget {
   /// 支出明細の保存先。null の場合は Supabase（expense_entries）を使用する。
   final ExpenseRepository? expenseRepository;
 
+  /// 収入明細の保存先。null の場合は SharedPreferences（income_entries）を使用する。
+  final IncomeRepository? incomeRepository;
+
   const MainScreen({
     super.key,
     this.initialPlayer,
@@ -92,6 +100,7 @@ class MainScreen extends StatefulWidget {
     this.textScale,
     this.onScaleChanged,
     this.expenseRepository,
+    this.incomeRepository,
   });
 
   @override
@@ -122,6 +131,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   late final TabController _tabController;
   ExpenseRepository? _expenseRepository;
+  IncomeRepository? _incomeRepository;
 
   @override
   void initState() {
@@ -624,12 +634,62 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     if (result != null && mounted) {
       setState(() => _player = result.updatedPlayer);
       _persistState();
+      // 収入明細を永続化（分析用・失敗は無視）
+      _recordIncomeDetail(result.amount, result.source, result.note);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('💰 収入を記録しました: ¥${result.amount}（${result.source}）'),
         ),
       );
     }
+  }
+
+  /// 収入明細（IncomeEntry）をリポジトリ経由で保存する（fire-and-forget）。
+  ///
+  /// 保存失敗でも収入記録フローを妨げないよう防御する。
+  void _recordIncomeDetail(int amount, String source, String note) {
+    () async {
+      final service = IncomeEntryRecordingService(
+        repository: await _getIncomeRepository(),
+      );
+      // fire-and-forget: 失敗は service 内で null に丸められる
+      await service.record(amount: amount, source: source, note: note);
+    }();
+  }
+
+  /// 収入明細の保存先リポジトリを取得する。
+  ///
+  /// [incomeRepository] が注入されていればそれを用い、null なら
+  /// SharedPreferences（income_entries）を遅延初期化する。
+  Future<IncomeRepository> _getIncomeRepository() async {
+    if (widget.incomeRepository != null) return widget.incomeRepository!;
+    return _incomeRepository ??= SharedPreferencesIncomeRepository(
+      await SharedPreferences.getInstance(),
+    );
+  }
+
+  /// 収入分析画面 — 収入源別の内訳と構成比を可視化する。
+  ///
+  /// 永続明細があればそれを用い、無ければ記憶済みのセッション内収入のみ。
+  Future<void> _openIncomeAnalysis() async {
+    IncomeRepository repo;
+    try {
+      repo = await _getIncomeRepository();
+    } catch (_) {
+      repo = const NoopIncomeRepository();
+    }
+    List<IncomeEntry> entries;
+    try {
+      entries = await repo.getAllEntries();
+    } catch (_) {
+      entries = const [];
+    }
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => IncomeAnalysisScreen(entries: entries),
+      ),
+    );
   }
 
   bool get _canUseUraMode => _player.levelStage == LevelStage.kuu;
@@ -798,6 +858,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   Widget _buildQuickLinkGrid(ColorScheme colorScheme) {
     final links = <_QuickLink>[
       _QuickLink('💰 収入を記録', _openIncomeInput),
+      _QuickLink('📈 収入分析', _openIncomeAnalysis),
       _QuickLink('💵 予算を設定', _openBudgetSettings),
       _QuickLink('🏆 実績', _openAchievementList),
       _QuickLink('🎯 貯蓄目標', _openGoalList),
