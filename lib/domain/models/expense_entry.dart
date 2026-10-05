@@ -54,6 +54,29 @@ class ExpenseEntry {
     };
   }
 
+  /// 指定フィールドのみ差し替えた新しいインスタンスを返す（非破壊）。
+  ///
+  /// [clearNote] を true にするとメモを null へ戻せる
+  /// （copyWith の null 合成では「未指定」と「null 上書き」を区別できないため）。
+  ExpenseEntry copyWith({
+    String? id,
+    int? amount,
+    String? category,
+    DateTime? date,
+    String? note,
+    String? receiptImagePath,
+    bool clearNote = false,
+  }) {
+    return ExpenseEntry(
+      id: id ?? this.id,
+      amount: amount ?? this.amount,
+      category: category ?? this.category,
+      date: date ?? this.date,
+      note: clearNote ? null : (note ?? this.note),
+      receiptImagePath: receiptImagePath ?? this.receiptImagePath,
+    );
+  }
+
   @override
   String toString() =>
       'ExpenseEntry(id: $id, amount: $amount, category: $category, date: $date)';

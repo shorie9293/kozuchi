@@ -18,12 +18,17 @@ class TransactionModel {
   /// レシート原本画像のパス（任意）
   final String? receiptImagePath;
 
+  /// 支出明細（ExpenseEntry）由来のID（任意）。
+  /// 編集・削除などの訂正操作はこのIDが無いと行えない。
+  final String? id;
+
   const TransactionModel({
     required this.amount,
     required this.purpose,
     required this.category,
     required this.datetime,
     this.receiptImagePath,
+    this.id,
   });
 
   /// 収入かどうか（amount >= 0）
@@ -40,6 +45,7 @@ class TransactionModel {
       category: json['category'] as String? ?? '',
       datetime: json['datetime'] as String? ?? '',
       receiptImagePath: json['receiptImagePath'] as String?,
+      id: json['id'] as String?,
     );
   }
 
@@ -51,6 +57,26 @@ class TransactionModel {
       'category': category,
       'datetime': datetime,
       'receiptImagePath': receiptImagePath,
+      'id': id,
     };
+  }
+
+  /// 指定フィールドのみ差し替えた新しいインスタンスを返す（非破壊）。
+  TransactionModel copyWith({
+    int? amount,
+    String? purpose,
+    String? category,
+    String? datetime,
+    String? receiptImagePath,
+    String? id,
+  }) {
+    return TransactionModel(
+      amount: amount ?? this.amount,
+      purpose: purpose ?? this.purpose,
+      category: category ?? this.category,
+      datetime: datetime ?? this.datetime,
+      receiptImagePath: receiptImagePath ?? this.receiptImagePath,
+      id: id ?? this.id,
+    );
   }
 }

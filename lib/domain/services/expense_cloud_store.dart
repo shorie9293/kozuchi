@@ -16,4 +16,7 @@ abstract class ExpenseCloudStore {
     required String userId,
     DateTime? lastSyncAt,
   });
+
+  /// 指定IDの支出明細を削除する（冪等・存在しなくてもエラーにしない）。
+  Future<void> deleteExpenseEntry(String id, {required String userId});
 }

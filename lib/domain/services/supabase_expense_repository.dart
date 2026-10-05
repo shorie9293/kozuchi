@@ -60,5 +60,23 @@ class SupabaseExpenseRepository implements ExpenseRepository {
     return;
   }
 
+  @override
+  Future<void> deleteEntry(String id) async {
+    final userId = _userId;
+    if (userId == null) return;
+    await _cloudStore.deleteExpenseEntry(id, userId: userId);
+  }
+
+  @override
+  Future<ExpenseEntry?> getEntryById(String id) async {
+    final userId = _userId;
+    if (userId == null) return null;
+    final all = await _cloudStore.loadExpenseEntries(userId: userId);
+    for (final entry in all) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
+
   DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 }

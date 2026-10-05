@@ -30,6 +30,12 @@ class TransactionListWidget extends StatelessWidget {
   /// レシート原本ボタン押下時コールバック。
   final void Function(TransactionModel transaction)? onReceiptTap;
 
+  /// 編集メニュー選択時コールバック。
+  final void Function(TransactionModel transaction)? onEditTap;
+
+  /// 削除メニュー選択時コールバック。
+  final void Function(TransactionModel transaction)? onDeleteTap;
+
   const TransactionListWidget({
     super.key,
     this.transactions = const [],
@@ -38,6 +44,8 @@ class TransactionListWidget extends StatelessWidget {
     this.onRetry,
     this.onTransactionTap,
     this.onReceiptTap,
+    this.onEditTap,
+    this.onDeleteTap,
   });
 
   @override
@@ -212,6 +220,10 @@ class TransactionListWidget extends StatelessWidget {
           onReceiptTap: onReceiptTap == null
               ? null
               : () => onReceiptTap!(transaction),
+          onEditTap:
+              onEditTap == null ? null : () => onEditTap!(transaction),
+          onDeleteTap:
+              onDeleteTap == null ? null : () => onDeleteTap!(transaction),
         );
       },
     );

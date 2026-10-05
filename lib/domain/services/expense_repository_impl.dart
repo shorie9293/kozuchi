@@ -45,6 +45,19 @@ class InMemoryExpenseRepository implements ExpenseRepository {
   @override
   Future<void> clearAll() async => _entries.clear();
 
+  @override
+  Future<void> deleteEntry(String id) async {
+    _entries.removeWhere((e) => e.id == id);
+  }
+
+  @override
+  Future<ExpenseEntry?> getEntryById(String id) async {
+    for (final entry in _entries) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
+
   DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 }
 
@@ -135,6 +148,23 @@ class SharedPrefsExpenseRepository implements ExpenseRepository {
   @override
   Future<void> clearAll() async {
     await _setString(_storageKey, '[]');
+  }
+
+  @override
+  Future<void> deleteEntry(String id) async {
+    final all = await _loadAll();
+    final remaining = all.where((e) => e.id != id).toList();
+    if (remaining.length == all.length) return;
+    await _saveAll(remaining);
+  }
+
+  @override
+  Future<ExpenseEntry?> getEntryById(String id) async {
+    final all = await _loadAll();
+    for (final entry in all) {
+      if (entry.id == id) return entry;
+    }
+    return null;
   }
 
   DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);

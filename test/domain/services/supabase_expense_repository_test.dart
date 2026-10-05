@@ -118,6 +118,8 @@ class _FakeCloudStore implements ExpenseCloudStore {
   List<ExpenseEntry> entries = [];
   final List<ExpenseEntry> savedEntries = [];
   final List<String> savedUserIds = [];
+  final List<String> deletedIds = [];
+  final List<String> deletedUserIds = [];
   int clearedCount = 0;
   int loadCalls = 0;
 
@@ -137,5 +139,12 @@ class _FakeCloudStore implements ExpenseCloudStore {
   }) async {
     loadCalls++;
     return entries;
+  }
+
+  @override
+  Future<void> deleteExpenseEntry(String id, {required String userId}) async {
+    entries = entries.where((e) => e.id != id).toList();
+    deletedIds.add(id);
+    deletedUserIds.add(userId);
   }
 }

@@ -73,6 +73,7 @@ flutter test --no-pub -j 1 \
   test/features/summary_chart/ \
   test/features/quick_template/ \
   test/features/tags/ \
+  test/features/transaction_edit/ \
   test/features/transaction_filter/ \
   test/features/transaction_history/ \
   test/features/trial_quest/ \

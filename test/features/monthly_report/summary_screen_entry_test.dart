@@ -34,6 +34,18 @@ class _FakeExpenseRepository implements ExpenseRepository {
 
   @override
   Future<void> clearAll() async {}
+
+  @override
+  Future<void> deleteEntry(String id) async =>
+      entries.removeWhere((e) => e.id == id);
+
+  @override
+  Future<ExpenseEntry?> getEntryById(String id) async {
+    for (final entry in entries) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
 }
 
 /// WashiBackground が無限アニメーション（repeat）のため pumpAndSettle は使えない。

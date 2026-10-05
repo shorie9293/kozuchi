@@ -13,6 +13,7 @@ import 'package:kozuchi/features/transaction_filter/domain/services/transaction_
 import 'package:kozuchi/features/transaction_filter/presentation/widgets/transaction_filter_bar.dart';
 import 'package:kozuchi/features/transaction_filter/presentation/widgets/transaction_query_summary_bar.dart';
 import 'package:kozuchi/features/receipt_viewer/presentation/screens/receipt_image_viewer_screen.dart';
+import 'package:kozuchi/features/transaction_edit/presentation/widgets/transaction_edit_dialog.dart';
 import 'package:kozuchi/features/transaction_history/presentation/state/transaction_controller.dart';
 import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_widget.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
@@ -215,6 +216,36 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     );
   }
 
+  /// 取引を編集する（ダイアログ → コントローラ経由で保存）。
+  Future<void> _editTransaction(TransactionModel transaction) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final edited = await TransactionEditDialog.show(
+      context,
+      transaction: transaction,
+    );
+    if (edited == null || !mounted) return;
+    final ok = await _controller.updateTransaction(edited);
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(ok ? '取引を更新しました' : 'この取引は編集できません')),
+    );
+  }
+
+  /// 取引を削除する（確認ダイアログ → コントローラ経由で削除）。
+  Future<void> _deleteTransaction(TransactionModel transaction) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showTransactionDeleteConfirmDialog(
+      context,
+      transaction: transaction,
+    );
+    if (!confirmed || !mounted) return;
+    final ok = await _controller.deleteTransaction(transaction);
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(ok ? '取引を削除しました' : 'この取引は削除できません')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -281,6 +312,8 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   onRetry: () => _controller.refetch(),
                   onTransactionTap: _assignTags,
                   onReceiptTap: _openReceipt,
+                  onEditTap: _editTransaction,
+                  onDeleteTap: _deleteTransaction,
                 ),
               ),
             ],

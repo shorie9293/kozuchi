@@ -122,6 +122,12 @@ class CloudSyncService implements ExpenseCloudStore {
     return response.count;
   }
 
+  /// 指定IDの支出明細を削除する（冪等）。
+  Future<void> deleteExpenseEntry(String id, {required String userId}) async {
+    await _client.from('expense_entries')
+        .delete().eq('id', id).eq('user_id', userId);
+  }
+
   // ─── Daily quests (daily_quests) ─────────────────────────────
 
   /// Save daily quest state with conflict resolution.

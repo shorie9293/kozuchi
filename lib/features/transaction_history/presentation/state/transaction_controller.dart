@@ -143,6 +143,61 @@ class TransactionController extends ChangeNotifier {
     return ExpenseEntryMapper.toTransactionModels(entries);
   }
 
+  // ── 訂正操作（編集・削除） ───────────────────────────
+
+  /// 支出明細由来の取引を削除する。
+  ///
+  /// Supabase 支出明細（[ExpenseRepository]）が設定済みで、かつ取引が
+  /// [TransactionModel.id] を持つ場合のみ削除可能。削除後に再取得する。
+  /// 訂正不能（リポジトリ未設定・id 無し・旧API/ローカル取引）なら false。
+  Future<bool> deleteTransaction(TransactionModel transaction) async {
+    final repo = _expenseRepository;
+    final id = transaction.id;
+    if (repo == null || id == null || id.isEmpty) return false;
+    try {
+      await repo.deleteEntry(id);
+    } catch (_) {
+      return false;
+    }
+    await fetchTransactions();
+    return true;
+  }
+
+  /// 支出明細由来の取引を編集する（[edited] は同IDの取引）。
+  ///
+  /// 元の [ExpenseEntry] を取得して金額・カテゴリ・日時・メモを差し替え、
+  /// saveEntry で上書き保存（レシート画像パスなど編集対象外のフィールドは保持）。
+  /// 訂正不能なら false。成功時は再取得する。
+  Future<bool> updateTransaction(TransactionModel edited) async {
+    final repo = _expenseRepository;
+    final id = edited.id;
+    if (repo == null || id == null || id.isEmpty) return false;
+    if (edited.amount >= 0) return false; // 支出明細は支出（負値）のみ
+    try {
+      final original = await repo.getEntryById(id);
+      if (original == null) return false;
+      final date = DateTime.tryParse(edited.datetime);
+      if (date == null) return false;
+      // メモがカテゴリ名と同一なら null に寄せる（mapper の表示規約に整合）
+      final note = edited.purpose.trim().isEmpty ||
+              edited.purpose == edited.category
+          ? null
+          : edited.purpose;
+      final updated = original.copyWith(
+        amount: edited.absAmount,
+        category: edited.category,
+        date: date,
+        note: note,
+        clearNote: note == null,
+      );
+      await repo.saveEntry(updated);
+    } catch (_) {
+      return false;
+    }
+    await fetchTransactions();
+    return true;
+  }
+
   // ── 破棄 ──────────────────────────────────────
 
   @override

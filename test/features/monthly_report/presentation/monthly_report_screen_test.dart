@@ -17,6 +17,18 @@ class _FakeExpenseRepository implements ExpenseRepository {
   final List<List<DateTime>> ranges = [];
 
   @override
+  Future<void> deleteEntry(String id) async =>
+      entries.removeWhere((e) => e.id == id);
+
+  @override
+  Future<ExpenseEntry?> getEntryById(String id) async {
+    for (final entry in entries) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
+
+  @override
   Future<List<ExpenseEntry>> getEntries({
     required DateTime start,
     required DateTime end,
@@ -52,6 +64,18 @@ class _FlakyExpenseRepository implements ExpenseRepository {
 
   final List<ExpenseEntry> entries;
   int calls = 0;
+
+  @override
+  Future<void> deleteEntry(String id) async =>
+      entries.removeWhere((e) => e.id == id);
+
+  @override
+  Future<ExpenseEntry?> getEntryById(String id) async {
+    for (final entry in entries) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
 
   @override
   Future<List<ExpenseEntry>> getEntries({

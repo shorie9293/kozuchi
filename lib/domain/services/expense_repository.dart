@@ -27,4 +27,12 @@ abstract class ExpenseRepository {
 
   /// 全データを削除する（リセット用）
   Future<void> clearAll();
+
+  /// 指定IDの支出エントリを1件削除する。
+  ///
+  /// 該当IDが存在しない場合は何もしない（冪等）。
+  Future<void> deleteEntry(String id);
+
+  /// 指定IDの支出エントリを1件取得する。存在しなければ null。
+  Future<ExpenseEntry?> getEntryById(String id);
 }

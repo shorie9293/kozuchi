@@ -81,4 +81,12 @@ class _FailingExpenseRepository implements ExpenseRepository {
 
   @override
   Future<void> clearAll() async {}
+
+  @override
+  Future<void> deleteEntry(String id) async {
+    throw Exception('delete failed');
+  }
+
+  @override
+  Future<ExpenseEntry?> getEntryById(String id) async => null;
 }

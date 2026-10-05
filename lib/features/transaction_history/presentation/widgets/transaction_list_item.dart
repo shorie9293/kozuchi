@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/receipt_viewer/presentation/receipt_viewer_app_keys.dart';
+import 'package:kozuchi/features/transaction_edit/presentation/transaction_edit_app_keys.dart';
 
 /// 取引リストの1件を表示するプレゼンテーショナルWidget。
 ///
@@ -15,11 +16,19 @@ class TransactionListItem extends StatelessWidget {
   /// レシート原本ボタン押下時のコールバック。null なら非タップ。
   final VoidCallback? onReceiptTap;
 
+  /// 編集メニュー選択時のコールバック。null ならメニュー非表示。
+  final VoidCallback? onEditTap;
+
+  /// 削除メニュー選択時のコールバック。null ならメニュー非表示。
+  final VoidCallback? onDeleteTap;
+
   const TransactionListItem({
     super.key,
     required this.transaction,
     this.onTap,
     this.onReceiptTap,
+    this.onEditTap,
+    this.onDeleteTap,
   });
 
   @override
@@ -95,6 +104,41 @@ class TransactionListItem extends StatelessWidget {
                 tooltip: 'レシート原本を見る',
                 icon: const Icon(Icons.receipt_long_outlined),
                 onPressed: onReceiptTap,
+              ),
+            // 訂正メニュー（編集・削除）。コールバックが1つでもあれば表示。
+            if (onEditTap != null || onDeleteTap != null)
+              PopupMenuButton<String>(
+                key: TransactionEditAppKeys.menuFor(
+                  transaction.datetime,
+                  transaction.amount,
+                ),
+                tooltip: '取引を訂正',
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    onEditTap?.call();
+                  } else if (value == 'delete') {
+                    onDeleteTap?.call();
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (onEditTap != null)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(
+                        leading: Icon(Icons.edit_outlined),
+                        title: Text('編集'),
+                      ),
+                    ),
+                  if (onDeleteTap != null)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline),
+                        title: Text('削除'),
+                      ),
+                    ),
+                ],
               ),
           ],
         );
