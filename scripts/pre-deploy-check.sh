@@ -58,6 +58,7 @@ flutter test --no-pub -j 1 \
   test/features/asset_trend/ \
   test/features/calendar/ \
   test/features/category_ledger/ \
+  test/features/backup/ \
   test/features/income/ \
   test/features/installment/ \
   test/features/main_screen/ \

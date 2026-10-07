@@ -24,6 +24,7 @@ import 'package:kozuchi/features/shared/data/player_repository.dart';
 import 'package:kozuchi/features/careerCoach/data/careerCoach_book_bonus_service.dart';
 import 'package:kozuchi/features/careerCoach/domain/career_coach_review_service.dart';
 import 'package:kozuchi/features/careerCoach/presentation/screens/career_coach_screen.dart';
+import 'package:kozuchi/features/backup/presentation/backup_screen.dart';
 import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
@@ -594,6 +595,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
   }
 
+  /// バックアップと復元画面を開く
+  void _openBackup() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const BackupScreen()),
+    );
+  }
+
   /// 資産推移（残高・月次純資産の累積トラッキング）画面を開く
   void _openAssetTrend() {
     Navigator.of(context).push(
@@ -876,6 +884,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🔒 アプリロック', _openAppLockSettings),
       _QuickLink('🔠 文字サイズ', _openTextScaleSettings),
       _QuickLink('🔔 通知設定', _openNotificationSettings),
+      _QuickLink('💾 バックアップ', _openBackup),
     ];
     return GridView.count(
       crossAxisCount: 2,
