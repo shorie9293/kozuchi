@@ -47,7 +47,7 @@ void main() {
   group('build', () {
     test('対象キーのみ抽出し exportedAt は UTC', () {
       final service = BackupService(
-        now: () => DateTime(2026, 10, 7, 19, 0),
+        now: () => DateTime.utc(2026, 10, 7, 10, 0), // TZ非依存（実装が toUtc() する）
       );
       final bundle = service.build({
         'kozuchi_goals': <String>['a'],
