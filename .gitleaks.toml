@@ -12,3 +12,10 @@ paths = [
   '''ios/Runner/GoogleService-Info\.plist''',
   '''lib/firebase_options\.dart''',
 ]
+
+# kozuchi: expired self-signed TLS keypair for local Tailscale notification
+# server (CN=horie-system-product-name.tail4d0ea6.ts.net, expired 2026-09-08).
+# Removed from tracking; allowlisted for historical scan only.
+[[allowlists]]
+description = "expired self-signed local TLS key (untracked, history-only)"
+paths = ['''server/key\.pem''']
