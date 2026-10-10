@@ -14,17 +14,17 @@ import 'package:takamagahara_ui/takamagahara_ui.dart';
 /// テキストは全てコントラスト比 4.5:1 以上（本文）を担保する。
 /// 監査結果（背景との比 / 評価）:
 ///   ライト本文 deepPurple    15.5:1 AAA
-///   ライト補足 deepPurple@0.65  5.4:1 AA
+///   ライト補足 deepPurple@0.75  7.4:1 AA
 ///   ダーク本文 goldLight    10.7:1 AAA
 ///   ダーク補足 goldLight@0.75  6.5:1 AA  (※@0.60 は 4.6:1 でギリギリのため 0.75 に引上げ)
-///   非推奨: textTertiaryLight@0.35(2.2:1) / textTertiaryDark@0.35(2.4:1) は AA 不適合。
+///   共有トークン textTertiary(@0.35) は AA 不適合だったが #54 で 0.65 へ是正済。
 class AppTheme {
   /// ライトテーマ — 創造主様「白い背景に薄い字で見えない」の神託を反映
   static ThemeData get light {
     final base = TakamagaharaTheme.light;
     return base.copyWith(
       colorScheme: base.colorScheme.copyWith(
-        // サブテキストの視認性を深紫65%に確保（5.4:1 / AA）
+        // サブテキストの視認性を共有トークン（深紫75%）で確保（7.4:1 / AA）
         onSurfaceVariant: TakamagaharaColors.textSecondaryLight,
         // アウトライン: 深紫45%
         outline: TakamagaharaColors.deepPurple.withValues(alpha: 0.45),

@@ -23,9 +23,10 @@ void main() {
 
       test('サブテキスト色が視認性の高い深紫系であること', () {
         final theme = AppTheme.light;
-        // onSurfaceVariant は深紫を65%の透明度で使用 → 濃く視認性が高い（5.4:1 / AA）
+        // onSurfaceVariant は共有トークン textSecondaryLight（深紫75%）を使用
+        // → 和紙白背景で 7.4:1 / AA
         expect(theme.colorScheme.onSurfaceVariant,
-            equals(TakamagaharaColors.deepPurple.withValues(alpha: 0.65)));
+            equals(TakamagaharaColors.deepPurple.withValues(alpha: 0.75)));
         // outline も深紫45%
         expect(theme.colorScheme.outline,
             equals(TakamagaharaColors.deepPurple.withValues(alpha: 0.45)));
