@@ -15,7 +15,7 @@
 - **Image**: image_picker
 - **Env**: flutter_dotenv (`flutter_dotenv: ^5.2.1`)
 - **Monorepo Packages**: takamagahara_ui (`../../packages/`)
-- **Current Version**: 1.3.12+52
+- **Current Version**: 1.3.23+64
 
 ## Project Structure
 
