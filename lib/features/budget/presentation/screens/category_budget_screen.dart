@@ -10,6 +10,8 @@ import 'package:kozuchi/features/budget/domain/category_budget_aggregator.dart';
 import 'package:kozuchi/features/budget/domain/category_budget_service.dart';
 import 'package:kozuchi/features/budget/domain/category_budget_status.dart';
 import 'package:kozuchi/features/budget/presentation/category_budget_app_keys.dart';
+import 'package:kozuchi/features/budget/presentation/category_budget_suggestion_app_keys.dart';
+import 'package:kozuchi/features/budget/presentation/screens/category_budget_suggestion_screen.dart';
 
 /// カテゴリ別予算の設定・超過警告画面
 ///
@@ -196,6 +198,18 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
       appBar: AppBar(
         title: const Text('カテゴリ別予算'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: '推奨額',
+            key: CategoryBudgetSuggestionAppKeys.openButton,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const CategoryBudgetSuggestionScreen(),
+              ),
+            ),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
