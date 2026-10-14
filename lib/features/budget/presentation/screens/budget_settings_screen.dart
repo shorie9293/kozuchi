@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/domain/models/monthly_budget.dart';
 import 'package:kozuchi/features/budget/data/rollover_settings_repository.dart';
 import 'package:kozuchi/features/budget/domain/budget_rollover.dart';
@@ -173,23 +174,31 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
         title: const Text('月間予算設定'),
         centerTitle: true,
         actions: [
-          IconButton(
-            key: CategoryBudgetAppKeys.openButton,
-            icon: const Icon(Icons.category_outlined),
-            tooltip: 'カテゴリ別予算',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const CategoryBudgetScreen(),
+          SemanticHelper.interactive(
+            testId: 'budget_btn_category_budget',
+            label: 'カテゴリ別予算',
+            child: IconButton(
+              key: CategoryBudgetAppKeys.openButton,
+              icon: const Icon(Icons.category_outlined),
+              tooltip: 'カテゴリ別予算',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const CategoryBudgetScreen(),
+                ),
               ),
             ),
           ),
-          IconButton(
-            key: CategoryLedgerAppKeys.openButton,
-            icon: const Icon(Icons.tune),
-            tooltip: 'カテゴリ管理',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const CategoryLedgerScreen(),
+          SemanticHelper.interactive(
+            testId: 'budget_btn_category_ledger',
+            label: 'カテゴリ管理',
+            child: IconButton(
+              key: CategoryLedgerAppKeys.openButton,
+              icon: const Icon(Icons.tune),
+              tooltip: 'カテゴリ管理',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const CategoryLedgerScreen(),
+                ),
               ),
             ),
           ),
@@ -249,19 +258,23 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
                     const SizedBox(height: 16),
 
                     // 予算入力欄
-                    TextFormField(
-                      controller: _amountController,
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => _refreshRollover(),
-                      decoration: InputDecoration(
-                        labelText: '予算額（円）',
-                        hintText: '例: 150000',
-                        prefixText: '¥ ',
-                        border: const OutlineInputBorder(),
-                        filled: true,
-                        fillColor: colorScheme.surface,
+                    SemanticHelper.textField(
+                      testId: 'budget_txt_amount',
+                      label: '予算額',
+                      child: TextFormField(
+                        controller: _amountController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _refreshRollover(),
+                        decoration: InputDecoration(
+                          labelText: '予算額（円）',
+                          hintText: '例: 150000',
+                          prefixText: '¥ ',
+                          border: const OutlineInputBorder(),
+                          filled: true,
+                          fillColor: colorScheme.surface,
+                        ),
+                        style: const TextStyle(fontSize: 20),
                       ),
-                      style: const TextStyle(fontSize: 20),
                     ),
                     const SizedBox(height: 32),
 
@@ -269,18 +282,22 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 56,
-                      child: ElevatedButton(
-                        onPressed: _saveBudget,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                      child: SemanticHelper.interactive(
+                        testId: 'budget_btn_save',
+                        label: '予算を設定する',
+                        child: ElevatedButton(
+                          onPressed: _saveBudget,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          '予算を設定する',
-                          style: TextStyle(fontSize: 18),
+                          child: const Text(
+                            '予算を設定する',
+                            style: TextStyle(fontSize: 18),
+                          ),
                         ),
                       ),
                     ),
@@ -318,9 +335,14 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
               style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
             ),
           ),
-          Switch(
+          SemanticHelper.toggle(
+            testId: 'budget_tgl_rollover',
             value: _rolloverSettings.enabled,
-            onChanged: _toggleRollover,
+            onChanged: (enabled) => _toggleRollover(enabled),
+            child: Switch(
+              value: _rolloverSettings.enabled,
+              onChanged: _toggleRollover,
+            ),
           ),
         ],
       ),

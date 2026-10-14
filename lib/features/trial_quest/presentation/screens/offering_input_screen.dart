@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
@@ -240,16 +241,20 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
               // レシート撮影ボタン（拡張2）
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _openReceiptScanner,
-                  icon: const Icon(Icons.receipt_long),
-                  label: Text(_receiptImagePath != null ? '📷 レシート撮影済み' : '📷 レシートを撮影'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: BorderSide(
-                      color: _receiptImagePath != null
-                          ? colorScheme.primary
-                          : colorScheme.outline,
+                child: SemanticHelper.interactive(
+                  testId: 'offering_btn_receipt',
+                  label: 'レシートを撮影',
+                  child: OutlinedButton.icon(
+                    onPressed: _openReceiptScanner,
+                    icon: const Icon(Icons.receipt_long),
+                    label: Text(_receiptImagePath != null ? '📷 レシート撮影済み' : '📷 レシートを撮影'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(
+                        color: _receiptImagePath != null
+                            ? colorScheme.primary
+                            : colorScheme.outline,
+                      ),
                     ),
                   ),
                 ),
@@ -264,8 +269,11 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
               const SizedBox(height: 16),
 
               // 金額入力
-              TextFormField(
-                controller: _amountController,
+              SemanticHelper.textField(
+                testId: 'offering_txt_amount',
+                label: '支出金額',
+                child: TextFormField(
+                  controller: _amountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: '支出金額（円）',
@@ -273,27 +281,32 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                   border: const OutlineInputBorder(),
                   hintText: '例: ${widget.quest.suggestedOffering}',
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '金額を入力せよ';
-                  final amount = int.tryParse(value);
-                  if (amount == null || amount <= 0) return '有効な金額を入力せよ';
-                  if (amount > widget.player.hp) return '残高（¥${widget.player.hp}）を超える支出はできぬ';
-                  return null;
-                },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return '金額を入力せよ';
+                    final amount = int.tryParse(value);
+                    if (amount == null || amount <= 0) return '有効な金額を入力せよ';
+                    if (amount > widget.player.hp) return '残高（¥${widget.player.hp}）を超える支出はできぬ';
+                    return null;
+                  },
+                ),
               ),
               const SizedBox(height: 16),
               // 用途入力
-              TextFormField(
-                controller: _purposeController,
-                decoration: const InputDecoration(
-                  labelText: '用途',
-                  border: OutlineInputBorder(),
-                  hintText: '例: 友人との食事',
+              SemanticHelper.textField(
+                testId: 'offering_txt_purpose',
+                label: '用途',
+                child: TextFormField(
+                  controller: _purposeController,
+                  decoration: const InputDecoration(
+                    labelText: '用途',
+                    border: OutlineInputBorder(),
+                    hintText: '例: 友人との食事',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return '用途を入力せよ';
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return '用途を入力せよ';
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
               // カテゴリ選択
@@ -321,13 +334,17 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
               ),
               const SizedBox(height: 16),
               // 一言メモ
-              TextFormField(
-                controller: _noteController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: '一言メモ（任意）',
-                  border: OutlineInputBorder(),
-                  hintText: '嬉しかったこと、気づいたこと…',
+              SemanticHelper.textField(
+                testId: 'offering_txt_note',
+                label: '一言メモ',
+                child: TextFormField(
+                  controller: _noteController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: '一言メモ（任意）',
+                    border: OutlineInputBorder(),
+                    hintText: '嬉しかったこと、気づいたこと…',
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -357,12 +374,16 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
               // 提出ボタン
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submit,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                child: SemanticHelper.interactive(
+                  testId: 'offering_btn_submit',
+                  label: '支出を実行する',
+                  child: ElevatedButton(
+                    onPressed: _submit,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('支出を実行する'),
                   ),
-                  child: const Text('支出を実行する'),
                 ),
               ),
             ],

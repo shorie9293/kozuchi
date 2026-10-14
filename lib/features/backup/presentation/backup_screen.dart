@@ -7,6 +7,7 @@ import 'package:kozuchi/features/backup/data/backup_repository.dart';
 import 'package:kozuchi/features/backup/domain/backup_models.dart';
 import 'package:kozuchi/features/backup/domain/backup_service.dart';
 import 'package:kozuchi/features/backup/presentation/backup_keys.dart';
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 
 /// バックアップと復元画面。
 ///
@@ -36,8 +37,10 @@ class _BackupScreenState extends State<BackupScreen> {
   // widget を late final で捕まえず、毎回 getter で参照する（陳腐化防止）。
   BackupRepository get _repository =>
       widget.repository ?? SharedPreferencesBackupRepository();
-  BackupExporter get _exporter => widget.exporter ?? const SharePlusBackupExporter();
-  BackupImporter get _importer => widget.importer ?? const FilePickerBackupImporter();
+  BackupExporter get _exporter =>
+      widget.exporter ?? const SharePlusBackupExporter();
+  BackupImporter get _importer =>
+      widget.importer ?? const FilePickerBackupImporter();
 
   @override
   void initState() {
@@ -145,20 +148,28 @@ class _BackupScreenState extends State<BackupScreen> {
           child: Row(
             children: [
               Expanded(
-                child: FilledButton.icon(
-                  key: BackupAppKeys.exportButton,
-                  onPressed: _export,
-                  icon: const Icon(Icons.ios_share),
-                  label: const Text('エクスポート'),
+                child: SemanticHelper.interactive(
+                  testId: 'backup_btn_export',
+                  label: 'バックアップをエクスポート',
+                  child: FilledButton.icon(
+                    key: BackupAppKeys.exportButton,
+                    onPressed: _export,
+                    icon: const Icon(Icons.ios_share),
+                    label: const Text('エクスポート'),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FilledButton.tonalIcon(
-                  key: BackupAppKeys.restoreButton,
-                  onPressed: _restore,
-                  icon: const Icon(Icons.restore),
-                  label: const Text('復元'),
+                child: SemanticHelper.interactive(
+                  testId: 'backup_btn_restore',
+                  label: 'バックアップから復元',
+                  child: FilledButton.tonalIcon(
+                    key: BackupAppKeys.restoreButton,
+                    onPressed: _restore,
+                    icon: const Icon(Icons.restore),
+                    label: const Text('復元'),
+                  ),
                 ),
               ),
             ],

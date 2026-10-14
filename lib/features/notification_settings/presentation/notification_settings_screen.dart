@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/notification_settings/data/notification_settings_repository.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_app_keys.dart';
@@ -32,7 +33,8 @@ class _NotificationSettingsScreenState
   }
 
   Future<void> _load() async {
-    final repo = _repository ?? SharedPreferencesNotificationSettingsRepository();
+    final repo =
+        _repository ?? SharedPreferencesNotificationSettingsRepository();
     _repository = repo;
     final settings = await repo.load();
     if (!mounted) return;
@@ -61,12 +63,15 @@ class _NotificationSettingsScreenState
       appBar: AppBar(title: const Text('通知設定')),
       body: ListView(
         children: [
-          SwitchListTile(
-            key: NotificationSettingsAppKeys.masterSwitch,
-            title: const Text('通知を受け取る'),
+          SemanticHelper.toggle(
+            testId: 'notif_tgl_master',
             value: settings.enabled,
-            onChanged: (value) =>
-                _update(settings.copyWith(enabled: value)),
+            child: SwitchListTile(
+              key: NotificationSettingsAppKeys.masterSwitch,
+              title: const Text('通知を受け取る'),
+              value: settings.enabled,
+              onChanged: (value) => _update(settings.copyWith(enabled: value)),
+            ),
           ),
           const Divider(height: 1),
           Padding(
@@ -81,59 +86,70 @@ class _NotificationSettingsScreenState
               settings.timeLabel,
               key: NotificationSettingsAppKeys.timeLabel,
             ),
-            trailing: DropdownButton<int>(
-              key: NotificationSettingsAppKeys.hourDropdown,
-              value: settings.hour,
-              onChanged: masterOn
-                  ? (hour) {
-                      if (hour == null) return;
-                      _update(settings.copyWith(hour: hour));
-                    }
-                  : null,
-              items: <int>[
-                for (var h = 0; h <= 23; h++) h,
-              ]
-                  .map(
-                    (h) => DropdownMenuItem<int>(
-                      value: h,
-                      child: Text('$h時'),
-                    ),
-                  )
-                  .toList(),
+            trailing: SemanticHelper.interactive(
+              testId: 'notif_btn_hour',
+              label: 'リマインド時刻（時）を選択',
+              child: DropdownButton<int>(
+                key: NotificationSettingsAppKeys.hourDropdown,
+                value: settings.hour,
+                onChanged: masterOn
+                    ? (hour) {
+                        if (hour == null) return;
+                        _update(settings.copyWith(hour: hour));
+                      }
+                    : null,
+                items: <int>[
+                  for (var h = 0; h <= 23; h++) h,
+                ]
+                    .map(
+                      (h) => DropdownMenuItem<int>(
+                        value: h,
+                        child: Text('$h時'),
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
           ListTile(
-            title: DropdownButton<int>(
-              key: NotificationSettingsAppKeys.minuteDropdown,
-              value: settings.minute,
-              onChanged: masterOn
-                  ? (minute) {
-                      if (minute == null) return;
-                      _update(settings.copyWith(minute: minute));
-                    }
-                  : null,
-              items: <int>[
-                for (var m = 0; m <= 55; m += 5) m,
-              ]
-                  .map(
-                    (m) => DropdownMenuItem<int>(
-                      value: m,
-                      child: Text('$m分'),
-                    ),
-                  )
-                  .toList(),
+            title: SemanticHelper.interactive(
+              testId: 'notif_btn_minute',
+              label: 'リマインド時刻（分）を選択',
+              child: DropdownButton<int>(
+                key: NotificationSettingsAppKeys.minuteDropdown,
+                value: settings.minute,
+                onChanged: masterOn
+                    ? (minute) {
+                        if (minute == null) return;
+                        _update(settings.copyWith(minute: minute));
+                      }
+                    : null,
+                items: <int>[
+                  for (var m = 0; m <= 55; m += 5) m,
+                ]
+                    .map(
+                      (m) => DropdownMenuItem<int>(
+                        value: m,
+                        child: Text('$m分'),
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
           const Divider(height: 1),
           for (final kind in NotificationKind.values)
-            SwitchListTile(
-              key: NotificationSettingsAppKeys.kindSwitch(kind),
-              title: Text(kind.label),
-              subtitle: Text(kind.description),
+            SemanticHelper.toggle(
+              testId: 'notif_tgl_kind_${kind.storageKey}',
               value: settings.isKindEnabled(kind),
-              onChanged: masterOn
-                  ? (_) => _update(settings.toggleKind(kind))
-                  : null,
+              child: SwitchListTile(
+                key: NotificationSettingsAppKeys.kindSwitch(kind),
+                title: Text(kind.label),
+                subtitle: Text(kind.description),
+                value: settings.isKindEnabled(kind),
+                onChanged:
+                    masterOn ? (_) => _update(settings.toggleKind(kind)) : null,
+              ),
             ),
         ],
       ),

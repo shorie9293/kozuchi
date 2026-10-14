@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
 import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
@@ -252,29 +253,41 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       appBar: AppBar(
         title: const Text('取引履歴'),
         actions: [
-          IconButton(
-            key: TagAppKeys.historyTagManageButton,
-            tooltip: 'タグ管理',
-            icon: const Icon(Icons.sell_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    TagManagementScreen(repository: widget.tagRepository),
+          SemanticHelper.interactive(
+            testId: 'history_btn_tag_manage',
+            label: 'タグ管理',
+            child: IconButton(
+              key: TagAppKeys.historyTagManageButton,
+              tooltip: 'タグ管理',
+              icon: const Icon(Icons.sell_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      TagManagementScreen(repository: widget.tagRepository),
+                ),
               ),
             ),
           ),
-          IconButton(
-            key: TagAppKeys.historyTagSummaryButton,
-            tooltip: 'タグ別集計',
-            icon: const Icon(Icons.label_outline),
-            onPressed: () => _openTagSummary(context),
+          SemanticHelper.interactive(
+            testId: 'history_btn_tag_summary',
+            label: 'タグ別集計',
+            child: IconButton(
+              key: TagAppKeys.historyTagSummaryButton,
+              tooltip: 'タグ別集計',
+              icon: const Icon(Icons.label_outline),
+              onPressed: () => _openTagSummary(context),
+            ),
           ),
-          IconButton(
-            key: CalendarAppKeys.openButton,
-            tooltip: '取引カレンダー',
-            icon: const Icon(Icons.calendar_month),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const TransactionCalendarScreen()),
+          SemanticHelper.interactive(
+            testId: 'history_btn_open_calendar',
+            label: '取引カレンダー',
+            child: IconButton(
+              key: CalendarAppKeys.openButton,
+              tooltip: '取引カレンダー',
+              icon: const Icon(Icons.calendar_month),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TransactionCalendarScreen()),
+              ),
             ),
           ),
         ],

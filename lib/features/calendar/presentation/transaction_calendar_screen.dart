@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import '../../../domain/models/expense_entry.dart';
 import '../domain/calendar_service.dart';
 import '../domain/day_expense_summary.dart';
@@ -156,7 +157,10 @@ class _TransactionCalendarScreenState extends State<TransactionCalendarScreen> {
 
   Widget _summaryCard(MonthCalendar calendar) {
     final maxDay = calendar.maxDay;
-    return Card(
+    return SemanticHelper.container(
+      testId: 'calendar_sec_summary',
+      label: '月間支出サマリー',
+      child: Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -193,6 +197,7 @@ class _TransactionCalendarScreenState extends State<TransactionCalendarScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -282,18 +287,26 @@ class _TransactionCalendarScreenState extends State<TransactionCalendarScreen> {
       appBar: AppBar(
         title: const Text('取引カレンダー'),
         actions: [
-          IconButton(
-            key: CalendarAppKeys.prevMonthButton,
-            tooltip: '前月',
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () => _shift(-1),
+          SemanticHelper.interactive(
+            testId: 'calendar_btn_prev_month',
+            label: '前の月へ',
+            child: IconButton(
+              key: CalendarAppKeys.prevMonthButton,
+              tooltip: '前月',
+              icon: const Icon(Icons.chevron_left),
+              onPressed: () => _shift(-1),
+            ),
           ),
-          IconButton(
-            key: CalendarAppKeys.nextMonthButton,
-            tooltip: '翌月',
-            icon: const Icon(Icons.chevron_right),
-            // 当月表示時のみ無効化（未来月へは進めない）
-            onPressed: _isCurrentMonth ? null : () => _shift(1),
+          SemanticHelper.interactive(
+            testId: 'calendar_btn_next_month',
+            label: '次の月へ',
+            child: IconButton(
+              key: CalendarAppKeys.nextMonthButton,
+              tooltip: '翌月',
+              icon: const Icon(Icons.chevron_right),
+              // 当月表示時のみ無効化（未来月へは進めない）
+              onPressed: _isCurrentMonth ? null : () => _shift(1),
+            ),
           ),
         ],
       ),

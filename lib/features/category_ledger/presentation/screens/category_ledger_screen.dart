@@ -9,6 +9,7 @@ import 'package:kozuchi/features/category_ledger/domain/category_ledger.dart';
 import 'package:kozuchi/features/category_ledger/domain/category_ledger_service.dart';
 import 'package:kozuchi/features/category_ledger/domain/category_usage.dart';
 import 'package:kozuchi/features/category_ledger/presentation/category_ledger_app_keys.dart';
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 
 /// カテゴリ管理画面
 ///
@@ -251,18 +252,26 @@ class _CategoryLedgerScreenState extends State<CategoryLedgerScreen> {
         title: const Text('カテゴリ管理'),
         centerTitle: true,
         actions: [
-          IconButton(
-            key: CategoryLedgerAppKeys.categoryLedger_resetButton,
-            icon: const Icon(Icons.restore),
-            tooltip: 'リセット',
-            onPressed: _isLoading ? null : _confirmReset,
+          SemanticHelper.interactive(
+            testId: 'cat_btn_reset',
+            label: 'カテゴリをリセット',
+            child: IconButton(
+              key: CategoryLedgerAppKeys.categoryLedger_resetButton,
+              icon: const Icon(Icons.restore),
+              tooltip: 'リセット',
+              onPressed: _isLoading ? null : _confirmReset,
+            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        key: CategoryLedgerAppKeys.categoryLedger_addButton,
-        onPressed: _isLoading ? null : () => _openEditDialog(),
-        child: const Icon(Icons.add),
+      floatingActionButton: SemanticHelper.interactive(
+        testId: 'cat_btn_add',
+        label: 'カテゴリを追加',
+        child: FloatingActionButton(
+          key: CategoryLedgerAppKeys.categoryLedger_addButton,
+          onPressed: _isLoading ? null : () => _openEditDialog(),
+          child: const Icon(Icons.add),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -291,19 +300,22 @@ class _CategoryLedgerScreenState extends State<CategoryLedgerScreen> {
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: rows.length,
-      itemBuilder: (context, index) {
-        final usage = rows[index];
-        return _CategoryRow(
-          key: CategoryLedgerAppKeys.row(usage.category),
-          usage: usage,
-          menuKey: CategoryLedgerAppKeys.menuButton(usage.category),
-          onRename: () => _openEditDialog(target: usage.category),
-          onDelete: () => _confirmRemove(usage.category),
-        );
-      },
+    return SemanticHelper.container(
+      testId: 'cat_list',
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: rows.length,
+        itemBuilder: (context, index) {
+          final usage = rows[index];
+          return _CategoryRow(
+            key: CategoryLedgerAppKeys.row(usage.category),
+            usage: usage,
+            menuKey: CategoryLedgerAppKeys.menuButton(usage.category),
+            onRename: () => _openEditDialog(target: usage.category),
+            onDelete: () => _confirmRemove(usage.category),
+          );
+        },
+      ),
     );
   }
 }

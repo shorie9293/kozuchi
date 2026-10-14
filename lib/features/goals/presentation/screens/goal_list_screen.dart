@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/goals/data/goal.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/features/goals/data/goal_forecast.dart';
@@ -113,29 +114,37 @@ class _GoalListScreenState extends State<GoalListScreen> {
       appBar: AppBar(
         title: const Text('貯蓄目標'),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            tooltip: 'ステータスフィルタ',
-            onSelected: (value) {
-              setState(() {
-                _statusFilter = value.isEmpty ? null : value;
-              });
-              _loadGoals();
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: '', child: Text('すべて')),
-              const PopupMenuItem(value: 'active', child: Text('進行中')),
-              const PopupMenuItem(value: 'completed', child: Text('達成済み')),
-              const PopupMenuItem(value: 'cancelled', child: Text('キャンセル')),
-            ],
+          SemanticHelper.interactive(
+            testId: 'goals_btn_filter',
+            label: 'ステータスフィルタ',
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.filter_list),
+              tooltip: 'ステータスフィルタ',
+              onSelected: (value) {
+                setState(() {
+                  _statusFilter = value.isEmpty ? null : value;
+                });
+                _loadGoals();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: '', child: Text('すべて')),
+                const PopupMenuItem(value: 'active', child: Text('進行中')),
+                const PopupMenuItem(value: 'completed', child: Text('達成済み')),
+                const PopupMenuItem(value: 'cancelled', child: Text('キャンセル')),
+              ],
+            ),
           ),
         ],
       ),
       body: _buildBody(colorScheme),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('目標を追加'),
+      floatingActionButton: SemanticHelper.interactive(
+        testId: 'goals_btn_add',
+        label: '目標を追加',
+        child: FloatingActionButton.extended(
+          onPressed: () => _navigateToForm(),
+          icon: const Icon(Icons.add),
+          label: const Text('目標を追加'),
+        ),
       ),
     );
   }
@@ -154,9 +163,13 @@ class _GoalListScreenState extends State<GoalListScreen> {
             const SizedBox(height: 16),
             Text(_error!, style: TextStyle(color: colorScheme.error)),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadGoals,
-              child: const Text('再読み込み'),
+            SemanticHelper.interactive(
+              testId: 'goals_btn_retry',
+              label: '再読み込み',
+              child: ElevatedButton(
+                onPressed: _loadGoals,
+                child: const Text('再読み込み'),
+              ),
             ),
           ],
         ),
@@ -168,7 +181,8 @@ class _GoalListScreenState extends State<GoalListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.flag_outlined, size: 64, color: colorScheme.onSurface.withValues(alpha: 0.3)),
+            Icon(Icons.flag_outlined,
+                size: 64, color: colorScheme.onSurface.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             Text(
               _statusFilter != null ? '該当する目標はありません' : 'まだ目標がありません',
@@ -324,8 +338,7 @@ class _GoalCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: goal.progressRatio,
                   minHeight: 8,
-                  backgroundColor:
-                      colorScheme.surfaceContainerHighest,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     isCompleted
                         ? Colors.green

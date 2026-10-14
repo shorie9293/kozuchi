@@ -92,7 +92,8 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 48, color: TakamagaharaColors.vermilion),
+              Icon(Icons.error_outline,
+                  size: 48, color: TakamagaharaColors.vermilion),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
@@ -101,11 +102,15 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
                 style: const TextStyle(color: TakamagaharaColors.vermilion),
               ),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                key: AppKeys.errorRetryButton,
-                onPressed: _loadAchievements,
-                icon: const Icon(Icons.refresh),
-                label: const Text('再試行'),
+              SemanticHelper.interactive(
+                testId: 'ach_btn_retry',
+                label: '実績を再読み込み',
+                child: FilledButton.icon(
+                  key: AppKeys.errorRetryButton,
+                  onPressed: _loadAchievements,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('再試行'),
+                ),
               ),
             ],
           ),
@@ -121,11 +126,13 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.emoji_events_outlined, size: 64, color: cs.onSurface.withValues(alpha: 0.4)),
+            Icon(Icons.emoji_events_outlined,
+                size: 64, color: cs.onSurface.withValues(alpha: 0.4)),
             SizedBox(height: 16),
             Text(
               '実績がありません',
-              style: TextStyle(fontSize: 16, color: cs.onSurface.withValues(alpha: 0.5)),
+              style: TextStyle(
+                  fontSize: 16, color: cs.onSurface.withValues(alpha: 0.5)),
             ),
           ],
         ),
@@ -133,19 +140,22 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
     }
 
     // 実績グリッド
-    return GridView.builder(
-      key: AppKeys.achievementList_gridView,
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.85,
+    return SemanticHelper.container(
+      testId: 'ach_grid',
+      child: GridView.builder(
+        key: AppKeys.achievementList_gridView,
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.85,
+        ),
+        itemCount: _achievements!.length,
+        itemBuilder: (context, index) {
+          return _AchievementCard(achievement: _achievements![index]);
+        },
       ),
-      itemCount: _achievements!.length,
-      itemBuilder: (context, index) {
-        return _AchievementCard(achievement: _achievements![index]);
-      },
     );
   }
 }
@@ -179,8 +189,7 @@ class _AchievementCard extends StatelessWidget {
               children: [
                 Text(
                   achievement.icon,
-                  style:
-                      TextStyle(fontSize: 36, color: colorScheme.onSurface),
+                  style: TextStyle(fontSize: 36, color: colorScheme.onSurface),
                 ),
                 if (isUnlocked)
                   Positioned(
@@ -249,7 +258,8 @@ class _AchievementCard extends StatelessWidget {
       return SizedBox(
         height: 24,
         child: Center(
-          child: Icon(Icons.lock_outline, size: 16, color: colorScheme.onSurface.withValues(alpha: 0.4)),
+          child: Icon(Icons.lock_outline,
+              size: 16, color: colorScheme.onSurface.withValues(alpha: 0.4)),
         ),
       );
     }
@@ -266,8 +276,7 @@ class _AchievementCard extends StatelessWidget {
             value: fraction,
             minHeight: 6,
             backgroundColor: colorScheme.surfaceContainerHighest,
-            valueColor:
-                AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
           ),
         ),
         const SizedBox(height: 4),

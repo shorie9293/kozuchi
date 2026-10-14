@@ -8,6 +8,7 @@ import 'package:kozuchi/features/monthly_report/domain/monthly_report_period.dar
 import 'package:kozuchi/features/monthly_report/domain/monthly_report_service.dart';
 import 'package:kozuchi/features/monthly_report/presentation/widgets/monthly_report_card_view.dart';
 import 'package:kozuchi/features/monthly_report/presentation/widgets/report_card_capture.dart';
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
 
 /// 月次家計レポート画面
@@ -56,7 +57,8 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   @override
   void initState() {
     super.initState();
-    _period = MonthlyReportPeriod.fromDate(widget.initialMonth ?? DateTime.now());
+    _period =
+        MonthlyReportPeriod.fromDate(widget.initialMonth ?? DateTime.now());
     _load();
   }
 
@@ -148,17 +150,25 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
       appBar: AppBar(
         title: Text(_period.label),
         actions: [
-          IconButton(
-            key: KozuchiAppKeys.monthlyReportPrevMonth,
-            icon: const Icon(Icons.chevron_left),
-            tooltip: '前月',
-            onPressed: _isLoading ? null : _goPrevious,
+          SemanticHelper.interactive(
+            testId: 'report_btn_prev_month',
+            label: '前月へ移動',
+            child: IconButton(
+              key: KozuchiAppKeys.monthlyReportPrevMonth,
+              icon: const Icon(Icons.chevron_left),
+              tooltip: '前月',
+              onPressed: _isLoading ? null : _goPrevious,
+            ),
           ),
-          IconButton(
-            key: KozuchiAppKeys.monthlyReportNextMonth,
-            icon: const Icon(Icons.chevron_right),
-            tooltip: '次月',
-            onPressed: _isLoading || _isFutureMonth ? null : _goNext,
+          SemanticHelper.interactive(
+            testId: 'report_btn_next_month',
+            label: '次月へ移動',
+            child: IconButton(
+              key: KozuchiAppKeys.monthlyReportNextMonth,
+              icon: const Icon(Icons.chevron_right),
+              tooltip: '次月',
+              onPressed: _isLoading || _isFutureMonth ? null : _goNext,
+            ),
           ),
         ],
       ),
@@ -177,9 +187,13 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
           children: [
             const Text('読み込みに失敗しました'),
             const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _load,
-              child: const Text('再試行'),
+            SemanticHelper.interactive(
+              testId: 'report_btn_retry',
+              label: '再試行',
+              child: ElevatedButton(
+                onPressed: _load,
+                child: const Text('再試行'),
+              ),
             ),
           ],
         ),
@@ -204,11 +218,15 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                key: KozuchiAppKeys.monthlyReportShareButton,
-                icon: const Icon(Icons.ios_share),
-                label: const Text('画像として保存・共有'),
-                onPressed: _share,
+              child: SemanticHelper.interactive(
+                testId: 'report_btn_share',
+                label: 'レポートを画像として保存・共有',
+                child: ElevatedButton.icon(
+                  key: KozuchiAppKeys.monthlyReportShareButton,
+                  icon: const Icon(Icons.ios_share),
+                  label: const Text('画像として保存・共有'),
+                  onPressed: _share,
+                ),
               ),
             ),
           ],

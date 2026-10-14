@@ -772,10 +772,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openQuickOffering,
-        tooltip: '支出を記録',
-        child: const Icon(Icons.edit_note),
+      floatingActionButton: SemanticHelper.interactive(
+        testId: 'main_btn_record_expense',
+        label: '支出を記録',
+        child: FloatingActionButton(
+          onPressed: _openQuickOffering,
+          tooltip: '支出を記録',
+          child: const Icon(Icons.edit_note),
+        ),
       ),
     );
   }
@@ -894,14 +898,18 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       crossAxisSpacing: 8,
       childAspectRatio: 2.6,
       children: [
-        for (final link in links)
-          OutlinedButton(
-            onPressed: link.onTap,
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              alignment: Alignment.centerLeft,
+        for (var i = 0; i < links.length; i++)
+          SemanticHelper.interactive(
+            testId: SemanticHelper.createTestId('btn_quick_link', '$i'),
+            label: links[i].label,
+            child: OutlinedButton(
+              onPressed: links[i].onTap,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                alignment: Alignment.centerLeft,
+              ),
+              child: Text(links[i].label, style: const TextStyle(fontSize: 13)),
             ),
-            child: Text(link.label, style: const TextStyle(fontSize: 13)),
           ),
       ],
     );
@@ -966,10 +974,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             const SizedBox(height: 8),
             Text('まだ守護神と契約していません', style: TextStyle(fontSize: 16, color: colorScheme.onSurface)),
             const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _openAdvisorSelection,
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('守護神と契約する'),
+            SemanticHelper.interactive(
+              testId: 'main_btn_contract_advisor',
+              label: '守護神と契約する',
+              child: ElevatedButton.icon(
+                onPressed: _openAdvisorSelection,
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('守護神と契約する'),
+              ),
             ),
           ],
         ),

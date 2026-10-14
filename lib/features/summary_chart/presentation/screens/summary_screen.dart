@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/domain/models/aggregation_result.dart';
 import 'package:kozuchi/domain/services/expense_aggregation_service.dart';
 import 'package:kozuchi/domain/services/expense_repository.dart';
@@ -138,27 +139,35 @@ class _SummaryScreenState extends State<SummaryScreen> {
     return Scaffold(
       key: const Key('summary_screen'),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-          key: const Key('summary_back_button'),
+        leading: SemanticHelper.interactive(
+          testId: 'summary_btn_back',
+          label: '戻る',
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+            key: const Key('summary_back_button'),
+          ),
         ),
         title: const Text('支出サマリー'),
         centerTitle: true,
         actions: [
-          IconButton(
-            key: KozuchiAppKeys.monthlyReportEntry,
-            icon: const Icon(Icons.ios_share),
-            tooltip: '月次レポート',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => MonthlyReportScreen(
-                    repository: widget.repository,
+          SemanticHelper.interactive(
+            testId: 'summary_btn_monthly_report',
+            label: '月次レポート',
+            child: IconButton(
+              key: KozuchiAppKeys.monthlyReportEntry,
+              icon: const Icon(Icons.ios_share),
+              tooltip: '月次レポート',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => MonthlyReportScreen(
+                      repository: widget.repository,
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -231,20 +240,28 @@ class _SummaryScreenState extends State<SummaryScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _toggleChip(
-              label: '週間',
-              icon: Icons.calendar_view_week,
-              isSelected: _isWeekly,
-              onTap: () => _togglePeriod(true),
-              colorScheme: colorScheme,
+            SemanticHelper.interactive(
+              testId: 'summary_btn_toggle_weekly',
+              label: '週間表示に切り替え',
+              child: _toggleChip(
+                label: '週間',
+                icon: Icons.calendar_view_week,
+                isSelected: _isWeekly,
+                onTap: () => _togglePeriod(true),
+                colorScheme: colorScheme,
+              ),
             ),
             const SizedBox(width: 4),
-            _toggleChip(
-              label: '月間',
-              icon: Icons.calendar_month,
-              isSelected: !_isWeekly,
-              onTap: () => _togglePeriod(false),
-              colorScheme: colorScheme,
+            SemanticHelper.interactive(
+              testId: 'summary_btn_toggle_monthly',
+              label: '月間表示に切り替え',
+              child: _toggleChip(
+                label: '月間',
+                icon: Icons.calendar_month,
+                isSelected: !_isWeekly,
+                onTap: () => _togglePeriod(false),
+                colorScheme: colorScheme,
+              ),
             ),
           ],
         ),
@@ -302,11 +319,15 @@ class _SummaryScreenState extends State<SummaryScreen> {
       key: const Key('date_navigation'),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(
-          key: const Key('nav_previous'),
-          icon: const Icon(Icons.chevron_left),
-          onPressed: _goToPrevious,
-          tooltip: '前の期間',
+        SemanticHelper.interactive(
+          testId: 'summary_btn_previous',
+          label: '前の期間へ',
+          child: IconButton(
+            key: const Key('nav_previous'),
+            icon: const Icon(Icons.chevron_left),
+            onPressed: _goToPrevious,
+            tooltip: '前の期間',
+          ),
         ),
         Expanded(
           child: Column(
@@ -329,14 +350,18 @@ class _SummaryScreenState extends State<SummaryScreen> {
             ],
           ),
         ),
-        IconButton(
-          key: const Key('nav_next'),
-          icon: Icon(
-            Icons.chevron_right,
-            color: _canGoNext ? null : colorScheme.outline,
+        SemanticHelper.interactive(
+          testId: 'summary_btn_next',
+          label: '次の期間へ',
+          child: IconButton(
+            key: const Key('nav_next'),
+            icon: Icon(
+              Icons.chevron_right,
+              color: _canGoNext ? null : colorScheme.outline,
+            ),
+            onPressed: _canGoNext ? _goToNext : null,
+            tooltip: '次の期間',
           ),
-          onPressed: _canGoNext ? _goToNext : null,
-          tooltip: '次の期間',
         ),
       ],
     );
