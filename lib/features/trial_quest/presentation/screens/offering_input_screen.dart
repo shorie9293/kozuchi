@@ -3,6 +3,10 @@ import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
+import 'package:kozuchi/domain/models/expense_entry.dart';
+import 'package:kozuchi/domain/services/expense_repository.dart';
+import 'package:kozuchi/features/budget/domain/expense_anomaly.dart';
+import 'package:kozuchi/features/budget/domain/expense_anomaly_service.dart';
 import 'package:kozuchi/features/category_ledger/data/category_ledger_repository.dart';
 import 'package:kozuchi/features/category_ledger/domain/category_ledger.dart';
 import 'package:kozuchi/features/category_ledger/domain/category_ledger_service.dart';
@@ -47,12 +51,20 @@ class OfferingInputScreen extends StatefulWidget {
   /// カテゴリ台帳の永続化先（省略時は SharedPreferences 実装）。
   final CategoryLedgerRepository? categoryLedgerRepository;
 
+  /// 支出履歴の取得先（null なら異常検知を行わず従来どおり記録する）。
+  final ExpenseRepository? expenseRepository;
+
+  /// 現在日時（試練で固定日時を注入できるように）。
+  final DateTime Function()? now;
+
   const OfferingInputScreen({
     super.key,
     required this.quest,
     required this.player,
     this.templateRepository,
     this.categoryLedgerRepository,
+    this.expenseRepository,
+    this.now,
   });
 
   @override
@@ -186,10 +198,8 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
     });
   }
 
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
-
-    final amount = int.parse(_amountController.text);
+  /// 支出を記録して画面を閉じる（従来どおりの結果返却）
+  void _popWithResult(int amount) {
     final updatedPlayer = widget.player.performOffering(amount);
     Navigator.of(context).pop(OfferingResult(
       amount: amount,
@@ -199,6 +209,74 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
       category: _selectedCategory,
       updatedPlayer: updatedPlayer,
     ));
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final amount = int.parse(_amountController.text);
+
+    final repository = widget.expenseRepository;
+    if (repository == null) {
+      // 注入なし: 異常検知を行わず従来どおり記録する
+      _popWithResult(amount);
+      return;
+    }
+
+    // 過去履歴から異常検知（失敗時は警告なしで記録を続行）
+    ExpenseAnomaly? anomaly;
+    try {
+      final current = widget.now?.call() ?? DateTime.now();
+      final history = await repository.getEntries(
+        start: current.subtract(const Duration(days: 180)),
+        end: current,
+      );
+      final candidate = ExpenseEntry(
+        id: 'offering-candidate-$current',
+        amount: amount,
+        category: _selectedCategory ?? '',
+        date: current,
+      );
+      anomaly = const ExpenseAnomalyService().detect(
+        candidate: candidate,
+        history: history,
+      );
+    } catch (_) {
+      anomaly = null;
+    }
+    if (!mounted) return;
+
+    if (anomaly == null) {
+      _popWithResult(amount);
+      return;
+    }
+
+    // 異常警告ダイアログ: 戻るなら記録中断、記録するなら通常どおり閉じる
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('いつもより高い支出です'),
+        content: Text(
+          '${anomaly!.category}: ${anomaly.ratioLabel}\n'
+          '平均額: ¥${anomaly.average.round()}\n'
+          'このまま記録しますか？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('戻る'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _popWithResult(amount);
+            },
+            child: const Text('このまま記録する'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

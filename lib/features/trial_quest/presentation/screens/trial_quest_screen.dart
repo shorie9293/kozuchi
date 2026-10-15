@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
+import 'package:kozuchi/domain/services/expense_repository.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/offering_input_screen.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/reflection_screen.dart';
 import 'package:kozuchi/features/trial_quest/domain/ai_review_service.dart';
@@ -26,6 +27,9 @@ class TrialQuestScreen extends StatefulWidget {
   /// [category] 支出用途（カテゴリ）
   final void Function(int amount, String category)? onExpenseRecorded;
 
+  /// 支出履歴の取得先（null なら異常検知警告なしで OfferingInputScreen を開く）
+  final ExpenseRepository? expenseRepository;
+
   const TrialQuestScreen({
     super.key,
     required this.quest,
@@ -33,6 +37,7 @@ class TrialQuestScreen extends StatefulWidget {
     required this.onQuestUpdated,
     this.aiReviewService,
     this.onExpenseRecorded,
+    this.expenseRepository,
   });
 
   @override
@@ -65,6 +70,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
         builder: (_) => OfferingInputScreen(
           quest: _quest,
           player: _player,
+          expenseRepository: widget.expenseRepository,
         ),
       ),
     );

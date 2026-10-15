@@ -30,6 +30,7 @@ import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.d
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
 import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
+import 'package:kozuchi/features/budget/presentation/screens/expense_anomaly_screen.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
@@ -458,6 +459,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             _exportCurrentQuest();
           },
           onExpenseRecorded: (amount, category) => _onExpenseRecorded(amount, category),
+          expenseRepository: _getExpenseRepository(),
         ),
       ),
     );
@@ -478,6 +480,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             player: _player,
             onQuestUpdated: (q, p) { setState(() { _currentQuest = q; _player = p; }); _persistState(); _exportCurrentQuest(); },
             onExpenseRecorded: (amount, category) => _onExpenseRecorded(amount, category),
+            expenseRepository: _getExpenseRepository(),
           ),
         ),
       );
@@ -608,6 +611,20 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   void _openSummary() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
+  }
+
+  /// 支出の異常検知画面を開く
+  void _openExpenseAnomaly() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ExpenseAnomalyScreen(
+          repository: SupabaseExpenseRepository(
+            cloudStore: CloudSyncService(client: SupabaseProvider.client),
+            userIdProvider: () => SupabaseProvider.currentUserId,
+          ),
+        ),
+      ),
+    );
   }
 
   /// バックアップと復元画面を開く
@@ -897,6 +914,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🔄 サブスク', _openSubscription),
       _QuickLink('👛 財布・口座', _openWallets),
       _QuickLink('📊 支出分析', _openSummary),
+      _QuickLink('🚨 支出の異常検知', _openExpenseAnomaly),
       _QuickLink('📈 資産推移', _openAssetTrend),
       _QuickLink('🔗 アプリ連携', _openCollaborationDashboard),
       _QuickLink('🧘 キャリアコーチ', _openCareerCoach),
