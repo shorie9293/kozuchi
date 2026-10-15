@@ -13,7 +13,19 @@ class NotificationSettingsScreen extends StatefulWidget {
   /// 永続化の委譲先（試練では InMemory 実装を注入する）。
   final NotificationSettingsRepository? repository;
 
-  const NotificationSettingsScreen({super.key, this.repository});
+  /// 保存完了後に呼ばれるフック。
+  ///
+  /// 通知の再スケジュール等の副作用を行うために用いる
+  /// （例: `NotificationService.scheduleDailyReminder()` を await する）。
+  /// 保存が成功した後、[NotificationSettings] の最新値を渡して呼ばれる。
+  /// 例外は画面側で握り潰されるため、呼び出し側で致命傷にはならない。
+  final Future<void> Function(NotificationSettings settings)? onSaved;
+
+  const NotificationSettingsScreen({
+    super.key,
+    this.repository,
+    this.onSaved,
+  });
 
   @override
   State<NotificationSettingsScreen> createState() =>
@@ -43,6 +55,13 @@ class _NotificationSettingsScreenState
 
   Future<void> _update(NotificationSettings next) async {
     await _repository!.save(next);
+    // 保存成功後、通知の再スケジュール等の副作用フックを呼ぶ。
+    // 失敗しても画面は壊さない（debugPrint のみ）。
+    try {
+      await widget.onSaved?.call(next);
+    } catch (e) {
+      debugPrint('NotificationSettingsScreen: onSaved failed: $e');
+    }
     if (!mounted) return;
     setState(() => _settings = next);
   }

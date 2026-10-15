@@ -11,6 +11,9 @@ abstract interface class NotificationSettingsRepository {
 
   /// 通知設定を保存する。
   Future<void> save(NotificationSettings settings);
+
+  /// 保存済みの設定が存在するか（未保存なら false）。
+  Future<bool> hasStoredSettings();
 }
 
 /// SharedPreferences 実装。key は 'notification_settings_v1'。
@@ -52,6 +55,10 @@ class SharedPreferencesNotificationSettingsRepository
     final prefs = await _prefs();
     await prefs.setString(storageKey, jsonEncode(settings.toJson()));
   }
+
+  @override
+  Future<bool> hasStoredSettings() async =>
+      (await _prefs()).getString(storageKey) != null;
 }
 
 /// メモリ内実装（試練用）。保存値を保持。
@@ -69,6 +76,9 @@ class InMemoryNotificationSettingsRepository
   Future<void> save(NotificationSettings settings) async {
     stored = settings;
   }
+
+  @override
+  Future<bool> hasStoredSettings() async => stored != null;
 }
 
 /// 常に既定値を返し保存を無視する実装。
@@ -81,4 +91,7 @@ class NoopNotificationSettingsRepository
 
   @override
   Future<void> save(NotificationSettings settings) async {}
+
+  @override
+  Future<bool> hasStoredSettings() async => false;
 }

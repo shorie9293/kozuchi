@@ -4,6 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'package:kozuchi/features/notification_settings/data/notification_settings_repository.dart';
+import 'package:kozuchi/features/notification_settings/domain/notification_settings.dart';
+import 'package:kozuchi/features/notification_settings/domain/notification_settings_resolver.dart';
+
 /// ローカル通知基盤（kozuchi 家計簿RPG用）。
 ///
 /// flutter_local_notifications + timezone で以下を提供する:
@@ -11,9 +15,15 @@ import 'package:timezone/timezone.dart' as tz;
 /// - 予算超過アラート（即時通知）
 /// - テスト通知（即時表示）
 ///
-/// 有効/無効・リマインド時刻は shared_preferences に永続化する。
-/// プラグインはコンストラクタ注入可能で、試練（テスト）では mocktail で
-/// モックして検証できる。
+/// 通知設定（全体ON/OFF・時刻・種類別ON/OFF）の出所は
+/// [NotificationSettingsRepository]（SharedPreferences キー
+/// `notification_settings_v1`）である。旧キー
+/// （notification_enabled / notification_hour / notification_minute）が
+/// 残る環境からは初回読み出し時に [NotificationSettingsResolver] 経由で
+/// 新キーへ移行する。種類別OFFは scheduleDailyReminder / sendBudgetAlert
+/// の実行時に [NotificationSettingsResolver.isActive] で判定する。
+/// プラグイン・設定リポジトリはコンストラクタ注入可能で、試練（テスト）
+/// では mocktail / InMemory リポジトリで検証できる。
 class NotificationService {
   // ── 永続化キー ──
   static const _keyEnabled = 'notification_enabled';
@@ -31,9 +41,14 @@ class NotificationService {
   static const _channelTest = 'kozuchi_test';
 
   final FlutterLocalNotificationsPlugin _plugin;
+  final NotificationSettingsRepository _settingsRepository;
 
-  NotificationService({FlutterLocalNotificationsPlugin? plugin})
-      : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+  NotificationService({
+    FlutterLocalNotificationsPlugin? plugin,
+    NotificationSettingsRepository? settingsRepository,
+  })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
+        _settingsRepository =
+            settingsRepository ?? const SharedPreferencesNotificationSettingsRepository();
 
   /// timezone 初期化とプラグイン初期化、通知チャンネル作成を行う。
   ///
@@ -223,49 +238,78 @@ class NotificationService {
     return AndroidScheduleMode.inexactAllowWhileIdle;
   }
 
-  // ── 設定の読み書き（shared_preferences） ──
+  // ── 設定の読み書き（NotificationSettingsRepository） ──
 
   Future<SharedPreferences> _prefs() => SharedPreferences.getInstance();
 
-  Future<bool> isEnabled() async {
+  /// 実効通知設定を読み出す。
+  ///
+  /// 出所は [NotificationSettingsRepository]（キー notification_settings_v1）。
+  /// 新キーが未保存で旧キー（notification_enabled / notification_hour /
+  /// notification_minute）が存在する場合は、旧値から実効設定を組み立て、
+  /// 初回のみ新キーへ書き戻す（後方互換マイグレーション）。
+  Future<NotificationSettings> loadSettings() async {
+    final stored = await _settingsRepository.load();
     final prefs = await _prefs();
-    return prefs.getBool(_keyEnabled) ?? true;
+    final legacy = LegacyNotificationSettings(
+      enabled: prefs.getBool(_keyEnabled),
+      hour: prefs.getInt(_keyHour),
+      minute: prefs.getInt(_keyMinute),
+    );
+    // 保存済み設定の有無はリポジトリに問い合わせる。
+    final hasStored = await _settingsRepository.hasStoredSettings();
+
+    final effective = NotificationSettingsResolver.resolve(
+      stored: stored,
+      hasStoredSettings: hasStored,
+      legacy: legacy,
+    );
+
+    if (NotificationSettingsResolver.needsMigration(
+      hasStoredSettings: hasStored,
+      legacy: legacy,
+    )) {
+      await _settingsRepository.save(effective);
+    }
+    return effective;
   }
 
-  Future<int> getReminderHour() async {
-    final prefs = await _prefs();
-    return prefs.getInt(_keyHour) ?? 21;
-  }
+  Future<bool> isEnabled() async => (await loadSettings()).enabled;
 
-  Future<int> getReminderMinute() async {
-    final prefs = await _prefs();
-    return prefs.getInt(_keyMinute) ?? 0;
-  }
+  Future<int> getReminderHour() async => (await loadSettings()).hour;
 
-  /// 通知設定（有効/無効・リマインド時刻）を永続化する。
+  Future<int> getReminderMinute() async => (await loadSettings()).minute;
+
+  /// 通知設定（有効/無効・リマインド時刻）を
+  /// [NotificationSettingsRepository]（キー notification_settings_v1）へ
+  /// 永続化する。種類別ON/OFFは現設定を引き継ぐ。
   Future<void> saveSettings({
     required bool enabled,
     required int hour,
     required int minute,
   }) async {
-    final prefs = await _prefs();
-    await prefs.setBool(_keyEnabled, enabled);
-    await prefs.setInt(_keyHour, hour);
-    await prefs.setInt(_keyMinute, minute);
+    final current = await loadSettings();
+    await _settingsRepository.save(
+      current.copyWith(enabled: enabled, hour: hour, minute: minute),
+    );
   }
 
   // ── デイリー記帳リマインド ──
 
   /// 設定に基づきデイリー記帳リマインドをスケジュールする。
-  /// 無効時はリマインドをキャンセルする。
+  /// 全体OFF または dailyReminder 種類OFF時はリマインドをキャンセルする。
   Future<void> scheduleDailyReminder() async {
-    if (!await isEnabled()) {
+    final settings = await loadSettings();
+    if (!NotificationSettingsResolver.isActive(
+      settings,
+      NotificationKind.dailyReminder,
+    )) {
       await _plugin.cancel(dailyReminderId);
       return;
     }
 
-    final hour = await getReminderHour();
-    final minute = await getReminderMinute();
+    final hour = settings.hour;
+    final minute = settings.minute;
     final scheduleMode = await _getScheduleMode();
     final scheduledDate = nextInstanceOfTime(hour, minute);
 
@@ -297,7 +341,18 @@ class NotificationService {
   }
 
   /// 予算超過アラートを即時表示する。
+  /// 全体OFF または budgetAlert 種類OFF時は表示せず終了する。
   Future<void> sendBudgetAlert(String message) async {
+    final settings = await loadSettings();
+    if (!NotificationSettingsResolver.isActive(
+      settings,
+      NotificationKind.budgetAlert,
+    )) {
+      debugPrint(
+        '[NotificationService] 予算超過アラートは無効のため送信しない: $message',
+      );
+      return;
+    }
     debugPrint('[NotificationService] 予算超過アラートを送信: $message');
     await _plugin.show(
       budgetAlertId,

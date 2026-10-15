@@ -198,4 +198,7 @@ class _DelayedRepository implements NotificationSettingsRepository {
 
   @override
   Future<void> save(NotificationSettings settings) async {}
+
+  @override
+  Future<bool> hasStoredSettings() async => false;
 }

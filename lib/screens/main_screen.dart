@@ -30,6 +30,7 @@ import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.d
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
 import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
+import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
 import 'package:kozuchi/features/budget/domain/daily_budget.dart';
@@ -584,10 +585,24 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
-  /// 通知設定画面を開く
+  /// 通知設定画面を開く。
+  ///
+  /// 保存後に [NotificationService.scheduleDailyReminder] を実行し、
+  /// 変更した設定を即座に通知スケジュールへ反映する（id=1 の同一通知を置換）。
   void _openNotificationSettings() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+      MaterialPageRoute(
+        builder: (_) => NotificationSettingsScreen(
+          onSaved: (settings) async {
+            try {
+              await NotificationService().scheduleDailyReminder();
+            } catch (e) {
+              // プラットフォームチャネルが無い環境（試練等）では例外になり得る。
+              debugPrint('scheduleDailyReminder failed: $e');
+            }
+          },
+        ),
+      ),
     );
   }
 
