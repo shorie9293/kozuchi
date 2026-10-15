@@ -67,15 +67,21 @@ class Goal {
   int get progressPercent => (progress * 100).round();
 
   /// 期限切れかどうか
-  bool get isOverdue {
+  bool get isOverdue => isOverdueAt(DateTime.now());
+
+  /// 期限切れかどうか（now を注入可能な決定論版）
+  bool isOverdueAt(DateTime now) {
     if (deadline == null) return false;
-    return DateTime.now().isAfter(deadline!) && status == GoalStatus.active;
+    return now.isAfter(deadline!) && status == GoalStatus.active;
   }
 
   /// 残り日数（期限がない場合は null）
-  int? get remainingDays {
+  int? get remainingDays => remainingDaysFrom(DateTime.now());
+
+  /// 残り日数（now を注入可能な決定論版。期限がない場合は null）
+  int? remainingDaysFrom(DateTime now) {
     if (deadline == null) return null;
-    return deadline!.difference(DateTime.now()).inDays;
+    return deadline!.difference(now).inDays;
   }
 
   /// JSONから復元

@@ -28,9 +28,13 @@ class SummaryScreen extends StatefulWidget {
   /// 支出リポジトリ（テスト時に注入可能）
   final ExpenseRepository? repository;
 
+  /// 現在時刻の取得関数（テスト時に固定日付を注入可能。null の場合は実時計）
+  final DateTime Function()? clock;
+
   const SummaryScreen({
     super.key,
     this.repository,
+    this.clock,
   });
 
   @override
@@ -40,7 +44,7 @@ class SummaryScreen extends StatefulWidget {
 class _SummaryScreenState extends State<SummaryScreen> {
   bool _isWeekly = true;
   bool _isLoading = false;
-  DateTime _referenceDate = DateTime.now();
+  late DateTime _referenceDate;
   AggregationResult? _result;
   String? _error;
 
@@ -48,9 +52,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
         widget.repository ?? InMemoryExpenseRepository(),
       );
 
+  /// 現在時刻を取得する（clock 注入時はその値、未注入時は実時計）
+  DateTime _now() => (widget.clock ?? DateTime.now)();
+
   @override
   void initState() {
     super.initState();
+    _referenceDate = _now();
     _loadData();
   }
 
@@ -97,7 +105,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
   }
 
   void _goToNext() {
-    final now = DateTime.now();
+    final now = _now();
     final nextDate = _isWeekly
         ? _referenceDate.add(const Duration(days: 7))
         : _addMonth(_referenceDate);
@@ -124,7 +132,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
   }
 
   bool get _canGoNext {
-    final now = DateTime.now();
+    final now = _now();
     final nextDate = _isWeekly
         ? _referenceDate.add(const Duration(days: 7))
         : _addMonth(_referenceDate);

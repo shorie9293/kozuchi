@@ -56,12 +56,15 @@ class Goal {
       (progressPercent ?? 0.0) / 100.0;
 
   /// 期限切れか（deadline が過去日付の場合）
-  bool get isOverdue {
+  bool get isOverdue => isOverdueAt(DateTime.now());
+
+  /// 期限切れか（now を注入可能な決定論版）
+  bool isOverdueAt(DateTime now) {
     final dl = deadline;
     if (dl == null) return false;
     final parsed = DateTime.tryParse(dl);
     if (parsed == null) return false;
-    return parsed.isBefore(DateTime.now()) && status == 'active';
+    return parsed.isBefore(now) && status == 'active';
   }
 
   /// 表示用の金額フォーマット（例: "¥50,000"）
