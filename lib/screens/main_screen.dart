@@ -59,6 +59,9 @@ import 'package:kozuchi/features/csv_import/presentation/screens/csv_import_scre
 import 'package:kozuchi/features/installment/presentation/screens/installment_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/subscription_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/upcoming_billing_screen.dart';
+import 'package:kozuchi/features/installment/data/installment_repository.dart';
+import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
+import 'package:kozuchi/features/calendar_export/presentation/calendar_export_screen.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_recorder.dart';
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
@@ -570,6 +573,35 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UpcomingBillingScreen()));
   }
 
+  /// 支払い予定の iCalendar(.ics) 書き出し画面を開く。
+  ///
+  /// 既存の定期取引・分割払い・サブスクの取得経路を再利用し、
+  /// 取得に失敗した場合は空データで画面を開く（画面側で空表示）。
+  Future<void> _openCalendarExport() async {
+    const recurringRepository = RecurringTransactionRepository();
+    const installmentRepository = InstallmentRepository();
+    try {
+      final recurring = await recurringRepository.loadDefinitions();
+      final plans = await installmentRepository.loadPlans();
+      final subscriptions = await installmentRepository.loadSubscriptions();
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CalendarExportScreen(
+            recurringOverride: recurring,
+            installmentsOverride: plans,
+            subscriptionsOverride: subscriptions,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CalendarExportScreen()),
+      );
+    }
+  }
+
   /// 財布・口座の管理画面を開く
   void _openWallets() {
     Navigator.of(context).push(
@@ -944,6 +976,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🔔 通知設定', _openNotificationSettings),
       _QuickLink('💾 バックアップ', _openBackup),
       _QuickLink('ℹ️ アプリについて', _openAbout),
+      _QuickLink('📅 支払いを書き出す', _openCalendarExport),
     ];
     return GridView.count(
       crossAxisCount: 2,
