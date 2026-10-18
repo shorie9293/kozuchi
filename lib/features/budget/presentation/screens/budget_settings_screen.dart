@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/domain/models/monthly_budget.dart';
+import 'package:kozuchi/features/budget/data/closing_day_repository.dart';
 import 'package:kozuchi/features/budget/data/rollover_settings_repository.dart';
 import 'package:kozuchi/features/budget/domain/budget_rollover.dart';
 import 'package:kozuchi/features/budget/domain/budget_rollover_service.dart';
 import 'package:kozuchi/features/budget/domain/spending_pace.dart';
 import 'package:kozuchi/features/budget/domain/spending_pace_service.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/spending_pace_widget.dart';
+import 'package:kozuchi/features/budget/presentation/widgets/budget_period_section.dart';
 import 'package:kozuchi/features/budget/presentation/category_budget_app_keys.dart';
 import 'package:kozuchi/features/budget/presentation/screens/category_budget_screen.dart';
 import 'package:kozuchi/features/category_ledger/presentation/category_ledger_app_keys.dart';
@@ -25,11 +27,15 @@ class BudgetSettingsScreen extends StatefulWidget {
   /// 繰り越し設定の永続化リポジトリ
   final RolloverSettingsRepository rolloverRepository;
 
+  /// 家計の締め日設定の永続化リポジトリ
+  final ClosingDayRepository closingDayRepository;
+
   const BudgetSettingsScreen({
     super.key,
     required this.repository,
     this.onSaved,
     this.rolloverRepository = const RolloverSettingsRepository(),
+    this.closingDayRepository = const SharedPreferencesClosingDayRepository(),
   });
 
   @override
@@ -300,6 +306,12 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
                           ),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // 家計の締め日設定（既存ウィジェットを押し出さないよう最下部に追加）
+                    BudgetPeriodSection(
+                      repository: widget.closingDayRepository,
                     ),
                   ],
                 ),

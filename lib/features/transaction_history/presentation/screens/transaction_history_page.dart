@@ -6,6 +6,7 @@ import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/calendar/presentation/calendar_app_keys.dart';
 import 'package:kozuchi/features/calendar/presentation/transaction_calendar_screen.dart';
+import 'package:kozuchi/features/budget/domain/budget_period.dart';
 import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
@@ -53,11 +54,21 @@ class TransactionHistoryPage extends StatefulWidget {
   /// タグの永続化リポジトリ（試練で差し替え可能）。
   final TagRepository tagRepository;
 
+  /// 締め日の読み込み関数（null の場合は暦月＝従来挙動）。
+  ///
+  /// 例: `const SharedPreferencesClosingDayRepository().load`
+  final Future<int> Function()? closingDayLoader;
+
+  /// 現在時刻の取得関数（試練で固定日付を注入可能。null の場合は実時計）。
+  final DateTime Function()? clock;
+
   const TransactionHistoryPage({
     super.key,
     this.controller,
     this.localRepository,
     this.tagRepository = const TagRepository(),
+    this.closingDayLoader,
+    this.clock,
   });
 
   @override
@@ -73,6 +84,12 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
 
   /// 取引キー → タグID列の紐付け（検索用）。
   Map<String, List<String>> _tagAssignments = const {};
+
+  /// 家計の締め日（1＝暦月。loader 未注入時は常に 1）。
+  int _closingDay = BudgetPeriodService.defaultClosingDay;
+
+  /// 現在時刻（clock 注入時はその値、未注入時は実時計）。
+  DateTime _now() => (widget.clock ?? DateTime.now)();
 
   @override
   void initState() {
@@ -96,6 +113,26 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     _controller.fetchTransactions();
     _loadTags();
     _controller.addListener(_onControllerChanged);
+    _loadClosingDay();
+  }
+
+  /// 締め日を読み込み、読み込めた場合のみ既定フィルタを組み直す。
+  Future<void> _loadClosingDay() async {
+    final loader = widget.closingDayLoader;
+    if (loader == null) return;
+
+    int loaded;
+    try {
+      loaded = await loader();
+    } catch (_) {
+      // 読み込み失敗時は既定（暦月）に倒し、画面は壊さない。
+      loaded = BudgetPeriodService.defaultClosingDay;
+    }
+    if (!mounted) return;
+    setState(() {
+      _closingDay = BudgetPeriodService.normalize(loaded);
+    });
+    _controller.updateFilter(_defaultFilter());
   }
 
   @override
@@ -156,13 +193,17 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   /// デフォルトのフィルタ値を生成する。
   ///
   /// - 種別: 全件
-  /// - 開始日: 当月1日
+  /// - 開始日: 現在期間の初日（締め日 1 なら従来どおり月初）
   /// - 終了日: 本日
   TransactionFilter _defaultFilter() {
-    final now = DateTime.now();
+    final now = _now();
+    final period = BudgetPeriodService.periodFor(
+      now,
+      closingDay: _closingDay,
+    );
     return TransactionFilter(
       type: TransactionFilterType.all,
-      startDate: DateTime(now.year, now.month, 1),
+      startDate: period.start,
       endDate: DateTime(now.year, now.month, now.day),
     );
   }

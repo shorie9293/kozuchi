@@ -1,3 +1,5 @@
+import 'package:kozuchi/features/budget/domain/budget_period.dart';
+
 import '../models/expense_entry.dart';
 import '../models/aggregation_result.dart';
 import 'expense_repository.dart';
@@ -48,19 +50,27 @@ class ExpenseAggregationService {
 
   /// 月間集計を取得する
   ///
-  /// [referenceDate] を含む月（1日〜月末）を現在期間として集計。
-  /// その前月を前期間として比較データを生成する。
-  Future<AggregationResult> getMonthlySummary(DateTime referenceDate) async {
-    final monthStart = DateTime(referenceDate.year, referenceDate.month, 1);
-    final monthEnd = DateTime(referenceDate.year, referenceDate.month + 1, 0);
-    final prevMonthStart = DateTime(referenceDate.year, referenceDate.month - 1, 1);
-    final prevMonthEnd = DateTime(referenceDate.year, referenceDate.month, 0);
+  /// [referenceDate] を含む集計期間を現在期間として集計し、
+  /// その前期間を比較データに使う。
+  ///
+  /// [closingDay] が 1（既定）のときは暦月（1日〜末日）＝従来挙動。
+  /// 2〜28 を渡すと「前月 (closingDay+1) 日〜当月 closingDay 日」を 1 期間とする。
+  /// 範囲外の値は 1 に正規化される。
+  Future<AggregationResult> getMonthlySummary(
+    DateTime referenceDate, {
+    int closingDay = BudgetPeriodService.defaultClosingDay,
+  }) async {
+    final period = BudgetPeriodService.periodFor(
+      referenceDate,
+      closingDay: closingDay,
+    );
+    final previousPeriod = period.previous;
 
     return _buildAggregation(
-      start: monthStart,
-      end: monthEnd,
-      prevStart: prevMonthStart,
-      prevEnd: prevMonthEnd,
+      start: period.start,
+      end: period.end,
+      prevStart: previousPeriod.start,
+      prevEnd: previousPeriod.end,
       type: 'monthly',
     );
   }

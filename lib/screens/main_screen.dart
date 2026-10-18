@@ -31,6 +31,7 @@ import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.d
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
 import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart';
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
+import 'package:kozuchi/features/budget/data/closing_day_repository.dart';
 import 'package:kozuchi/features/budget/presentation/screens/expense_anomaly_screen.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
@@ -537,7 +538,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   void _openTransactionHistory() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TransactionHistoryPage()));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TransactionHistoryPage(
+          closingDayLoader: const SharedPreferencesClosingDayRepository().load,
+        ),
+      ),
+    );
   }
 
   void _openCsvImport() {
@@ -611,7 +618,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   void _openSummary() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SummaryScreen()));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SummaryScreen(
+          closingDayLoader: const SharedPreferencesClosingDayRepository().load,
+        ),
+      ),
+    );
   }
 
   /// 支出の異常検知画面を開く

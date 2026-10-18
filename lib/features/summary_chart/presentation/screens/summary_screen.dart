@@ -9,6 +9,7 @@ import 'package:kozuchi/features/spending_chart/presentation/widgets/daily_bar_c
 import 'package:kozuchi/features/summary_chart/domain/category_pie_data.dart';
 import 'package:kozuchi/features/summary_chart/presentation/widgets/category_pie_chart_widget.dart';
 import 'package:kozuchi/core/widgets/washi_background.dart';
+import 'package:kozuchi/features/budget/domain/budget_period.dart';
 import 'package:kozuchi/features/monthly_report/presentation/screens/monthly_report_screen.dart';
 import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
 
@@ -31,10 +32,16 @@ class SummaryScreen extends StatefulWidget {
   /// 現在時刻の取得関数（テスト時に固定日付を注入可能。null の場合は実時計）
   final DateTime Function()? clock;
 
+  /// 締め日の読み込み関数（null の場合は暦月＝従来挙動）。
+  ///
+  /// 例: `const SharedPreferencesClosingDayRepository().load`
+  final Future<int> Function()? closingDayLoader;
+
   const SummaryScreen({
     super.key,
     this.repository,
     this.clock,
+    this.closingDayLoader,
   });
 
   @override
@@ -48,6 +55,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
   AggregationResult? _result;
   String? _error;
 
+  /// 家計の締め日（1＝暦月。loader 未注入時は常に 1）。
+  int _closingDay = BudgetPeriodService.defaultClosingDay;
+
   ExpenseAggregationService get _service => ExpenseAggregationService(
         widget.repository ?? InMemoryExpenseRepository(),
       );
@@ -60,6 +70,26 @@ class _SummaryScreenState extends State<SummaryScreen> {
     super.initState();
     _referenceDate = _now();
     _loadData();
+    _loadClosingDay();
+  }
+
+  /// 締め日を読み込み、読み込めた場合のみ再集計する。
+  Future<void> _loadClosingDay() async {
+    final loader = widget.closingDayLoader;
+    if (loader == null) return;
+
+    int loaded;
+    try {
+      loaded = await loader();
+    } catch (_) {
+      // 読み込み失敗時は既定（暦月）に倒し、画面は壊さない。
+      loaded = BudgetPeriodService.defaultClosingDay;
+    }
+    if (!mounted) return;
+    setState(() {
+      _closingDay = BudgetPeriodService.normalize(loaded);
+    });
+    await _loadData();
   }
 
   Future<void> _loadData() async {
@@ -71,7 +101,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
     try {
       final result = _isWeekly
           ? await _service.getWeeklySummary(_referenceDate)
-          : await _service.getMonthlySummary(_referenceDate);
+          : await _service.getMonthlySummary(
+              _referenceDate,
+              closingDay: _closingDay,
+            );
 
       if (mounted) {
         setState(() {
