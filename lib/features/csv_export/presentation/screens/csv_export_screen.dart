@@ -1,25 +1,41 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
+import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
+import 'package:kozuchi/domain/services/expense_repository.dart';
+import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/csv_export/data/csv_export_service.dart';
+import 'package:kozuchi/features/csv_export/data/csv_file_sharer.dart';
 import 'package:kozuchi/features/csv_export/data/drive_upload_service.dart';
+import 'package:kozuchi/features/csv_export/domain/local_csv_export_service.dart';
 
 /// CSVエクスポート画面
 ///
-/// 日付範囲を選択し、取引データをCSV形式でエクスポートする。
-/// - 日付範囲ピッカー（開始日〜終了日）
-/// - Export CSV ボタン
-/// - ローディング状態表示
-/// - エラーメッセージ表示
+/// 端末が持つ支出明細（[ExpenseRepository]）から日付範囲でCSVを生成し、
+/// 共有シートへ渡す。メール送信・Google Drive アップロードは
+/// 旧 `localhost:8080` API 依存（現行構成に存在しない）ため UI から外した。
 class CsvExportScreen extends StatefulWidget {
+  /// 旧API用サービス。後方互換のため受け取るが、現行の出力経路では使わない。
+  @Deprecated('旧 localhost:8080 API 用。現行の出力経路では未使用')
   final CsvExportService? service;
+
+  /// 旧Drive API用サービス。同上。
+  @Deprecated('旧 localhost:8080 API 用。現行の出力経路では未使用')
   final DriveUploadService? driveService;
+
+  /// 支出明細の取得元。null なら Supabase（expense_entries）を遅延初期化する。
+  final ExpenseRepository? expenseRepository;
+
+  /// CSV共有の実行手段。null なら share_plus 実装を使う。
+  final CsvFileSharer? sharer;
 
   const CsvExportScreen({
     super.key,
+    @Deprecated('旧 localhost:8080 API 用。現行の出力経路では未使用')
     this.service,
+    @Deprecated('旧 localhost:8080 API 用。現行の出力経路では未使用')
     this.driveService,
+    this.expenseRepository,
+    this.sharer,
   });
 
   @override
@@ -27,30 +43,31 @@ class CsvExportScreen extends StatefulWidget {
 }
 
 class _CsvExportScreenState extends State<CsvExportScreen> {
-  late final CsvExportService _service;
-  late final DriveUploadService _driveService;
-  final _emailController = TextEditingController();
+  final LocalCsvExportService _localService = const LocalCsvExportService();
+
+  late final CsvFileSharer _sharer;
+  ExpenseRepository? _repository;
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
-  bool _isSendingEmail = false;
-  bool _isUploadingDrive = false;
   String? _errorMessage;
   String? _successMessage;
-  String? _cachedCsvContent;
-  String? _driveShareLink;
+  String? _shareErrorMessage;
+  int _exportedCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _service = widget.service ?? CsvExportService();
-    _driveService = widget.driveService ?? DriveUploadService();
+    _sharer = widget.sharer ?? const SharePlusCsvFileSharer();
   }
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
+  /// 支出明細の取得元を取得する（[CsvExportScreen.expenseRepository] 注入優先）。
+  ExpenseRepository _getRepository() {
+    if (widget.expenseRepository != null) return widget.expenseRepository!;
+    return _repository ??= SupabaseExpenseRepository(
+      cloudStore: CloudSyncService(client: SupabaseProvider.client),
+      userIdProvider: () => SupabaseProvider.currentUserId,
+    );
   }
 
   /// 日付範囲ピッカーを開く
@@ -86,140 +103,58 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
     }
   }
 
-  /// CSVエクスポートを実行
+  /// 端末の明細からCSVを生成して共有する
   Future<void> _exportCsv() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
       _successMessage = null;
-      _driveShareLink = null;
+      _shareErrorMessage = null;
     });
 
     try {
-      final csvData = await _service.exportCsv(
+      final now = DateTime.now();
+      final repository = _getRepository();
+      final entries = await repository.getEntries(
+        start: _startDate ?? DateTime(2000, 1, 1),
+        end: _endDate ?? now,
+      );
+      if (!mounted) return;
+
+      final selected = _localService.selectEntries(
+        entries,
         startDate: _startDate,
         endDate: _endDate,
       );
-      _cachedCsvContent = csvData;
-
-      // CSVをファイルに保存
-      final dir = Directory.systemTemp;
-      final timestamp = DateTime.now()
-          .toIso8601String()
-          .replaceAll(':', '-')
-          .split('.')
-          .first;
-      final file = File('${dir.path}/kozuchi_export_$timestamp.csv');
-      await file.writeAsString(csvData);
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _successMessage = 'CSVを保存しました: ${file.path}';
-        });
-      }
-    } on CsvExportException catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = e.message;
-        });
-      }
-    }
-  }
-
-  /// メールでCSVを送信
-  Future<void> _sendEmail() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      setState(() {
-        _errorMessage = 'メールアドレスを入力してください';
-      });
-      return;
-    }
-
-    setState(() {
-      _isSendingEmail = true;
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
-    try {
-      final result = await _service.sendCsvByEmail(
-        email: email,
+      final csv = _localService.buildCsv(
+        entries: selected,
         startDate: _startDate,
         endDate: _endDate,
       );
+      final fileName = _localService.fileNameFor(now);
 
-      if (mounted) {
-        setState(() {
-          _isSendingEmail = false;
-          _successMessage = result['message']?.toString() ??
-              'メールを送信しました';
-        });
-      }
-    } on CsvExportException catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSendingEmail = false;
-          _errorMessage = e.message;
-        });
-      }
-    }
-  }
-
-  /// Google DriveにCSVをアップロード
-  Future<void> _uploadToDrive() async {
-    // CSVが未エクスポートなら先にエクスポート
-    if (_cachedCsvContent == null) {
       setState(() {
-        _errorMessage = '先に「CSVをエクスポート」を実行してください';
+        _isLoading = false;
+        _exportedCount = selected.length;
+        _successMessage = selected.isEmpty
+            ? 'この期間の取引はありません（ヘッダのみのCSVを生成しました）'
+            : 'CSVを書き出しました（${selected.length}件）';
       });
-      return;
-    }
 
-    setState(() {
-      _isUploadingDrive = true;
-      _errorMessage = null;
-      _successMessage = null;
-      _driveShareLink = null;
-    });
-
-    try {
-      final timestamp = DateTime.now()
-          .toIso8601String()
-          .replaceAll(':', '-')
-          .split('.')
-          .first;
-      final result = await _driveService.uploadCsv(
-        _cachedCsvContent!,
-        filename: 'kozuchi_export_$timestamp.csv',
-      );
-
-      if (mounted) {
-        setState(() {
-          _isUploadingDrive = false;
-          _driveShareLink = result.webViewLink;
-          _successMessage = 'Driveにアップロードしました';
-        });
-        // 共有リンクをクリップボードにコピー
-        if (result.webViewLink.isNotEmpty) {
-          await Clipboard.setData(ClipboardData(text: result.webViewLink));
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('共有リンクをコピーしました'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
+      try {
+        await _sharer.share(csv: csv, fileName: fileName);
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _shareErrorMessage = '共有シートを開けませんでした（CSVの生成は完了しています）';
+          });
         }
       }
-    } on DriveUploadException catch (e) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _isUploadingDrive = false;
-          _errorMessage = e.message;
+          _isLoading = false;
+          _errorMessage = 'CSVの書き出しに失敗しました: $e';
         });
       }
     }
@@ -249,7 +184,7 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
         title: const Text('CSVエクスポート'),
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -338,8 +273,36 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
                       Expanded(
                         child: Text(
                           _successMessage!,
+                          key: const Key('csvExport_countText'),
                           style: TextStyle(
                             color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 共有失敗の注意（生成自体は完了している）
+            if (_shareErrorMessage != null) ...[
+              Card(
+                key: const Key('csvExport_shareErrorCard'),
+                color: theme.colorScheme.secondaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          color: theme.colorScheme.onSecondaryContainer),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _shareErrorMessage!,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSecondaryContainer,
                           ),
                         ),
                       ),
@@ -366,7 +329,7 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
                         ),
                       )
                     : const Icon(Icons.file_download),
-                label: Text(_isLoading ? 'エクスポート中...' : 'CSVをエクスポート'),
+                label: Text(_isLoading ? '書き出し中...' : 'CSVを書き出す'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
@@ -374,154 +337,13 @@ class _CsvExportScreenState extends State<CsvExportScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // ── メール共有セクション ──
-            const Divider(height: 32),
-            Text(
-              'メールで共有',
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-
-            // メールアドレス入力
-            TextField(
-              key: const Key('csvExport_emailField'),
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              enabled: !_isSendingEmail,
-              decoration: const InputDecoration(
-                hintText: '送信先のメールアドレス',
-                prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // メール送信ボタン
-            SizedBox(
-              height: 48,
-              child: ElevatedButton.icon(
-                key: const Key('csvExport_emailSendButton'),
-                onPressed: _isSendingEmail ? null : _sendEmail,
-                icon: _isSendingEmail
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          key: Key('csvExport_emailLoadingIndicator'),
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(_isSendingEmail ? '送信中...' : 'メールで送信'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.secondary,
-                  foregroundColor: theme.colorScheme.onSecondary,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── Drive共有セクション ──
-            const Divider(height: 32),
-            Text(
-              'Google Driveで共有',
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-
-            // Driveアップロードボタン
-            SizedBox(
-              height: 48,
-              child: ElevatedButton.icon(
-                key: const Key('csvExport_driveUploadButton'),
-                onPressed: (_isUploadingDrive || _cachedCsvContent == null)
-                    ? null
-                    : _uploadToDrive,
-                icon: _isUploadingDrive
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          key: Key('csvExport_driveLoadingIndicator'),
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(Icons.cloud_upload),
-                label: Text(_isUploadingDrive ? 'アップロード中...' : 'Driveに保存'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.tertiary,
-                  foregroundColor: theme.colorScheme.onTertiary,
-                ),
-              ),
-            ),
-
-            // 共有リンク表示
-            if (_driveShareLink != null) ...[
-              const SizedBox(height: 12),
-              Card(
-                key: const Key('csvExport_driveLinkCard'),
-                color: theme.colorScheme.tertiaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.link,
-                              color: theme.colorScheme.onTertiaryContainer,
-                              size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '共有リンク（コピー済み）',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: theme.colorScheme.onTertiaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _driveShareLink!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.colorScheme.onTertiaryContainer
-                              .withAlpha(180),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-
-            if (_cachedCsvContent == null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '※ Driveに保存するには、先に「CSVをエクスポート」を実行してください',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(120),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-
             const SizedBox(height: 16),
 
             // 説明テキスト
             Text(
-              '選択した期間の取引データをCSV形式で出力します。\n'
-              '期間を指定しない場合は、全期間のデータが出力されます。',
+              '端末に記録された支出明細からCSVを生成し、共有シートで受け渡します。\n'
+              '期間を指定しない場合は、全期間のデータが出力されます。'
+              '${_exportedCount > 0 ? '\n直近の書き出し: $_exportedCount件' : ''}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withAlpha(150),
               ),

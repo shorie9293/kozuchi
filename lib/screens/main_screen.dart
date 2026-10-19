@@ -56,6 +56,7 @@ import 'package:kozuchi/features/income/domain/models/income_entry.dart';
 import 'package:kozuchi/features/income/domain/services/income_repository.dart';
 import 'package:kozuchi/features/income/domain/services/income_entry_recording_service.dart';
 import 'package:kozuchi/features/csv_import/presentation/screens/csv_import_screen.dart';
+import 'package:kozuchi/features/csv_export/presentation/screens/csv_export_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/installment_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/subscription_screen.dart';
 import 'package:kozuchi/features/installment/presentation/screens/upcoming_billing_screen.dart';
@@ -554,6 +555,15 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CsvImportScreen()));
   }
 
+  /// CSV書き出し（端末の支出明細から生成し共有シートへ渡す）を開く
+  void _openCsvExport() {
+    // 雛形は既定で Supabase（expense_entries）を遅延初期化するため、
+    // ここでリポジトリを先に構築しない（未初期化環境でも画面は開ける）。
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CsvExportScreen()),
+    );
+  }
+
   void _openRecurringTransaction() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecurringTransactionScreen()));
   }
@@ -961,6 +971,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🎯 貯蓄目標', _openGoalList),
       _QuickLink('📋 取引履歴', _openTransactionHistory),
       _QuickLink('📥 CSV取り込み', _openCsvImport),
+      _QuickLink('📤 CSV書き出し', _openCsvExport),
       _QuickLink('🔁 定期取引', _openRecurringTransaction),
       _QuickLink('🧾 分割払い', _openInstallment),
       _QuickLink('📅 支払い予定', _openUpcomingBilling),
