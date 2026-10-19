@@ -82,6 +82,7 @@ flutter test --no-pub -j 1 \
   test/features/trial_quest/ \
   test/features/tsundoku/ \
   test/features/tutorial/ \
+  test/features/undo/ \
   test/features/wallet/ \
   test/features/weekly_quest/ \
   test/features/weekly_report/

@@ -25,6 +25,8 @@ import 'package:kozuchi/features/tags/presentation/screens/tag_management_screen
 import 'package:kozuchi/features/tags/presentation/screens/tag_summary_screen.dart';
 import 'package:kozuchi/features/tags/presentation/tag_app_keys.dart';
 import 'package:kozuchi/features/tags/presentation/widgets/tag_assignment_dialog.dart';
+import 'package:kozuchi/features/undo/domain/undo_buffer.dart';
+import 'package:kozuchi/features/undo/presentation/undo_snack_bar.dart';
 
 /// 取引履歴一覧画面。
 ///
@@ -91,6 +93,10 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   /// 現在時刻（clock 注入時はその値、未注入時は実時計）。
   DateTime _now() => (widget.clock ?? DateTime.now)();
 
+  /// 削除した取引のUndoバッファ（直前の1件のみ・一度だけ復元可能）。
+  final UndoBuffer<TransactionModel> _undoBuffer =
+      UndoBuffer<TransactionModel>();
+
   @override
   void initState() {
     super.initState();
@@ -137,6 +143,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
 
   @override
   void dispose() {
+    _undoBuffer.clear();
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) {
       _controller.dispose();
@@ -273,7 +280,11 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     );
   }
 
-  /// 取引を削除する（確認ダイアログ → コントローラ経由で削除）。
+  /// 取引を削除する（確認ダイアログ → コントローラ経由で削除 → Undo スナックバー）。
+  ///
+  /// 削除は即時実行し、直後に「元に戻す」付きスナックバーを表示する。
+  /// 元に戻すと、削除直前の取引コピーを既存の保存APIで再登録する
+  /// （同一IDが既に存在する場合は何もしない）。
   Future<void> _deleteTransaction(TransactionModel transaction) async {
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showTransactionDeleteConfirmDialog(
@@ -281,11 +292,34 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       transaction: transaction,
     );
     if (!confirmed || !mounted) return;
+    // 削除対象のコピーを保持（モデルは不変なのでコピーで十分）。
+    final snapshot = transaction.copyWith();
     final ok = await _controller.deleteTransaction(transaction);
     if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(content: Text(ok ? '取引を削除しました' : 'この取引は削除できません')),
+    if (!ok) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('この取引は削除できません')),
+      );
+      return;
+    }
+    _undoBuffer.push(snapshot);
+    showUndoSnackBar(
+      context,
+      message: '取引を削除しました',
+      onUndo: _undoDelete,
     );
+  }
+
+  /// 直前の削除を取り消す（バッファは一度だけ取り出せる）。
+  void _undoDelete() {
+    final snapshot = _undoBuffer.take();
+    if (snapshot == null) return;
+    _restoreTransaction(snapshot);
+  }
+
+  /// 削除した取引を復元する（失敗しても画面は壊さない）。
+  Future<void> _restoreTransaction(TransactionModel transaction) async {
+    await _controller.restoreTransaction(transaction);
   }
 
   @override

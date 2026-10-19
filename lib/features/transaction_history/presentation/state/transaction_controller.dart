@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:kozuchi/domain/models/expense_entry.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/domain/services/expense_entry_mapper.dart';
 import 'package:kozuchi/domain/services/expense_repository.dart';
@@ -156,6 +157,45 @@ class TransactionController extends ChangeNotifier {
     if (repo == null || id == null || id.isEmpty) return false;
     try {
       await repo.deleteEntry(id);
+    } catch (_) {
+      return false;
+    }
+    await fetchTransactions();
+    return true;
+  }
+
+  /// 削除した取引を復元する（Undo 用）。
+  ///
+  /// [transaction] は削除直前の [TransactionModel] のコピー。
+  /// 同じ [TransactionModel.id] の支出明細が既に存在する場合は何もせず true。
+  /// 復元不能（リポジトリ未設定・id 無し・収入・日時不正）なら false。
+  /// 復元成功時は一覧を再取得する。
+  Future<bool> restoreTransaction(TransactionModel transaction) async {
+    final repo = _expenseRepository;
+    final id = transaction.id;
+    if (repo == null || id == null || id.isEmpty) return false;
+    if (transaction.amount >= 0) return false; // 支出明細は支出（負値）のみ
+    try {
+      // 同一IDが既に存在する場合は何もしない（二重登録の防止）。
+      final existing = await repo.getEntryById(id);
+      if (existing != null) return true;
+      final date = DateTime.tryParse(transaction.datetime);
+      if (date == null) return false;
+      final purpose = transaction.purpose.trim();
+      // メモが空/カテゴリ名と同一なら null に寄せる（mapper の表示規約に整合）
+      final note = purpose.isEmpty || purpose == transaction.category
+          ? null
+          : purpose;
+      await repo.saveEntry(
+        ExpenseEntry(
+          id: id,
+          amount: transaction.absAmount,
+          category: transaction.category,
+          date: date,
+          note: note,
+          receiptImagePath: transaction.receiptImagePath,
+        ),
+      );
     } catch (_) {
       return false;
     }
