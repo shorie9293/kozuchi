@@ -21,10 +21,16 @@ class NotificationSettingsScreen extends StatefulWidget {
   /// 例外は画面側で握り潰されるため、呼び出し側で致命傷にはならない。
   final Future<void> Function(NotificationSettings settings)? onSaved;
 
+  /// 静穏時間（おやすみモード）画面への導線を生成するビルダー。
+  ///
+  /// null の場合は AppBar に導線を出さない（後方互換）。
+  final WidgetBuilder? quietHoursScreenBuilder;
+
   const NotificationSettingsScreen({
     super.key,
     this.repository,
     this.onSaved,
+    this.quietHoursScreenBuilder,
   });
 
   @override
@@ -79,7 +85,24 @@ class _NotificationSettingsScreenState
 
     return Scaffold(
       key: NotificationSettingsAppKeys.screen,
-      appBar: AppBar(title: const Text('通知設定')),
+      appBar: AppBar(
+        title: const Text('通知設定'),
+        actions: [
+          if (widget.quietHoursScreenBuilder != null)
+            IconButton(
+              key: NotificationSettingsAppKeys.quietHoursEntry,
+              icon: const Icon(Icons.nightlight_round),
+              tooltip: 'おやすみモード（静穏時間）',
+              onPressed: () {
+                final builder = widget.quietHoursScreenBuilder;
+                if (builder == null) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: builder),
+                );
+              },
+            ),
+        ],
+      ),
       body: ListView(
         children: [
           SemanticHelper.toggle(

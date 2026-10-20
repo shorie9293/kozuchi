@@ -11,6 +11,7 @@ class NotificationSettingsAppKeys {
   static const Key hourDropdown = Key('notificationSettingsHourDropdown');
   static const Key minuteDropdown = Key('notificationSettingsMinuteDropdown');
   static const Key timeLabel = Key('notificationSettingsTimeLabel');
+  static const Key quietHoursEntry = Key('notificationSettingsQuietHoursEntry');
 
   static Key kindSwitch(NotificationKind kind) =>
       Key('notificationSettings_kind_${kind.storageKey}');

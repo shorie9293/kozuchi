@@ -7,6 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:kozuchi/features/notification_settings/data/notification_settings_repository.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings_resolver.dart';
+import 'package:kozuchi/features/quiet_hours/domain/quiet_hours_service.dart';
 
 /// ローカル通知基盤（kozuchi 家計簿RPG用）。
 ///
@@ -298,7 +299,12 @@ class NotificationService {
 
   /// 設定に基づきデイリー記帳リマインドをスケジュールする。
   /// 全体OFF または dailyReminder 種類OFF時はリマインドをキャンセルする。
-  Future<void> scheduleDailyReminder() async {
+  ///
+  /// [guard] を渡すと、静穏時間（おやすみモード）設定で配信時刻を調整する。
+  /// - `adjust` が null を返した場合: スケジュールせず既存通知をキャンセル
+  /// - `adjust` が時刻を返した場合: その時刻でスケジュール
+  /// - null（既定）: 従来どおり `nextInstanceOfTime` の時刻でスケジュール
+  Future<void> scheduleDailyReminder({QuietHoursGuard? guard}) async {
     final settings = await loadSettings();
     if (!NotificationSettingsResolver.isActive(
       settings,
@@ -311,7 +317,23 @@ class NotificationService {
     final hour = settings.hour;
     final minute = settings.minute;
     final scheduleMode = await _getScheduleMode();
-    final scheduledDate = nextInstanceOfTime(hour, minute);
+    var scheduledDate = nextInstanceOfTime(hour, minute);
+
+    if (guard != null) {
+      final adjusted = await guard.adjust(scheduledDate);
+      if (adjusted == null) {
+        debugPrint(
+          '[NotificationService] 静穏時間中のため通知を抑止: $hour:$minute',
+        );
+        await _plugin.cancel(dailyReminderId);
+        return;
+      }
+      scheduledDate = tz.TZDateTime.from(adjusted, tz.local);
+      debugPrint(
+        '[NotificationService] 静穏時間ガードで繰り延べ: '
+        '$hour:$minute → $scheduledDate',
+      );
+    }
 
     debugPrint(
       '[NotificationService] 記帳リマインドをスケジュール: '

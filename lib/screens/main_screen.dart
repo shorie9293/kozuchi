@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/widgets/washi_background.dart';
+import 'package:kozuchi/features/quiet_hours/data/quiet_hours_repository.dart';
+import 'package:kozuchi/features/quiet_hours/presentation/quiet_hours_settings_screen.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/advisor.dart';
@@ -646,9 +648,15 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => NotificationSettingsScreen(
+          // 静穏時間（おやすみモード）への導線。
+          quietHoursScreenBuilder: (_) => const QuietHoursSettingsScreen(),
           onSaved: (settings) async {
             try {
-              await NotificationService().scheduleDailyReminder();
+              await NotificationService().scheduleDailyReminder(
+                guard: const QuietHoursRepositoryGuard(
+                  SharedPreferencesQuietHoursRepository(),
+                ),
+              );
             } catch (e) {
               // プラットフォームチャネルが無い環境（試練等）では例外になり得る。
               debugPrint('scheduleDailyReminder failed: $e');
