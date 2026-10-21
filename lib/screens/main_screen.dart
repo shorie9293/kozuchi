@@ -79,6 +79,9 @@ import 'package:kozuchi/domain/services/expense_entry_recording_service.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/domain/services/expense_repository.dart';
 import 'package:kozuchi/screens/text_scale_settings_screen.dart';
+import 'package:kozuchi/screens/reduce_motion_settings_screen.dart';
+import 'package:kozuchi/core/haptics.dart';
+import 'package:kozuchi/core/theme/reduce_motion_setting.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
 
 /// メイン画面
@@ -93,6 +96,10 @@ class MainScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
   final double? textScale;
   final ValueChanged<double>? onScaleChanged;
+
+  /// 現在の「動きを減らす」設定（ルートが保持）
+  final ReduceMotionSetting? reduceMotion;
+  final ValueChanged<ReduceMotionSetting>? onReduceMotionChanged;
 
   /// 支出明細の保存先。null の場合は Supabase（expense_entries）を使用する。
   final ExpenseRepository? expenseRepository;
@@ -110,6 +117,8 @@ class MainScreen extends StatefulWidget {
     this.onToggleTheme,
     this.textScale,
     this.onScaleChanged,
+    this.reduceMotion,
+    this.onReduceMotionChanged,
     this.expenseRepository,
     this.incomeRepository,
   });
@@ -329,6 +338,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   void _onExpenseRecorded(int amount, String category) {
+    // 保存確定の触覚フィードバック（await 禁止）
+    hapticTap();
     // 月間支出集計に記録
     const DailyBudgetService().recordSpending(amount);
     setState(() {
@@ -635,6 +646,18 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         builder: (_) => TextScaleSettingsScreen(
           currentScale: widget.textScale ?? 1.0,
           onScaleChanged: widget.onScaleChanged ?? (_) {},
+        ),
+      ),
+    );
+  }
+
+  /// 動きを減らす設定画面を開く
+  void _openReduceMotionSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReduceMotionSettingsScreen(
+          initial: widget.reduceMotion ?? ReduceMotionSetting.system,
+          onChanged: widget.onReduceMotionChanged,
         ),
       ),
     );
@@ -992,11 +1015,20 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('🧘 キャリアコーチ', _openCareerCoach),
       _QuickLink('🔒 アプリロック', _openAppLockSettings),
       _QuickLink('🔠 文字サイズ', _openTextScaleSettings),
+      _QuickLink('🧘 動きを減らす', _openReduceMotionSettings,
+          testIdSuffix: 'reduce_motion'),
       _QuickLink('🔔 通知設定', _openNotificationSettings),
       _QuickLink('💾 バックアップ', _openBackup),
       _QuickLink('ℹ️ アプリについて', _openAbout),
       _QuickLink('📅 支払いを書き出す', _openCalendarExport),
     ];
+    // 既存リンクの Semantic testId（btn_quick_link_<index>）を不変に保つため、
+    // 明示IDを持つリンクは連番を消費しない。
+    final testIds = <String>[];
+    var plainIndex = 0;
+    for (final link in links) {
+      testIds.add(link.testIdSuffix ?? '${plainIndex++}');
+    }
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -1007,7 +1039,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       children: [
         for (var i = 0; i < links.length; i++)
           SemanticHelper.interactive(
-            testId: SemanticHelper.createTestId('btn_quick_link', '$i'),
+            testId: SemanticHelper.createTestId('btn_quick_link', testIds[i]),
             label: links[i].label,
             child: OutlinedButton(
               onPressed: links[i].onTap,
@@ -1199,5 +1231,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 class _QuickLink {
   final String label;
   final VoidCallback onTap;
-  const _QuickLink(this.label, this.onTap);
+
+  /// 試練用の識別子接尾辞。null なら従来通りリストindex（既存Keyを不変に保つ）。
+  final String? testIdSuffix;
+
+  const _QuickLink(this.label, this.onTap, {this.testIdSuffix});
 }

@@ -8,6 +8,8 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
+import 'package:kozuchi/core/theme/reduce_motion_repository.dart';
+import 'package:kozuchi/core/theme/reduce_motion_setting.dart';
 import 'package:kozuchi/core/theme/text_scale_repository.dart';
 import 'package:kozuchi/core/theme/theme_repository.dart';
 import 'package:kozuchi/core/infrastructure/app_lock_gate.dart';
@@ -163,10 +165,12 @@ class _MyAppState extends State<MyApp> {
   late bool _showTutorial;
   ThemeMode _themeMode = ThemeMode.system;
   double _textScale = TextScaleSetting.normalScale;
+  ReduceMotionSetting _reduceMotion = ReduceMotionSetting.system;
   bool _themeLoaded = false;
   bool _firstFrameHandled = false;
   final ThemeRepository _themeRepo = const ThemeRepository();
   final TextScaleRepository _textScaleRepo = const TextScaleRepository();
+  final ReduceMotionRepository _reduceMotionRepo = const ReduceMotionRepository();
 
   @override
   void initState() {
@@ -174,6 +178,7 @@ class _MyAppState extends State<MyApp> {
     _showTutorial = widget.isFirstLaunch;
     _loadThemeMode();
     _loadTextScale();
+    _loadReduceMotion();
     // 初回フレーム後に保留中のディープリンクを処理
     WidgetsBinding.instance.addPostFrameCallback(_onFirstFrame);
   }
@@ -233,6 +238,21 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  /// 保存された「動きを減らす」設定を読み込む（未保存は system）。
+  Future<void> _loadReduceMotion() async {
+    final saved = await _reduceMotionRepo.load();
+    if (mounted) {
+      setState(() => _reduceMotion = saved ?? ReduceMotionSetting.system);
+    }
+  }
+
+  /// 「動きを減らす」設定を反映する（保存は設定画面側で実施済み）。
+  void _onReduceMotionChanged(ReduceMotionSetting setting) {
+    if (mounted) {
+      setState(() => _reduceMotion = setting);
+    }
+  }
+
   void _onTutorialComplete() {
     KozuchiTutorialService.markCompleted();
     setState(() => _showTutorial = false);
@@ -262,8 +282,11 @@ class _MyAppState extends State<MyApp> {
       darkTheme: AppTheme.dark,
       themeMode: _themeMode,
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(
-          textScaler: TextScaler.linear(_textScale),
+        data: applyReduceMotion(
+          MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(_textScale),
+          ),
+          _reduceMotion,
         ),
         child: child ?? const SizedBox.shrink(),
       ),
@@ -285,6 +308,8 @@ class _MyAppState extends State<MyApp> {
                     onToggleTheme: _toggleThemeMode,
                     textScale: _textScale,
                     onScaleChanged: _changeTextScale,
+                    reduceMotion: _reduceMotion,
+                    onReduceMotionChanged: _onReduceMotionChanged,
                   ),
           ),
         ),

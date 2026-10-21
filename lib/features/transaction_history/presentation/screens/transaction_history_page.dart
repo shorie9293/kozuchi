@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
+import 'package:kozuchi/core/haptics.dart';
 import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/calendar/presentation/calendar_app_keys.dart';
@@ -292,6 +293,8 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       transaction: transaction,
     );
     if (!confirmed || !mounted) return;
+    // 削除確定の触覚フィードバック（await 禁止）
+    hapticTap();
     // 削除対象のコピーを保持（モデルは不変なのでコピーで十分）。
     final snapshot = transaction.copyWith();
     final ok = await _controller.deleteTransaction(transaction);

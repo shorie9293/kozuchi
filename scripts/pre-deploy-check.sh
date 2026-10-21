@@ -49,7 +49,8 @@ flutter test --no-pub -j 1 \
   test/features/goals/ \
   test/features/goal_spending/ \
   test/features/hp_bar/ \
-  test/features/recurring_transaction/
+  test/features/recurring_transaction/ \
+  test/features/settings/
 echo "✅ shard 2/3 passed"
 
 # --- Step 5: Test shard 3/3 (features グループB) ---
