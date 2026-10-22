@@ -14,6 +14,12 @@ import 'package:kozuchi/features/daily_quest/presentation/state/daily_quest_noti
 import 'package:kozuchi/features/daily_quest/data/quest_action.dart';
 import 'package:kozuchi/features/daily_quest/presentation/widgets/daily_quest_list.dart';
 import 'package:kozuchi/features/daily_quest/presentation/widgets/quest_achievement_effect.dart';
+import 'package:kozuchi/features/weekly_quest/data/notifier_weekly_quest_repository.dart';
+import 'package:kozuchi/features/weekly_quest/data/weekly_quest_generator.dart';
+import 'package:kozuchi/features/weekly_quest/domain/weekly_quest_period.dart';
+import 'package:kozuchi/features/weekly_quest/presentation/screens/weekly_quest_selection_screen.dart';
+import 'package:kozuchi/features/weekly_quest/presentation/state/weekly_quest_notifier.dart';
+import 'package:kozuchi/features/weekly_quest/presentation/widgets/weekly_quest_section.dart';
 import 'package:kozuchi/features/exp_gauge/presentation/widgets/exp_gauge_widget.dart';
 import 'package:kozuchi/features/advisor_selection/presentation/advisor_selection_screen.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/trial_quest_screen.dart';
@@ -136,6 +142,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   late final DailyQuestNotifier _dailyQuestNotifier;
   bool _dailyQuestsLoaded = false;
+  late final WeeklyQuestNotifier _weeklyQuestNotifier;
+  bool _weeklyQuestsLoaded = false;
 
   int _budgetAmount = 0;
   int _monthlyExpenditure = 0;
@@ -160,8 +168,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     _player = widget.initialPlayer ?? PlayerModel.defaultPlayer();
     _currentQuest = _createInitialQuest();
     _dailyQuestNotifier = DailyQuestNotifier();
+    _weeklyQuestNotifier = WeeklyQuestNotifier(
+      generator: WeeklyQuestGenerator(_getExpenseRepository()),
+    );
     _loadSavedState();
     _loadDailyQuests();
+    _loadWeeklyQuests();
     _runRecurringAutoRecord();
   }
 
@@ -262,6 +274,36 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     } catch (_) {
       if (mounted) setState(() => _dailyQuestsLoaded = true);
     }
+  }
+
+  /// 週次クエストの今週分を用意する。
+  ///
+  /// 既存試練の互換維持のため、[MainScreen.initialPlayer] が注入された
+  /// 場合は読み込みを行わない（外部I/O・Supabase 初期化を避ける）。
+  Future<void> _loadWeeklyQuests() async {
+    if (widget.initialPlayer != null) return;
+    try {
+      final period = WeeklyQuestPeriod.of(DateTime.now());
+      final entries = await _getExpenseRepository().getEntries(
+        start: period.weekStart,
+        end: period.weekEndExclusive.subtract(const Duration(days: 1)),
+      );
+      await _weeklyQuestNotifier.ensureForWeek(entries: entries);
+    } catch (_) {
+      // 週次クエストの失敗はホーム画面を妨げない
+    }
+    if (mounted) setState(() => _weeklyQuestsLoaded = true);
+  }
+
+  /// 週次クエスト選択画面を開き、戻ったら状態を再読込する。
+  Future<void> _openWeeklyQuestSelection() async {
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => WeeklyQuestSelectionScreen(
+        repository: NotifierWeeklyQuestRepository(_weeklyQuestNotifier),
+        userId: 'local',
+      ),
+    ));
+    await _loadWeeklyQuests(); // 選択結果を反映
   }
 
   void _checkCareerCoachBookBonus() {
@@ -963,6 +1005,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         const SizedBox(height: 16),
         // デイリークエスト
         _buildDailyQuestSection(colorScheme),
+        const SizedBox(height: 16),
+        // 週次クエスト
+        _buildWeeklyQuestSection(colorScheme),
       ],
     );
   }
@@ -1206,6 +1251,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           onQuestTap: (quest) {},
         );
       },
+    );
+  }
+
+  /// 🗓 週次クエストセクション（読み込み完了までは描画しない）。
+  Widget _buildWeeklyQuestSection(ColorScheme colorScheme) {
+    if (!_weeklyQuestsLoaded) return const SizedBox.shrink();
+    return WeeklyQuestSection(
+      notifier: _weeklyQuestNotifier,
+      onOpenSelection: _openWeeklyQuestSelection,
+      onRetry: _loadWeeklyQuests,
     );
   }
 
