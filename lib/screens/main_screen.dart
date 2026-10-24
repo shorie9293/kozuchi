@@ -732,11 +732,21 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _openSummary() {
+  Future<void> _openSummary() async {
+    // 収入リポジトリは SharedPreferences 未初期化環境で失敗し得るため、
+    // _openIncomeAnalysis と同じ形で Noop へフォールバックする。
+    IncomeRepository repo;
+    try {
+      repo = await _getIncomeRepository();
+    } catch (_) {
+      repo = const NoopIncomeRepository();
+    }
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SummaryScreen(
           closingDayLoader: const SharedPreferencesClosingDayRepository().load,
+          incomeRepository: repo,
         ),
       ),
     );

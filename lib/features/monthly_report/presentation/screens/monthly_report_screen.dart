@@ -3,6 +3,9 @@ import 'package:kozuchi/domain/models/expense_entry.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/domain/services/expense_repository.dart';
 import 'package:kozuchi/domain/services/expense_repository_impl.dart';
+import 'package:kozuchi/features/income/domain/models/income_entry.dart';
+import 'package:kozuchi/features/income/domain/services/income_repository.dart';
+import 'package:kozuchi/features/monthly_report/domain/income_transaction_merger.dart';
 import 'package:kozuchi/features/monthly_report/domain/monthly_report.dart';
 import 'package:kozuchi/features/monthly_report/domain/monthly_report_period.dart';
 import 'package:kozuchi/features/monthly_report/domain/monthly_report_service.dart';
@@ -26,6 +29,12 @@ class MonthlyReportScreen extends StatefulWidget {
   /// 「現在」の日時（null なら DateTime.now()）。テストで決定論的にするため注入可能。
   final DateTime? now;
 
+  /// 収入リポジトリ（null なら Noop＝収入0件として扱う）。
+  ///
+  /// 収入の合流は [IncomeTransactionMerger] に委ね、支出と同じ
+  /// 月次レポートへ実数として載せる。
+  final IncomeRepository? incomeRepository;
+
   const MonthlyReportScreen({
     super.key,
     this.repository,
@@ -33,6 +42,7 @@ class MonthlyReportScreen extends StatefulWidget {
     this.exporter,
     this.initialMonth,
     this.now,
+    this.incomeRepository,
   });
 
   @override
@@ -53,6 +63,8 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
       widget.capture ?? const RepaintBoundaryCapture();
   ReportCardExporter get _exporter =>
       widget.exporter ?? const SharePlusReportCardExporter();
+  IncomeRepository get _incomeRepository =>
+      widget.incomeRepository ?? const NoopIncomeRepository();
 
   @override
   void initState() {
@@ -77,10 +89,26 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
         start: prevPeriod.start,
         end: prevPeriod.end,
       );
+      // 収入は期間を持たないリポジトリAPIのため、全件取得して
+      // IncomeTransactionMerger 側で期間を絞る。失敗しても画面は壊さない。
+      List<IncomeEntry> incomes;
+      try {
+        incomes = await _incomeRepository.getAllEntries();
+      } catch (_) {
+        incomes = const <IncomeEntry>[];
+      }
       final report = MonthlyReportService.build(
         period: _period,
-        transactions: _toTransactions(current),
-        previousMonthTransactions: _toTransactions(previous),
+        transactions: IncomeTransactionMerger.merge(
+          expenses: _toTransactions(current),
+          incomes: incomes,
+          period: _period,
+        ),
+        previousMonthTransactions: IncomeTransactionMerger.merge(
+          expenses: _toTransactions(previous),
+          incomes: incomes,
+          period: prevPeriod,
+        ),
       );
       if (!mounted) return;
       setState(() {

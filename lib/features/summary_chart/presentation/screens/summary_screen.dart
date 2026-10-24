@@ -10,6 +10,7 @@ import 'package:kozuchi/features/summary_chart/domain/category_pie_data.dart';
 import 'package:kozuchi/features/summary_chart/presentation/widgets/category_pie_chart_widget.dart';
 import 'package:kozuchi/core/widgets/washi_background.dart';
 import 'package:kozuchi/features/budget/domain/budget_period.dart';
+import 'package:kozuchi/features/income/domain/services/income_repository.dart';
 import 'package:kozuchi/features/monthly_report/presentation/screens/monthly_report_screen.dart';
 import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
 
@@ -37,11 +38,15 @@ class SummaryScreen extends StatefulWidget {
   /// 例: `const SharedPreferencesClosingDayRepository().load`
   final Future<int> Function()? closingDayLoader;
 
+  /// 収入リポジトリ（月次レポートへ引き渡す。null なら収入0件扱い）
+  final IncomeRepository? incomeRepository;
+
   const SummaryScreen({
     super.key,
     this.repository,
     this.clock,
     this.closingDayLoader,
+    this.incomeRepository,
   });
 
   @override
@@ -204,6 +209,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   MaterialPageRoute<void>(
                     builder: (_) => MonthlyReportScreen(
                       repository: widget.repository,
+                      incomeRepository: widget.incomeRepository,
                     ),
                   ),
                 );
