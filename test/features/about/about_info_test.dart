@@ -57,7 +57,7 @@ void main() {
     test('kAboutInfo は検証済みの既定値を持つ', () {
       expect(kAboutInfo.appName, 'コヅチ');
       expect(kAboutInfo.contactEmail, 'horie.shunta@gmail.com');
-      expect(kAboutInfo.privacyPolicyUrl, 'https://yoppala.in/privacy');
+      expect(kAboutInfo.privacyPolicyUrl, 'https://www.yoppala.in/privacy');
       expect(kAboutInfo.version, isNotEmpty);
     });
   });

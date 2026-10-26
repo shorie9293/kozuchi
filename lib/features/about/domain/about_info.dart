@@ -59,6 +59,6 @@ const kAboutInfo = AboutInfo._(
   'コヅチ',
   '1.3.38',
   'horie.shunta@gmail.com',
-  'https://yoppala.in/privacy',
+  'https://www.yoppala.in/privacy',
   '打ち出の小槌 — 家計を守る神経済アプリ',
 );
