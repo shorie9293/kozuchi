@@ -2,17 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:kozuchi/features/about/domain/about_info.dart';
+import 'package:kozuchi/features/about/domain/external_url_opener.dart';
 import 'package:kozuchi/features/about/presentation/about_app_keys.dart';
+import 'package:kozuchi/features/about/presentation/external_url_launcher.dart';
 
 /// 「アプリについて」画面。
 ///
 /// アプリ名・バージョン、OSSライセンス、プライバシーポリシー、
-/// 問い合わせ（メール）への導線を提供する。
-/// 外部依存（package_info_plus / url_launcher）は用いない。
+/// 問い合わせ（メール）への導線を提供する。プライバシーポリシーと
+/// 問い合わせはタップで外部アプリ（ブラウザ・メール）へ渡し、
+/// 開けなかった場合は従来のコピー導線（URL表示＋クリップボード）へ退避する。
 class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key, this.info = kAboutInfo});
+  const AboutScreen({
+    super.key,
+    this.info = kAboutInfo,
+    this.urlOpener = launchExternalUrl,
+  });
 
   final AboutInfo info;
+
+  /// 外部URLを開く口（試練ではフェイクを注入し、実網を撃たない）。
+  final ExternalUrlOpener urlOpener;
 
   void _copyToClipboard(BuildContext context, String label, String value) {
     SnackBar snackBar;
@@ -23,6 +33,25 @@ class AboutScreen extends StatelessWidget {
       snackBar = const SnackBar(content: Text('コピーできませんでした'));
     }
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  /// 外部アプリで開く。開けなければ（false・例外・URI不正）コピー導線へ退避する。
+  Future<void> _openOrCopy(
+    BuildContext context, {
+    required Uri? uri,
+    required String title,
+    required String url,
+  }) async {
+    var opened = false;
+    if (uri != null) {
+      try {
+        opened = await urlOpener(uri);
+      } catch (_) {
+        opened = false;
+      }
+    }
+    if (opened || !context.mounted) return;
+    _showUrlDialog(context, title, url);
   }
 
   void _showUrlDialog(BuildContext context, String title, String url) {
@@ -104,10 +133,11 @@ class AboutScreen extends StatelessWidget {
                   title: const Text('プライバシーポリシー'),
                   subtitle: const Text('URLの表示とコピー'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showUrlDialog(
+                  onTap: () => _openOrCopy(
                     context,
-                    'プライバシーポリシー',
-                    info.privacyPolicyUrl,
+                    uri: externalUri(info.privacyPolicyUrl),
+                    title: 'プライバシーポリシー',
+                    url: info.privacyPolicyUrl,
                   ),
                 ),
                 const Divider(height: 1),
@@ -117,10 +147,11 @@ class AboutScreen extends StatelessWidget {
                   title: const Text('問い合わせ'),
                   subtitle: Text(info.contactEmail),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showUrlDialog(
+                  onTap: () => _openOrCopy(
                     context,
-                    '問い合わせ',
-                    info.contactEmail,
+                    uri: mailtoUri(info.contactEmail),
+                    title: '問い合わせ',
+                    url: info.contactEmail,
                   ),
                 ),
               ],

@@ -19,8 +19,12 @@ final testInfo = AboutInfo(
   tagline: '試練用',
 );
 
+/// 試練では外部アプリを撃たない。ランチャーは常に失敗（false）を返し、
+/// 従来のコピー導線（ダイアログ）へ退避させる。
 Future<void> pumpScreen(WidgetTester tester) async {
-  await tester.pumpWidget(MaterialApp(home: AboutScreen(info: testInfo)));
+  await tester.pumpWidget(MaterialApp(
+    home: AboutScreen(info: testInfo, urlOpener: (_) async => false),
+  ));
   await tester.pump();
 }
 
