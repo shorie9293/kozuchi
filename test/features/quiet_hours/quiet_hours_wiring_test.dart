@@ -83,6 +83,7 @@ void main() {
           uiLocalNotificationDateInterpretation:
               any(named: 'uiLocalNotificationDateInterpretation'),
           matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+          payload: any(named: 'payload'),
         )).thenAnswer((_) async {});
 
     service = NotificationService(
@@ -106,6 +107,7 @@ void main() {
                 any(named: 'uiLocalNotificationDateInterpretation'),
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             matchDateTimeComponents: DateTimeComponents.time,
+            payload: any(named: 'payload'),
           )).called(1);
     });
 
@@ -122,6 +124,7 @@ void main() {
                 any(named: 'uiLocalNotificationDateInterpretation'),
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             matchDateTimeComponents: DateTimeComponents.time,
+            payload: any(named: 'payload'),
           )).called(1);
       verifyNever(() => plugin.cancel(NotificationService.dailyReminderId));
     });
@@ -165,6 +168,7 @@ void main() {
                 any(named: 'uiLocalNotificationDateInterpretation'),
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             matchDateTimeComponents: DateTimeComponents.time,
+            payload: any(named: 'payload'),
           )).called(1);
     });
   });

@@ -17,6 +17,7 @@ import 'package:kozuchi/core/infrastructure/env.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/core/infrastructure/deep_link_service.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
+import 'package:kozuchi/core/notification/notification_tap_router.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/tutorial/data/kozuchi_tutorial_service.dart';
 import 'package:kozuchi/features/tutorial/presentation/kozuchi_tutorial_overlay.dart';
@@ -40,6 +41,14 @@ import 'package:kozuchi/screens/main_screen.dart';
 
 /// ディープリンクナビゲーションのためのグローバルナビゲーターキー
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+/// 通知タップ → 該当画面の遷移を担う薄い router（対応表は resolver と一致）
+final NotificationTapRouter notificationTapRouter = NotificationTapRouter(
+  navigatorKey: navigatorKey,
+);
+
+/// 通知基盤（起動時の保留遷移を初回フレームで流し込むため保持する）
+NotificationService? _notificationService;
 
 /// アプリ完全終了状態から起動した場合の初期ディープリンクを保持
 Uri? _pendingInitialDeepLink;
@@ -91,7 +100,10 @@ void main() async {
 
   // ── ローカル通知基盤の初期化（記帳リマインド・予算超過アラート）──
   try {
-    final notificationService = NotificationService();
+    final notificationService = NotificationService(
+      onRouteSelected: notificationTapRouter.handle,
+    );
+    _notificationService = notificationService;
     await notificationService.initialize();
     // 設定が有効な場合のみデイリー記帳リマインドをスケジュールする
     await notificationService.scheduleDailyReminder();
@@ -170,7 +182,8 @@ class _MyAppState extends State<MyApp> {
   bool _firstFrameHandled = false;
   final ThemeRepository _themeRepo = const ThemeRepository();
   final TextScaleRepository _textScaleRepo = const TextScaleRepository();
-  final ReduceMotionRepository _reduceMotionRepo = const ReduceMotionRepository();
+  final ReduceMotionRepository _reduceMotionRepo =
+      const ReduceMotionRepository();
 
   @override
   void initState() {
@@ -206,6 +219,12 @@ class _MyAppState extends State<MyApp> {
     _pendingInitialDeepLink = null;
     if (pendingLink != null) {
       _handleDeepLink(pendingLink);
+    }
+
+    // 通知タップで起動した場合、通知基盤が保留した遷移先をここで流し込む
+    final pendingRoute = _notificationService?.consumePendingRoute();
+    if (pendingRoute != null) {
+      notificationTapRouter.handle(pendingRoute);
     }
   }
 

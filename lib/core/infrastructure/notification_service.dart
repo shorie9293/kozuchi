@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'package:kozuchi/core/notification/notification_route_resolver.dart';
 import 'package:kozuchi/features/notification_settings/data/notification_settings_repository.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings_resolver.dart';
@@ -44,12 +45,31 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin;
   final NotificationSettingsRepository _settingsRepository;
 
+  /// 通知タップ（および通知からの起動）で解決した遷移先の受け取り手。
+  ///
+  /// null の場合は [pendingRoute] に保持し、[consumePendingRoute] で取り出す。
+  final void Function(ResolvedNotificationRoute)? onRouteSelected;
+
+  /// 遷移先の解決に失敗した（＝遷移しない）通知を保持しない。
+  ResolvedNotificationRoute? _pendingRoute;
+
   NotificationService({
     FlutterLocalNotificationsPlugin? plugin,
     NotificationSettingsRepository? settingsRepository,
+    this.onRouteSelected,
   })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
-        _settingsRepository =
-            settingsRepository ?? const SharedPreferencesNotificationSettingsRepository();
+        _settingsRepository = settingsRepository ??
+            const SharedPreferencesNotificationSettingsRepository();
+
+  /// 受け取り手が未接続のときに残した遷移先（無ければ null）。
+  ResolvedNotificationRoute? get pendingRoute => _pendingRoute;
+
+  /// 保留中の遷移先を取り出す。取り出した時点で消えるため2度目は null。
+  ResolvedNotificationRoute? consumePendingRoute() {
+    final route = _pendingRoute;
+    _pendingRoute = null;
+    return route;
+  }
 
   /// timezone 初期化とプラグイン初期化、通知チャンネル作成を行う。
   ///
@@ -73,10 +93,52 @@ class NotificationService {
           '[NotificationService] 通知タップ: id=${response.id}, '
           'payload=${response.payload}',
         );
+        _handleNotificationPayload(response.payload);
       },
     );
 
     await _createNotificationChannels();
+    await _handleLaunchDetails();
+  }
+
+  /// 通知 payload を遷移先へ解決し、受け取り手へ引き渡す。
+  ///
+  /// 解決できない payload（未知 route・null・空・破損）は例外を投げずに無視する。
+  /// 受け取り手が未接続の場合は [pendingRoute] に保持する。
+  void _handleNotificationPayload(String? payload) {
+    final route = NotificationRouteResolver.resolve(
+      payload,
+      allowedRoutes: NotificationRoutes.all,
+    );
+    if (route == null) {
+      debugPrint('[NotificationService] 遷移先を解決できません: payload=$payload');
+      return;
+    }
+
+    _pendingRoute = route;
+    final callback = onRouteSelected;
+    if (callback == null) {
+      debugPrint('[NotificationService] 遷移先を保留しました: $route');
+      return;
+    }
+    _pendingRoute = null;
+    callback(route);
+  }
+
+  /// アプリ完全終了状態から通知タップで起動された場合の遷移先を処理する。
+  ///
+  /// 通常のタップ（[initialize] の onDidReceiveNotificationResponse）と同じ入口
+  /// [_handleNotificationPayload] を通す。取得失敗は起動を妨げない。
+  Future<void> _handleLaunchDetails() async {
+    try {
+      final details = await _plugin.getNotificationAppLaunchDetails();
+      if (details == null || !details.didNotificationLaunchApp) return;
+      final payload = details.notificationResponse?.payload;
+      debugPrint('[NotificationService] 通知からの起動: payload=$payload');
+      _handleNotificationPayload(payload);
+    } catch (e) {
+      debugPrint('[NotificationService] 起動時の通知情報を取得できません: $e');
+    }
   }
 
   /// timezone データを初期化し、端末の実タイムゾーンオフセットと
@@ -359,6 +421,9 @@ class NotificationService {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
+      payload: NotificationRouteResolver.buildPayload(
+        NotificationRoutes.transactions,
+      ),
     );
   }
 
@@ -390,6 +455,8 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
+      payload:
+          NotificationRouteResolver.buildPayload(NotificationRoutes.budget),
     );
   }
 
@@ -410,6 +477,7 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
+      payload: NotificationRouteResolver.buildPayload(NotificationRoutes.home),
     );
   }
 

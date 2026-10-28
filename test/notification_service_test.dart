@@ -76,7 +76,13 @@ void main() {
 
     // サービスが await するメソッドのデフォルト実装（検証対象は個別に verify）
     when(() => plugin.cancel(any())).thenAnswer((_) async {});
-    when(() => plugin.show(any(), any(), any(), any())).thenAnswer((_) async {});
+    when(() => plugin.show(
+          any(),
+          any(),
+          any(),
+          any(),
+          payload: any(named: 'payload'),
+        )).thenAnswer((_) async {});
     when(() => plugin.zonedSchedule(
           any(),
           any(),
@@ -87,6 +93,7 @@ void main() {
           uiLocalNotificationDateInterpretation:
               any(named: 'uiLocalNotificationDateInterpretation'),
           matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+          payload: any(named: 'payload'),
         )).thenAnswer((_) async {});
 
     service = NotificationService(plugin: plugin);
@@ -133,6 +140,7 @@ void main() {
                 any(named: 'uiLocalNotificationDateInterpretation'),
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             matchDateTimeComponents: DateTimeComponents.time,
+            payload: any(named: 'payload'),
           )).called(1);
     });
 
@@ -165,6 +173,7 @@ void main() {
             any(),
             any(),
             any(),
+            payload: any(named: 'payload'),
           )).called(1);
     });
   });
@@ -178,6 +187,7 @@ void main() {
             any(),
             any(),
             any(),
+            payload: any(named: 'payload'),
           )).called(1);
     });
   });

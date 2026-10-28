@@ -72,7 +72,13 @@ void main() {
         .thenAnswer((_) async => true);
 
     when(() => plugin.cancel(any())).thenAnswer((_) async {});
-    when(() => plugin.show(any(), any(), any(), any())).thenAnswer((_) async {});
+    when(() => plugin.show(
+          any(),
+          any(),
+          any(),
+          any(),
+          payload: any(named: 'payload'),
+        )).thenAnswer((_) async {});
     when(() => plugin.zonedSchedule(
           any(),
           any(),
@@ -83,6 +89,7 @@ void main() {
           uiLocalNotificationDateInterpretation:
               any(named: 'uiLocalNotificationDateInterpretation'),
           matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+          payload: any(named: 'payload'),
         )).thenAnswer((_) async {});
 
     service = NotificationService(
@@ -109,6 +116,7 @@ void main() {
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
             matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+            payload: any(named: 'payload'),
           ));
     });
 
@@ -132,6 +140,7 @@ void main() {
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
             matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+            payload: any(named: 'payload'),
           ));
     });
 
@@ -149,6 +158,7 @@ void main() {
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
             matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+            payload: any(named: 'payload'),
           )).thenAnswer((inv) async {
         captured = inv.positionalArguments[3] as tz.TZDateTime;
       });
@@ -165,6 +175,7 @@ void main() {
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
             matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+            payload: any(named: 'payload'),
           )).called(1);
       expect(captured!.hour, 7);
       expect(captured!.minute, 15);
@@ -179,7 +190,13 @@ void main() {
 
       await service.sendBudgetAlert('予算超過');
 
-      verifyNever(() => plugin.show(any(), any(), any(), any()));
+      verifyNever(() => plugin.show(
+            any(),
+            any(),
+            any(),
+            any(),
+            payload: any(named: 'payload'),
+          ));
     });
 
     test('budgetAlert 種類ON（既定）→ show が呼ばれる', () async {
@@ -192,6 +209,7 @@ void main() {
             any(),
             any(),
             any(),
+            payload: any(named: 'payload'),
           )).called(1);
     });
   });
@@ -289,6 +307,7 @@ void main() {
             any(),
             any(),
             any(),
+            payload: any(named: 'payload'),
           )).called(1);
     });
   });

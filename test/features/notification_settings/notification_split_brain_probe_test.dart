@@ -78,7 +78,13 @@ void main() {
     when(() => android.canScheduleExactNotifications())
         .thenAnswer((_) async => true);
     when(() => plugin.cancel(any())).thenAnswer((_) async {});
-    when(() => plugin.show(any(), any(), any(), any())).thenAnswer((_) async {});
+    when(() => plugin.show(
+          any(),
+          any(),
+          any(),
+          any(),
+          payload: any(named: 'payload'),
+        )).thenAnswer((_) async {});
     when(() => plugin.zonedSchedule(
           any(),
           any(),
@@ -89,6 +95,7 @@ void main() {
           uiLocalNotificationDateInterpretation:
               any(named: 'uiLocalNotificationDateInterpretation'),
           matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+          payload: any(named: 'payload'),
         )).thenAnswer((_) async {});
   });
 
@@ -131,6 +138,7 @@ void main() {
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
             matchDateTimeComponents: any(named: 'matchDateTimeComponents'),
+            payload: any(named: 'payload'),
           ));
     });
 
@@ -159,6 +167,7 @@ void main() {
             uiLocalNotificationDateInterpretation:
                 any(named: 'uiLocalNotificationDateInterpretation'),
             matchDateTimeComponents: DateTimeComponents.time,
+            payload: any(named: 'payload'),
           )).captured.single as tz.TZDateTime;
 
       expect(captured.hour, 7);
@@ -233,6 +242,7 @@ void main() {
             any(),
             any(),
             any(),
+            payload: any(named: 'payload'),
           ));
     });
 
