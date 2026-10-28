@@ -34,6 +34,7 @@ import 'package:kozuchi/features/careerCoach/domain/career_coach_review_service.
 import 'package:kozuchi/features/careerCoach/presentation/screens/career_coach_screen.dart';
 import 'package:kozuchi/features/about/presentation/about_screen.dart';
 import 'package:kozuchi/features/backup/presentation/backup_screen.dart';
+import 'package:kozuchi/features/settings/presentation/settings_hub_screen.dart';
 import 'package:kozuchi/features/rpg_task_bonus/data/rpg_task_bonus_service.dart';
 import 'package:kozuchi/features/tsundoku/data/tsundoku_gold_luck_buff_service.dart';
 import 'package:kozuchi/features/goal_spending/presentation/widgets/goal_spending_gauge.dart';
@@ -773,6 +774,19 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
+  /// 設定ハブ画面を開く（散在する設定画面への導線を1画面に集約）。
+  void _openSettingsHub() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsHubScreen(
+          currentTextScale: widget.textScale ?? 1.0,
+          onTextScaleChanged: widget.onScaleChanged,
+          onToggleTheme: widget.onToggleTheme,
+        ),
+      ),
+    );
+  }
+
   /// 「アプリについて」画面を開く
   void _openAbout() {
     Navigator.of(context).push(
@@ -1076,6 +1090,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       _QuickLink('💾 バックアップ', _openBackup),
       _QuickLink('ℹ️ アプリについて', _openAbout),
       _QuickLink('📅 支払いを書き出す', _openCalendarExport),
+      _QuickLink('⚙️ 設定', _openSettingsHub, testIdSuffix: 'settings'),
     ];
     // 既存リンクの Semantic testId（btn_quick_link_<index>）を不変に保つため、
     // 明示IDを持つリンクは連番を消費しない。
