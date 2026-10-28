@@ -19,6 +19,10 @@ import 'package:kozuchi/core/infrastructure/deep_link_service.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/core/notification/notification_tap_router.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/features/auto_backup/data/auto_backup_bootstrap.dart';
+import 'package:kozuchi/features/auto_backup/data/auto_backup_store.dart';
+import 'package:kozuchi/features/backup/data/backup_repository.dart';
+import 'package:kozuchi/features/backup/domain/backup_service.dart';
 import 'package:kozuchi/features/tutorial/data/kozuchi_tutorial_service.dart';
 import 'package:kozuchi/features/tutorial/presentation/kozuchi_tutorial_overlay.dart';
 import 'package:kozuchi/features/tutorial/domain/kozuchi_tutorial_step.dart';
@@ -126,6 +130,17 @@ void main() async {
 
   // バックグラウンド→フォアグラウンド復帰時のリンクをリッスン
   appLinks.uriLinkStream.listen(_handleDeepLink);
+
+  // ── 起動時1日1回の自動バックアップ（世代3ローテーション）──
+  // 例外は bootstrap 側が握るため、起動経路を妨げない。
+  // 採取・JSON整形は既存の手動エクスポート経路をそのまま使う。
+  scheduleAutoBackup(
+    buildJson: () async {
+      final bundle = await SharedPreferencesBackupRepository().collect();
+      return BackupService().exportJson(bundle);
+    },
+    store: FileAutoBackupStore(),
+  );
 
   final isFirstLaunch = await KozuchiTutorialService.isFirstLaunch();
   runApp(MyApp(isFirstLaunch: isFirstLaunch));
