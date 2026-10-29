@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 高天原 icon forge 生成物 / 手で編集しない (scripts/icon_forge/generate.py) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54"
+        android:scaleX="0.72" android:scaleY="0.72">
+        <path
+            android:fillColor="#F2C14E"
+            android:strokeColor="#0E1B2E"
+            android:strokeWidth="1.9"
+            android:strokeLineJoin="round"
+            android:pathData="M30.00,24.00 L78.00,24.00 L84.00,36.00 L78.00,48.00 L30.00,48.00 L24.00,36.00 Z" />
+        <path
+            android:fillColor="#D9A23A"
+            android:strokeColor="#0E1B2E"
+            android:strokeWidth="1.9"
+            android:strokeLineJoin="round"
+            android:pathData="M26.00,32.00 L82.00,32.00 L82.00,40.00 L26.00,40.00 Z" />
+        <path
+            android:fillColor="#C8402F"
+            android:strokeColor="#0E1B2E"
+            android:strokeWidth="1.9"
+            android:strokeLineJoin="round"
+            android:pathData="M45.00,48.00 L63.00,48.00 L59.00,88.00 L49.00,88.00 Z" />
+        <path
+            android:fillColor="#F2C14E"
+            android:strokeColor="#0E1B2E"
+            android:strokeWidth="1.9"
+            android:strokeLineJoin="round"
+            android:pathData="M49.00,88.00 L59.00,88.00 L62.00,100.00 L46.00,100.00 Z" />
+        <path
+            android:fillColor="#F2C14E"
+            android:strokeColor="#0E1B2E"
+            android:strokeWidth="1.9"
+            android:strokeLineJoin="round"
+            android:pathData="M84.00,12.00 L88.00,18.00 L84.00,24.00 L80.00,18.00 Z" />
+        <path
+            android:fillColor="#F2C14E"
+            android:strokeColor="#0E1B2E"
+            android:strokeWidth="1.9"
+            android:strokeLineJoin="round"
+            android:pathData="M91.00,34.00 a3.00,3.00 0 1,0 6.00,0 a3.00,3.00 0 1,0 -6.00,0 Z" />
+        <path
+            android:fillColor="#F2C14E"
+            android:strokeColor="#0E1B2E"
+            android:strokeWidth="1.9"
+            android:strokeLineJoin="round"
+            android:pathData="M18.80,13.00 a4.20,4.20 0 1,0 8.40,0 a4.20,4.20 0 1,0 -8.40,0 Z" />
+    </group>
+</vector>
