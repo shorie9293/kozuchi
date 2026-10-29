@@ -42,6 +42,7 @@ import 'package:kozuchi/features/hp_bar/presentation/widgets/hp_bar_widget.dart'
 import 'package:kozuchi/features/budget/presentation/screens/budget_settings_screen.dart';
 import 'package:kozuchi/features/budget/data/closing_day_repository.dart';
 import 'package:kozuchi/features/budget/presentation/screens/expense_anomaly_screen.dart';
+import 'package:kozuchi/core/infrastructure/notification_permission_requester.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
 import 'package:kozuchi/features/budget/presentation/widgets/budget_warning_banner.dart';
@@ -714,6 +715,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => NotificationSettingsScreen(
+          // 通知権限の要求（Android 13+ は要求しないと通知が出ない）。
+          permissionRequester: PlatformNotificationPermissionRequester(),
           // 静穏時間（おやすみモード）への導線。
           quietHoursScreenBuilder: (_) => const QuietHoursSettingsScreen(),
           onSaved: (settings) async {

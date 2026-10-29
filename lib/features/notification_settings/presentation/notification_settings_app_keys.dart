@@ -13,6 +13,13 @@ class NotificationSettingsAppKeys {
   static const Key timeLabel = Key('notificationSettingsTimeLabel');
   static const Key quietHoursEntry = Key('notificationSettingsQuietHoursEntry');
 
+  /// 通知権限が拒否された時の恒久バナー。
+  static const Key permissionBanner = Key('notificationSettingsPermissionBanner');
+
+  /// 恒久バナーから OS のアプリ設定を開くボタン。
+  static const Key permissionSettingsButton =
+      Key('notificationSettingsPermissionSettingsButton');
+
   static Key kindSwitch(NotificationKind kind) =>
       Key('notificationSettings_kind_${kind.storageKey}');
 }

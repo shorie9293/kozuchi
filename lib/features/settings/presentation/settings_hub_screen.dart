@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 
 import 'package:kozuchi/core/infrastructure/app_lock_settings_screen.dart';
+import 'package:kozuchi/core/infrastructure/notification_permission_requester.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/features/about/presentation/about_screen.dart';
 import 'package:kozuchi/features/backup/presentation/backup_screen.dart';
@@ -55,6 +56,7 @@ class SettingsHubScreen extends StatelessWidget {
   /// 通知スケジュールへ即時反映する（main_screen の既存結線と同一）。
   static Widget buildNotificationSettings() {
     return NotificationSettingsScreen(
+      permissionRequester: PlatformNotificationPermissionRequester(),
       quietHoursScreenBuilder: (_) => const QuietHoursSettingsScreen(),
       onSaved: (settings) async {
         try {

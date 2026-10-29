@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/notification_settings/data/notification_settings_repository.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings.dart';
+import 'package:kozuchi/core/infrastructure/notification_permission_requester.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_app_keys.dart';
 
 /// 通知設定画面。
@@ -26,11 +27,18 @@ class NotificationSettingsScreen extends StatefulWidget {
   /// null の場合は AppBar に導線を出さない（後方互換）。
   final WidgetBuilder? quietHoursScreenBuilder;
 
+  /// 通知権限の要求窓口。
+  ///
+  /// null（未注入）の場合は権限要求も拒否バナーも行わない＝従来挙動
+  /// （既存の試練・既存の呼び出しを無破壊に保つ）。
+  final NotificationPermissionRequester? permissionRequester;
+
   const NotificationSettingsScreen({
     super.key,
     this.repository,
     this.onSaved,
     this.quietHoursScreenBuilder,
+    this.permissionRequester,
   });
 
   @override
@@ -42,12 +50,67 @@ class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
   NotificationSettings? _settings;
   NotificationSettingsRepository? _repository;
+  NotificationPermissionStatus? _permission;
+  bool _askedOnce = false;
 
   @override
   void initState() {
     super.initState();
     _repository = widget.repository;
     _load();
+    _ensurePermission(alreadyAsked: _askedOnce);
+  }
+
+  /// 通知権限を確保する。
+  ///
+  /// 画面表示時に 1 回だけ、および通知を ON に切り替えた時に呼ばれる。
+  Future<void> _ensurePermission({bool alreadyAsked = false}) async {
+    final requester = widget.permissionRequester;
+    if (requester == null) return;
+    final status = await requester.ensure(alreadyAsked: alreadyAsked);
+    _askedOnce = true;
+    if (!mounted) return;
+    setState(() => _permission = status);
+  }
+
+  bool get _showPermissionBanner =>
+      _permission == NotificationPermissionStatus.denied ||
+      _permission == NotificationPermissionStatus.permanentlyDenied;
+
+  Widget _buildPermissionBanner(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      key: NotificationSettingsAppKeys.permissionBanner,
+      color: scheme.errorContainer,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.notifications_off, color: scheme.onErrorContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '通知が許可されていません。'
+                  '端末の設定 > アプリ > 通知 から許可してください。',
+                  style: TextStyle(color: scheme.onErrorContainer),
+                ),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              key: NotificationSettingsAppKeys.permissionSettingsButton,
+              onPressed: () => widget.permissionRequester?.openAppSettings(),
+              child: const Text('設定を開く'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -105,6 +168,7 @@ class _NotificationSettingsScreenState
       ),
       body: ListView(
         children: [
+          if (_showPermissionBanner) _buildPermissionBanner(context),
           SemanticHelper.toggle(
             testId: 'notif_tgl_master',
             value: settings.enabled,
@@ -112,7 +176,11 @@ class _NotificationSettingsScreenState
               key: NotificationSettingsAppKeys.masterSwitch,
               title: const Text('通知を受け取る'),
               value: settings.enabled,
-              onChanged: (value) => _update(settings.copyWith(enabled: value)),
+              onChanged: (value) {
+                _update(settings.copyWith(enabled: value));
+                // 通知を ON に切り替えた時だけ権限を要求する。
+                if (value) _ensurePermission();
+              },
             ),
           ),
           const Divider(height: 1),

@@ -57,7 +57,7 @@ class AboutInfo {
 /// （test/features/about/about_version_sync_test.dart が監査する）。
 const kAboutInfo = AboutInfo._(
   'コヅチ',
-  '1.3.40',
+  '1.3.41',
   'horie.shunta@gmail.com',
   'https://www.yoppala.in/privacy',
   '打ち出の小槌 — 家計を守る神経済アプリ',
