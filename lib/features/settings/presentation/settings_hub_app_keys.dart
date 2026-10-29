@@ -11,6 +11,7 @@ class SettingsHubAppKeys {
   static const Key notificationTile = Key('settings_hub_tile_notification');
   static const Key quietHoursTile = Key('settings_hub_tile_quiet_hours');
   static const Key backupTile = Key('settings_hub_tile_backup');
+  static const Key autoBackupTile = Key('settings_hub_tile_auto_backup');
   static const Key aboutTile = Key('settings_hub_tile_about');
   static const Key themeTile = Key('settings_hub_tile_theme');
 }

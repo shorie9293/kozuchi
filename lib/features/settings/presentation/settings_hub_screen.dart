@@ -5,6 +5,13 @@ import 'package:kozuchi/core/infrastructure/app_lock_settings_screen.dart';
 import 'package:kozuchi/core/infrastructure/notification_permission_requester.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/features/about/presentation/about_screen.dart';
+import 'package:kozuchi/features/auto_backup/data/auto_backup_restorer_impl.dart';
+import 'package:kozuchi/features/auto_backup/data/auto_backup_sharer_impl.dart';
+import 'package:kozuchi/features/auto_backup/data/auto_backup_store.dart';
+import 'package:kozuchi/features/auto_backup/domain/auto_backup_service.dart';
+import 'package:kozuchi/features/auto_backup/presentation/auto_backup_screen.dart';
+import 'package:kozuchi/features/backup/data/backup_repository.dart';
+import 'package:kozuchi/features/backup/domain/backup_service.dart';
 import 'package:kozuchi/features/backup/presentation/backup_screen.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
 import 'package:kozuchi/features/quiet_hours/data/quiet_hours_repository.dart';
@@ -25,6 +32,7 @@ class SettingsHubScreen extends StatelessWidget {
   final WidgetBuilder? notificationBuilder;
   final WidgetBuilder? quietHoursBuilder;
   final WidgetBuilder? backupBuilder;
+  final WidgetBuilder? autoBackupBuilder;
   final WidgetBuilder? aboutBuilder;
 
   /// 文字サイズの現在値（ルートが保持する値）。
@@ -44,6 +52,7 @@ class SettingsHubScreen extends StatelessWidget {
     this.notificationBuilder,
     this.quietHoursBuilder,
     this.backupBuilder,
+    this.autoBackupBuilder,
     this.aboutBuilder,
     this.currentTextScale = 1.0,
     this.onTextScaleChanged,
@@ -69,6 +78,32 @@ class SettingsHubScreen extends StatelessWidget {
           // プラットフォームチャネルが無い環境（試練等）では例外になり得る。
           debugPrint('scheduleDailyReminder failed: $e');
         }
+      },
+    );
+  }
+
+  /// 自動バックアップ一覧画面の既定結線。
+  ///
+  /// 保管庫は起動時バックアップと同一の [FileAutoBackupStore]、
+  /// 復元の適用先は既存の手動バックアップ経路（SharedPreferences）を使う。
+  static Widget buildAutoBackupScreen() {
+    final store = FileAutoBackupStore();
+    final repository = SharedPreferencesBackupRepository();
+    final service = BackupService();
+    Future<String> buildJson() async =>
+        service.exportJson(await repository.collect());
+    return AutoBackupScreen(
+      store: store,
+      restorer: AutoBackupRestorerImpl(
+        store: store,
+        buildCurrentJson: buildJson,
+        applyBackup: (json) async {
+          await repository.restore(service.parse(json));
+        },
+      ),
+      sharer: SharePlusAutoBackupSharer(),
+      onBackupNow: () async {
+        await AutoBackupService(store: store).run(buildJson);
       },
     );
   }
@@ -186,6 +221,19 @@ class SettingsHubScreen extends StatelessWidget {
             onTap: () => _push(
               context,
               backupBuilder ?? (_) => const BackupScreen(),
+            ),
+          ),
+          _tile(
+            key: SettingsHubAppKeys.autoBackupTile,
+            testId: SemanticHelper.createTestId(
+              SemanticTypes.button,
+              'settings_hub_auto_backup',
+            ),
+            label: '自動バックアップ',
+            icon: Icons.history,
+            onTap: () => _push(
+              context,
+              autoBackupBuilder ?? (_) => buildAutoBackupScreen(),
             ),
           ),
           _tile(

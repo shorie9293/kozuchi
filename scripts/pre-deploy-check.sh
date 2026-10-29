@@ -37,6 +37,7 @@ flutter test --no-pub -j 1 \
   test/features/about/ \
   test/features/advisor_selection/ \
   test/features/analysis_chart/ \
+  test/features/auto_backup/ \
   test/features/budget/ \
   test/features/careerCoach/ \
   test/features/collaboration_dashboard/ \

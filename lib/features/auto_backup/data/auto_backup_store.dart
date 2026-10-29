@@ -15,6 +15,9 @@ abstract interface class AutoBackupStore {
   /// [fileName] へ書き込む（同名は上書き＝同日冪等）。
   Future<void> write(String fileName, String contents);
 
+  /// [fileName] の内容を読み出す（存在しなければ null）。
+  Future<String?> read(String fileName);
+
   /// [fileName] を削除する（存在しなくても例外にしない）。
   Future<void> delete(String fileName);
 }
@@ -48,6 +51,9 @@ class InMemoryAutoBackupStore implements AutoBackupStore {
     _files[fileName] = contents;
     _createdAt[fileName] = _now();
   }
+
+  @override
+  Future<String?> read(String fileName) async => _files[fileName];
 
   @override
   Future<void> delete(String fileName) async {
@@ -99,6 +105,14 @@ class FileAutoBackupStore implements AutoBackupStore {
     await directory.create(recursive: true);
     final file = File('${directory.path}${Platform.pathSeparator}$fileName');
     await file.writeAsString(contents, flush: true);
+  }
+
+  @override
+  Future<String?> read(String fileName) async {
+    final directory = await _directory();
+    final file = File('${directory.path}${Platform.pathSeparator}$fileName');
+    if (!await file.exists()) return null;
+    return file.readAsString();
   }
 
   @override

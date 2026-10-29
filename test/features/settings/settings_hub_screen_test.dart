@@ -19,6 +19,7 @@ Future<void> _pumpHub(
   WidgetBuilder? textScaleBuilder,
   WidgetBuilder? notificationBuilder,
   WidgetBuilder? aboutBuilder,
+  WidgetBuilder? autoBackupBuilder,
   VoidCallback? onToggleTheme,
 }) async {
   await tester.pumpWidget(MaterialApp(
@@ -26,6 +27,7 @@ Future<void> _pumpHub(
       textScaleBuilder: textScaleBuilder,
       notificationBuilder: notificationBuilder,
       aboutBuilder: aboutBuilder,
+      autoBackupBuilder: autoBackupBuilder,
       onToggleTheme: onToggleTheme,
     ),
   ));
@@ -56,6 +58,7 @@ void main() {
       expect(find.text('通知設定'), findsOneWidget);
       expect(find.text('静穏時間（おやすみモード）'), findsOneWidget);
       expect(find.text('バックアップ'), findsOneWidget);
+      expect(find.text('自動バックアップ'), findsOneWidget);
       expect(find.text('アプリについて'), findsOneWidget);
       expect(find.text('テーマ切替'), findsOneWidget);
       expect(find.byKey(SettingsHubAppKeys.list), findsOneWidget);
@@ -121,6 +124,23 @@ void main() {
 
       // 実画面の AppBar タイトル。
       expect(find.text('アプリについて'), findsWidgets);
+    });
+
+    testWidgets('自動バックアップをタップすると注入したビルダーが呼ばれる', (tester) async {
+      var calls = 0;
+      await _pumpHub(tester, autoBackupBuilder: (_) {
+        calls++;
+        return _stub('自動バックアップ画面');
+      });
+
+      await tester.ensureVisible(find.byKey(SettingsHubAppKeys.autoBackupTile));
+      await tester.pump();
+      await tester.tap(find.byKey(SettingsHubAppKeys.autoBackupTile));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(calls, 1);
+      expect(find.text('自動バックアップ画面'), findsOneWidget);
     });
 
     testWidgets('テーマ切替タップで注入したコールバックが呼ばれる', (tester) async {

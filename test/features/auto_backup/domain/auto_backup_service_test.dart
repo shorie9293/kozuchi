@@ -16,6 +16,9 @@ class _ThrowingStore implements AutoBackupStore {
       throw StateError('write失敗');
 
   @override
+  Future<String?> read(String fileName) async => throw StateError('read失敗');
+
+  @override
   Future<void> delete(String fileName) async {}
 }
 
