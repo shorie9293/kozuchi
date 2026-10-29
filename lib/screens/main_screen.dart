@@ -132,10 +132,10 @@ class MainScreen extends StatefulWidget {
   });
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainScreen> createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
+class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   static final Set<String> _knownUnlockedKeys = {};
 
   late PlayerModel _player;
@@ -295,6 +295,17 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       // 週次クエストの失敗はホーム画面を妨げない
     }
     if (mounted) setState(() => _weeklyQuestsLoaded = true);
+  }
+
+  /// 日付跨ぎ（前面復帰）時に日付依存の実データを再読込する。
+  ///
+  /// 予算・当月支出・支出ペース（[_loadDailyQuests]）と、
+  /// 今週の週次クエスト（[_loadWeeklyQuests]）を既存経路のまま読み直す。
+  Future<void> refreshForNewDay() async {
+    if (!mounted) return;
+    await _loadDailyQuests();
+    await _loadWeeklyQuests();
+    await _runRecurringAutoRecord();
   }
 
   /// 週次クエスト選択画面を開き、戻ったら状態を再読込する。

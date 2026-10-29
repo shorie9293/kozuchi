@@ -40,11 +40,21 @@ import 'package:kozuchi/features/effects/presentation/effects/pillar_of_light_ef
 import 'package:kozuchi/features/effects/presentation/effects/guardian_switch_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/dark_curtain_effect.dart';
 import 'package:kozuchi/features/effects/presentation/effects/offering_flash_effect.dart';
+import 'package:kozuchi/features/lifecycle/domain/day_rollover_detector.dart';
+import 'package:kozuchi/features/lifecycle/presentation/app_lifecycle_refresher.dart';
 import 'package:kozuchi/features/weekly_report/presentation/screens/weekly_report_screen.dart';
 import 'package:kozuchi/screens/main_screen.dart';
 
 /// ディープリンクナビゲーションのためのグローバルナビゲーターキー
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+/// 前面復帰時の日付跨ぎ再計算で、日付依存データを再読込するためのキー。
+final GlobalKey<MainScreenState> mainScreenKey = GlobalKey<MainScreenState>();
+
+/// ローカル暦日跨ぎの検出器（起動時刻を起点に保持する）。
+final DayRolloverDetector dayRolloverDetector = DayRolloverDetector(
+  lastSeen: DateTime.now(),
+);
 
 /// 通知タップ → 該当画面の遷移を担う薄い router（対応表は resolver と一致）
 final NotificationTapRouter notificationTapRouter = NotificationTapRouter(
@@ -143,7 +153,30 @@ void main() async {
   );
 
   final isFirstLaunch = await KozuchiTutorialService.isFirstLaunch();
-  runApp(MyApp(isFirstLaunch: isFirstLaunch));
+  runApp(
+    AppLifecycleRefresher(
+      detector: dayRolloverDetector,
+      onRollover: _onDayRollover,
+      child: MyApp(isFirstLaunch: isFirstLaunch),
+    ),
+  );
+}
+
+/// 日付跨ぎ（前面復帰）時に日付依存の実データを再読込する。
+///
+/// - ホーム画面の予算・当月支出・支出ペース・今週の週次クエスト
+///   （[MainScreenState.refreshForNewDay] → 既存の `_loadDailyQuests` /
+///   `_loadWeeklyQuests` → `setState`）
+/// - 記帳リマインドの再スケジュール（静穏時間ガードは既存どおり）
+Future<void> _onDayRollover() async {
+  await mainScreenKey.currentState?.refreshForNewDay();
+
+  // 通知スケジュールの再計算（失敗してもアプリは継続する）
+  try {
+    await _notificationService?.scheduleDailyReminder();
+  } catch (e) {
+    debugPrint('[kozuchi] ⚠️ 日付跨ぎの通知再スケジュール失敗: $e');
+  }
 }
 
 /// ディープリンクURLを解析し、該当画面に遷移する。
@@ -337,6 +370,7 @@ class _MyAppState extends State<MyApp> {
                     onToggleTheme: _toggleThemeMode,
                   )
                 : MainScreen(
+                    key: mainScreenKey,
                     themeMode: _themeMode,
                     themeIcon: themeIcon,
                     onToggleTheme: _toggleThemeMode,
