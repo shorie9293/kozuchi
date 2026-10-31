@@ -5,6 +5,7 @@ class SettingsHubAppKeys {
   SettingsHubAppKeys._();
 
   static const Key list = Key('settings_hub_list');
+  static const Key crashLogTile = Key('settings_hub_tile_crash_log');
   static const Key textScaleTile = Key('settings_hub_tile_text_scale');
   static const Key reduceMotionTile = Key('settings_hub_tile_reduce_motion');
   static const Key appLockTile = Key('settings_hub_tile_app_lock');

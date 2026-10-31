@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 
+import 'package:kozuchi/core/crash/crash_log_repository.dart';
+import 'package:kozuchi/core/crash/crash_log_screen.dart';
 import 'package:kozuchi/core/infrastructure/app_lock_settings_screen.dart';
 import 'package:kozuchi/core/infrastructure/notification_permission_requester.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
@@ -34,6 +36,10 @@ class SettingsHubScreen extends StatelessWidget {
   final WidgetBuilder? backupBuilder;
   final WidgetBuilder? autoBackupBuilder;
   final WidgetBuilder? aboutBuilder;
+  final WidgetBuilder? crashLogBuilder;
+
+  /// クラッシュ記録の読み出し元（未指定なら端末内ファイル実装）。
+  final CrashLogRepository? crashLogRepository;
 
   /// 文字サイズの現在値（ルートが保持する値）。
   final double currentTextScale;
@@ -54,6 +60,8 @@ class SettingsHubScreen extends StatelessWidget {
     this.backupBuilder,
     this.autoBackupBuilder,
     this.aboutBuilder,
+    this.crashLogBuilder,
+    this.crashLogRepository,
     this.currentTextScale = 1.0,
     this.onTextScaleChanged,
     this.onToggleTheme,
@@ -140,6 +148,14 @@ class SettingsHubScreen extends StatelessWidget {
       body: ListView(
         key: SettingsHubAppKeys.list,
         children: [
+          _CrashLogTile(
+            repository: crashLogRepository ?? FileCrashLogRepository(),
+            builder: crashLogBuilder ??
+                (_) => CrashLogScreen(
+                      repository:
+                          crashLogRepository ?? FileCrashLogRepository(),
+                    ),
+          ),
           _tile(
             key: SettingsHubAppKeys.textScaleTile,
             testId: SemanticHelper.createTestId(
@@ -167,8 +183,7 @@ class SettingsHubScreen extends StatelessWidget {
             icon: Icons.motion_photos_off,
             onTap: () => _push(
               context,
-              reduceMotionBuilder ??
-                  (_) => const ReduceMotionSettingsScreen(),
+              reduceMotionBuilder ?? (_) => const ReduceMotionSettingsScreen(),
             ),
           ),
           _tile(
@@ -265,6 +280,59 @@ class SettingsHubScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 「不具合の報告」タイル。記録が1件以上あるときだけ件数を併記する。
+class _CrashLogTile extends StatefulWidget {
+  const _CrashLogTile({required this.repository, required this.builder});
+
+  final CrashLogRepository repository;
+  final WidgetBuilder builder;
+
+  @override
+  State<_CrashLogTile> createState() => _CrashLogTileState();
+}
+
+class _CrashLogTileState extends State<_CrashLogTile> {
+  int _count = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final entries = await widget.repository.loadAll();
+    if (!mounted) return;
+    setState(() => _count = entries.length);
+  }
+
+  Future<void> _open() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: widget.builder),
+    );
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _count > 0 ? '不具合の報告 ($_count)' : '不具合の報告';
+    return SemanticHelper.interactive(
+      testId: SemanticHelper.createTestId(
+        SemanticTypes.button,
+        'settings_hub_crash_log',
+      ),
+      label: label,
+      child: ListTile(
+        key: SettingsHubAppKeys.crashLogTile,
+        leading: const Icon(Icons.info_outline),
+        title: Text(label),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _open,
       ),
     );
   }

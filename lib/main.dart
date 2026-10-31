@@ -7,6 +7,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:kozuchi/core/crash/crash_guard.dart';
+import 'package:kozuchi/core/crash/crash_log_entry.dart';
+import 'package:kozuchi/core/crash/crash_log_repository.dart';
+import 'package:kozuchi/core/crash/crash_log_service.dart';
+import 'package:kozuchi/core/crash/error_boundary.dart' as crash_boundary;
 import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:kozuchi/core/theme/reduce_motion_repository.dart';
 import 'package:kozuchi/core/theme/reduce_motion_setting.dart';
@@ -67,8 +72,27 @@ NotificationService? _notificationService;
 /// アプリ完全終了状態から起動した場合の初期ディープリンクを保持
 Uri? _pendingInitialDeepLink;
 
-void main() async {
+void main() {
+  // 未捕捉の非同期例外はゾーンの受け皿で端末内ログへ落とし、アプリは継続する。
+  runZonedGuarded(
+    () async {
+      await bootstrap();
+    },
+    (error, stack) {
+      unawaited(
+        CrashLogger(FileCrashLogRepository())
+            .record(error, stack, kind: CrashKind.zoneError),
+      );
+    },
+  );
+}
+
+/// 起動処理の本体（旧 main() の中身）。
+Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ━━━ 未捕捉例外の受け皿（既存の Crashlytics 設定へ合流する）━━━
+  installCrashGuard();
 
   // ━━━ Firebase 運用監視基盤（Crashlytics クラッシュ検知 + Analytics KPI計測）━━━
   try {
@@ -76,10 +100,17 @@ void main() async {
     // Analytics: セッション開始を記録し DAU/定着率のKPI計測を有効化
     unawaited(FirebaseAnalytics.instance.logAppOpen());
     // クラッシュ検知: Flutterフレームワーク内の致命的エラーを Crashlytics へ送信
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    // （クラッシュガードの端末内記録へも合流させる）
+    final previousFlutterOnError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+      previousFlutterOnError?.call(details);
+    };
     // ゾーン外の非同期エラー（Platformレベル）も Crashlytics へ送信
+    final previousPlatformOnError = PlatformDispatcher.instance.onError;
     PlatformDispatcher.instance.onError = (error, stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      previousPlatformOnError?.call(error, stack);
       return true;
     };
     debugPrint('[kozuchi] ✅ Firebase 初期化完了');
@@ -154,10 +185,12 @@ void main() async {
 
   final isFirstLaunch = await KozuchiTutorialService.isFirstLaunch();
   runApp(
-    AppLifecycleRefresher(
-      detector: dayRolloverDetector,
-      onRollover: _onDayRollover,
-      child: MyApp(isFirstLaunch: isFirstLaunch),
+    crash_boundary.ErrorBoundary(
+      child: AppLifecycleRefresher(
+        detector: dayRolloverDetector,
+        onRollover: _onDayRollover,
+        child: MyApp(isFirstLaunch: isFirstLaunch),
+      ),
     ),
   );
 }
