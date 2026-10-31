@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/load_state/load_state.dart';
 import '../models/income_entry.dart';
 
 /// 収入データの永続化インターフェース
@@ -17,6 +18,29 @@ abstract class IncomeRepository {
 
   /// 全データを削除する（リセット用）。
   Future<void> clearAll();
+}
+
+/// 読込失敗を「0件」へ丸めない取得 API。
+///
+/// [IncomeRepository.getAllEntries] は既存呼出側との互換のため温存し、
+/// 失敗し得る読込はこちらを用いる。例外は握り潰さず
+/// [LoadResult.failure] として返し、呼出側が
+/// 「0円」表示を出す誤りを防ぐ。
+extension IncomeRepositoryLoad on IncomeRepository {
+  /// 全収入を [LoadResult] で返す（成功しても0件なら success([])）。
+  ///
+  /// 0件と失敗の区別は [LoadState] 側で行う。
+  Future<LoadResult<List<IncomeEntry>>> tryFetchAll() async {
+    try {
+      final entries = await getAllEntries();
+      return LoadResult<List<IncomeEntry>>.success(entries);
+    } catch (e) {
+      return LoadResult<List<IncomeEntry>>.failure(
+        '収入の記録を読み込めませんでした',
+        cause: e,
+      );
+    }
+  }
 }
 
 /// インメモリ実装の IncomeRepository（テスト用）。

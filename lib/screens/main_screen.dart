@@ -61,6 +61,7 @@ import 'package:kozuchi/core/infrastructure/app_lock_settings_screen.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
+import 'package:kozuchi/core/load_state/load_state.dart';
 import 'package:kozuchi/features/income/presentation/screens/income_analysis_screen.dart';
 import 'package:kozuchi/features/income/domain/models/income_entry.dart';
 import 'package:kozuchi/features/income/domain/services/income_repository.dart';
@@ -882,26 +883,31 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
-  /// 収入分析画面 — 収入源別の内訳と構成比を可視化する。
+  /// 収入明細を [LoadResult] で取得する（読込失敗を0件へ丸めない）。
   ///
-  /// 永続明細があればそれを用い、無ければ記憶済みのセッション内収入のみ。
-  Future<void> _openIncomeAnalysis() async {
+  /// リポジトリ自体の取得失敗（SharedPreferences 未初期化等）も
+  /// Noop へ黙って倒さず failure として返す。
+  Future<LoadResult<List<IncomeEntry>>> _loadIncomeEntries() async {
     IncomeRepository repo;
     try {
       repo = await _getIncomeRepository();
-    } catch (_) {
-      repo = const NoopIncomeRepository();
+    } catch (e) {
+      return LoadResult<List<IncomeEntry>>.failure(
+        '収入の記録を読み込めませんでした',
+        cause: e,
+      );
     }
-    List<IncomeEntry> entries;
-    try {
-      entries = await repo.getAllEntries();
-    } catch (_) {
-      entries = const [];
-    }
-    if (!mounted) return;
+    return repo.tryFetchAll();
+  }
+
+  /// 収入分析画面 — 収入源別の内訳と構成比を可視化する。
+  ///
+  /// 読込は画面側の [LoadState] に委ね、失敗時は「0円」ではなく
+  /// 失敗表示（再試行可）を出す。
+  void _openIncomeAnalysis() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => IncomeAnalysisScreen(entries: entries),
+        builder: (_) => IncomeAnalysisScreen(loader: _loadIncomeEntries),
       ),
     );
   }

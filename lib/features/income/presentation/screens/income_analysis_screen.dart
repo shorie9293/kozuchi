@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/load_state/load_state.dart';
+import '../../../../core/widgets/load_state_views.dart';
 import '../../domain/models/income_entry.dart';
 import '../../domain/models/income_source_summary.dart';
 import '../../domain/services/income_analysis_service.dart';
@@ -11,18 +13,24 @@ import '../widgets/income_analysis_keys.dart';
 /// 金額・件数・構成比を一覧表示する。
 ///
 /// - [entriesOverride]: 試練用のデータ注入（null なら [entries] を用いる）
+/// - [loader]: 読込失敗と0件を分離する取得関数（null なら [entries] を
+///   そのまま表示する従来挙動）
 /// - 試練は entriesOverride で固定データを注入するため実リポジトリ不要
 class IncomeAnalysisScreen extends StatefulWidget {
-  /// 分析対象の収入エントリ
+  /// 分析対象の収入エントリ（[loader] 未指定時の従来表示用）
   final List<IncomeEntry> entries;
 
   /// 試練用の上書きデータ（getter で毎回評価される）
   final List<IncomeEntry>? entriesOverride;
 
+  /// 収入の読込関数。指定すると読込中／失敗／0件／成功を分けて描画する。
+  final Future<LoadResult<List<IncomeEntry>>> Function()? loader;
+
   const IncomeAnalysisScreen({
     super.key,
-    required this.entries,
+    this.entries = const <IncomeEntry>[],
     this.entriesOverride,
+    this.loader,
   });
 
   @override
@@ -32,11 +40,43 @@ class IncomeAnalysisScreen extends StatefulWidget {
 class _IncomeAnalysisScreenState extends State<IncomeAnalysisScreen> {
   late final TextEditingController _searchController;
 
+  /// 読込局面（loader 未指定＝従来モードでは null のまま）
+  LoadState<List<IncomeEntry>>? _load;
+
+  /// 直近に取得できたデータ。失敗時もここは消さない（既存表示を保つ）。
+  List<IncomeEntry>? _lastEntries;
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _searchController.addListener(_onSearchChanged);
+    if (widget.loader != null) {
+      _runLoad();
+    }
+  }
+
+  /// loader 経由の読込。失敗を空リストへ丸めず error 局面へ落とす。
+  Future<void> _runLoad() async {
+    final loader = widget.loader;
+    if (loader == null) return;
+    setState(() {
+      _load = const LoadState<List<IncomeEntry>>.loading();
+    });
+    final result = await loader();
+    if (!mounted) return;
+    setState(() {
+      _load = result.when(
+        success: (entries) {
+          _lastEntries = entries;
+          return entries.isEmpty
+              ? const LoadState<List<IncomeEntry>>.empty()
+              : LoadState<List<IncomeEntry>>.data(entries);
+        },
+        failure: (message, retryable) =>
+            LoadState<List<IncomeEntry>>.error(message, retryable: retryable),
+      );
+    });
   }
 
   @override
@@ -51,7 +91,9 @@ class _IncomeAnalysisScreenState extends State<IncomeAnalysisScreen> {
   }
 
   // late final で widget を捕捉すると override 差し替えに追随しない（既知の禍津）
-  List<IncomeEntry> get _entries => widget.entriesOverride ?? widget.entries;
+  // loader 経由の場合も、失敗時に直近の取得結果を捨てない。
+  List<IncomeEntry> get _entries =>
+      _lastEntries ?? widget.entriesOverride ?? widget.entries;
 
   String get _query => _searchController.text;
 
@@ -70,18 +112,69 @@ class _IncomeAnalysisScreenState extends State<IncomeAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isEmpty = _entries.isEmpty;
 
     return Scaffold(
       key: IncomeAnalysisAppKeys.screen,
       appBar: AppBar(
         title: const Text('📈 収入分析'),
         centerTitle: true,
+        actions: [
+          if (widget.loader != null)
+            IconButton(
+              key: const ValueKey('income_analysis_refresh'),
+              icon: const Icon(Icons.refresh),
+              tooltip: '再読込',
+              onPressed: _runLoad,
+            ),
+        ],
       ),
-      body: isEmpty
-          ? _buildEmptyState(colorScheme)
-          : _buildAnalysisList(colorScheme),
+      body: _buildBody(colorScheme),
     );
+  }
+
+  /// 局面に応じた本文。失敗は空状態へ丸めず [LoadErrorView] で示す。
+  Widget _buildBody(ColorScheme colorScheme) {
+    final load = _load;
+    if (load == null) {
+      // 従来モード（entries 直渡し）: 既存挙動を厳守する。
+      return _entries.isEmpty
+          ? _buildEmptyState(colorScheme)
+          : _buildAnalysisList(colorScheme);
+    }
+
+    final hasData = _lastEntries != null && _lastEntries!.isNotEmpty;
+
+    if (load.isLoading && !hasData) {
+      return const Center(
+        key: ValueKey('income_analysis_loading'),
+        child: CircularProgressIndicator(),
+      );
+    }
+    if (load.isEmpty) {
+      return const LoadEmptyView(message: '収入の記録はまだない');
+    }
+    if (load.isError && !hasData) {
+      return LoadErrorView(
+        message: load.message!,
+        onRetry: load.retryable ? _runLoad : null,
+      );
+    }
+    if (load.isError && hasData) {
+      // 既存データは消さず、失敗バナーを併置する。
+      return Column(
+        children: [
+          LoadErrorView(
+            message: load.message!,
+            onRetry: load.retryable ? _runLoad : null,
+          ),
+          Expanded(child: _buildAnalysisList(colorScheme)),
+        ],
+      );
+    }
+    if (!hasData) {
+      return _buildEmptyState(colorScheme);
+    }
+    return _buildAnalysisList(colorScheme);
   }
 
   Widget _buildEmptyState(ColorScheme colorScheme) {
