@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:kozuchi/core/infrastructure/env.dart';
@@ -11,11 +12,23 @@ class WeeklyReportApiService {
   final String _baseUrl;
   final http.Client _client;
 
+  /// 通信の打ち切り時間。圏外・無応答で画面が永久に待つのを防ぐ。
+  final Duration _timeout;
+
+  /// 既定の打ち切り時間。
+  static const Duration defaultTimeout = Duration(seconds: 10);
+
   WeeklyReportApiService({
     String? baseUrl,
     http.Client? client,
+    Duration timeout = defaultTimeout,
   })  : _baseUrl = baseUrl ?? Env.weeklyReportApiUrl,
-        _client = client ?? _DefaultHttpClient();
+        _client = client ?? _DefaultHttpClient(),
+        _timeout = timeout {
+    if (timeout <= Duration.zero) {
+      throw ArgumentError.value(timeout, 'timeout', '打ち切り時間は正の値であること');
+    }
+  }
 
   /// 指定週のレポートを取得する
   ///
@@ -33,7 +46,16 @@ class WeeklyReportApiService {
       },
     );
 
-    final response = await _client.get(uri);
+    final http.Response response;
+    try {
+      response = await _client.get(uri).timeout(_timeout);
+    } on TimeoutException catch (e) {
+      throw WeeklyReportApiException(
+        'レポートの取得が時間内に応答しませんでした（時間切れ）',
+        isTimeout: true,
+        cause: e,
+      );
+    }
 
     if (response.statusCode != 200) {
       throw WeeklyReportApiException(
@@ -58,7 +80,18 @@ class WeeklyReportApiException implements Exception {
   final String message;
   final int? statusCode;
 
-  const WeeklyReportApiException(this.message, {this.statusCode});
+  /// 打ち切り時間の超過（圏外・無応答）で発生したことを示す。
+  final bool isTimeout;
+
+  /// 元の例外（[TimeoutException] 等）。
+  final Object? cause;
+
+  const WeeklyReportApiException(
+    this.message, {
+    this.statusCode,
+    this.isTimeout = false,
+    this.cause,
+  });
 
   @override
   String toString() => 'WeeklyReportApiException: $message';

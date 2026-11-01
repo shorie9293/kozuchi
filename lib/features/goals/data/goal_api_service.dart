@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -11,13 +12,41 @@ class GoalApiService {
   final http.Client _client;
   final String _userId;
 
+  /// 通信の打ち切り時間。圏外・無応答で画面が永久に待つのを防ぐ。
+  final Duration _timeout;
+
+  /// 既定の打ち切り時間。
+  static const Duration defaultTimeout = Duration(seconds: 10);
+
   GoalApiService({
     required String baseUrl,
     http.Client? client,
     String userId = 'user_001',
+    Duration timeout = defaultTimeout,
   })  : _baseUrl = baseUrl,
         _client = client ?? _DefaultHttpClient(),
-        _userId = userId;
+        _userId = userId,
+        _timeout = timeout {
+    if (timeout <= Duration.zero) {
+      throw ArgumentError.value(timeout, 'timeout', '打ち切り時間は正の値であること');
+    }
+  }
+
+  /// 打ち切り時間を課して送る。時間切れは「失敗」として投げる。
+  Future<http.Response> _send(
+    Future<http.Response> Function() request,
+    String what,
+  ) async {
+    try {
+      return await request().timeout(_timeout);
+    } on TimeoutException catch (e) {
+      throw GoalApiException(
+        '$whatが時間内に応答しませんでした（時間切れ）',
+        isTimeout: true,
+        cause: e,
+      );
+    }
+  }
 
   /// 目標一覧を取得する
   ///
@@ -33,7 +62,7 @@ class GoalApiService {
       queryParameters: params,
     );
 
-    final response = await _client.get(uri);
+    final response = await _send(() => _client.get(uri), '目標一覧の取得');
     _checkResponse(response);
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -46,7 +75,7 @@ class GoalApiService {
       queryParameters: {'user_id': _userId},
     );
 
-    final response = await _client.get(uri);
+    final response = await _send(() => _client.get(uri), '目標の取得');
     _checkResponse(response);
 
     return Goal.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
@@ -61,16 +90,19 @@ class GoalApiService {
   }) async {
     final uri = Uri.parse('$_baseUrl/api/goals');
 
-    final response = await _client.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'user_id': _userId,
-        'title': title,
-        'target_amount': targetAmount,
-        if (deadline != null) 'deadline': deadline,
-        'current_amount': currentAmount,
-      }),
+    final response = await _send(
+      () => _client.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': _userId,
+          'title': title,
+          'target_amount': targetAmount,
+          if (deadline != null) 'deadline': deadline,
+          'current_amount': currentAmount,
+        }),
+      ),
+      '目標の作成',
     );
     _checkResponse(response);
 
@@ -98,10 +130,13 @@ class GoalApiService {
     if (currentAmount != null) body['current_amount'] = currentAmount;
     if (status != null) body['status'] = status;
 
-    final response = await _client.put(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
+    final response = await _send(
+      () => _client.put(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ),
+      '目標の更新',
     );
     _checkResponse(response);
 
@@ -114,7 +149,7 @@ class GoalApiService {
       queryParameters: {'user_id': _userId},
     );
 
-    final response = await _client.delete(uri);
+    final response = await _send(() => _client.delete(uri), '目標の削除');
     if (response.statusCode != 204) {
       throw GoalApiException(
         '目標の削除に失敗しました (HTTP ${response.statusCode})',
@@ -163,10 +198,22 @@ class GoalApiException implements Exception {
   final String message;
   final int? statusCode;
 
-  const GoalApiException(this.message, {this.statusCode});
+  /// 打ち切り時間の超過（圏外・無応答）で発生したことを示す。
+  final bool isTimeout;
+
+  /// 元の例外（[TimeoutException] 等）。
+  final Object? cause;
+
+  const GoalApiException(
+    this.message, {
+    this.statusCode,
+    this.isTimeout = false,
+    this.cause,
+  });
 
   @override
-  String toString() => 'GoalApiException: $message';
+  String toString() =>
+      'GoalApiException: $message${isTimeout ? ' (timeout)' : ''}';
 }
 
 /// デフォルト HTTP クライアント

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:kozuchi/core/infrastructure/env.dart';
@@ -13,11 +14,23 @@ class AchievementService {
   final String? _baseUrlOverride;
   final Future<List<AchievementApiModel>> Function({String? userId})? _fetchOverride;
 
+  /// 通信の打ち切り時間。圏外・無応答でスピナーが永久に回るのを防ぐ。
+  final Duration _timeout;
+
+  /// 既定の打ち切り時間。
+  static const Duration defaultTimeout = Duration(seconds: 10);
+
   AchievementService({http.Client? client, String? baseUrl,
-      Future<List<AchievementApiModel>> Function({String? userId})? fetchOverride})
+      Future<List<AchievementApiModel>> Function({String? userId})? fetchOverride,
+      Duration timeout = defaultTimeout})
       : _client = client ?? http.Client(),
         _baseUrlOverride = baseUrl,
-        _fetchOverride = fetchOverride;
+        _fetchOverride = fetchOverride,
+        _timeout = timeout {
+    if (timeout <= Duration.zero) {
+      throw ArgumentError.value(timeout, 'timeout', '打ち切り時間は正の値であること');
+    }
+  }
 
   String get _baseUrl => _baseUrlOverride ?? Env.achievementApiUrl;
 
@@ -36,7 +49,16 @@ class AchievementService {
       queryParameters: userId != null ? {'user_id': userId} : null,
     );
 
-    final response = await _client.get(uri);
+    final http.Response response;
+    try {
+      response = await _client.get(uri).timeout(_timeout);
+    } on TimeoutException catch (e) {
+      throw AchievementServiceException(
+        '実績の取得が時間内に応答しませんでした（時間切れ）',
+        isTimeout: true,
+        cause: e,
+      );
+    }
 
     if (response.statusCode != 200) {
       throw AchievementServiceException(
@@ -60,11 +82,22 @@ class AchievementService {
   ) async {
     final uri = Uri.parse('$_baseUrl/api/achievements/check');
 
-    final response = await _client.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(request.toJson()),
-    );
+    final http.Response response;
+    try {
+      response = await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode(request.toJson()),
+          )
+          .timeout(_timeout);
+    } on TimeoutException catch (e) {
+      throw AchievementServiceException(
+        '実績チェックが時間内に応答しませんでした（時間切れ）',
+        isTimeout: true,
+        cause: e,
+      );
+    }
 
     if (response.statusCode != 200) {
       throw AchievementServiceException(
@@ -82,8 +115,20 @@ class AchievementService {
 /// 実績サービスの例外
 class AchievementServiceException implements Exception {
   final String message;
-  const AchievementServiceException(this.message);
+
+  /// 打ち切り時間の超過（圏外・無応答）で発生したことを示す。
+  final bool isTimeout;
+
+  /// 元の例外（[TimeoutException] 等）。
+  final Object? cause;
+
+  const AchievementServiceException(
+    this.message, {
+    this.isTimeout = false,
+    this.cause,
+  });
 
   @override
-  String toString() => 'AchievementServiceException: $message';
+  String toString() =>
+      'AchievementServiceException: $message${isTimeout ? ' (timeout)' : ''}';
 }
