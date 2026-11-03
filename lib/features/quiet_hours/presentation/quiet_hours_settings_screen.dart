@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/features/quiet_hours/data/quiet_hours_repository.dart';
 import 'package:kozuchi/features/quiet_hours/domain/quiet_hours_policy.dart';
 import 'package:kozuchi/features/quiet_hours/domain/quiet_hours_service.dart';
@@ -69,7 +71,7 @@ class _QuietHoursSettingsScreenState extends State<QuietHoursSettingsScreen> {
     try {
       widget.onSaved?.call(reloaded);
     } catch (e) {
-      debugPrint('QuietHoursSettingsScreen: onSaved failed: $e');
+      appLog.warn('QuietHoursSettingsScreen: onSaved failed', e);
     }
   }
 

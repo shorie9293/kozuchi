@@ -12,6 +12,7 @@ import 'package:kozuchi/core/crash/crash_log_entry.dart';
 import 'package:kozuchi/core/crash/crash_log_repository.dart';
 import 'package:kozuchi/core/crash/crash_log_service.dart';
 import 'package:kozuchi/core/crash/error_boundary.dart' as crash_boundary;
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/core/theme/app_theme.dart';
 import 'package:kozuchi/core/theme/reduce_motion_repository.dart';
 import 'package:kozuchi/core/theme/reduce_motion_setting.dart';
@@ -113,10 +114,10 @@ Future<void> bootstrap() async {
       previousPlatformOnError?.call(error, stack);
       return true;
     };
-    debugPrint('[kozuchi] ✅ Firebase 初期化完了');
+    appLog.debug('[kozuchi] ✅ Firebase 初期化完了');
   } catch (e) {
     // テスト環境や Firebase 未設定時はアプリ起動を妨げず継続する
-    debugPrint('[kozuchi] ⚠️ Firebase初期化失敗（アプリは継続）: $e');
+    appLog.warn('[kozuchi] Firebase初期化失敗（アプリは継続）', e);
   }
 
   // .env から環境変数を読み込み
@@ -132,12 +133,11 @@ Future<void> bootstrap() async {
   final authService = AuthService();
   try {
     final userId = await authService.signInAnonymously();
-    // ignore: avoid_print
-    print('[kozuchi] Anonymous auth OK, user_id=$userId');
+    // ユーザーIDは個人特定情報のため開発時のみ出力する。
+    appLog.debug('[kozuchi] Anonymous auth OK, user_id=$userId');
   } catch (e) {
     // 認証失敗時もアプリは起動継続（オフラインモード）
-    // ignore: avoid_print
-    print('[kozuchi] Anonymous auth failed (offline mode): $e');
+    appLog.warn('[kozuchi] Anonymous auth failed (offline mode)', e);
   }
 
   // 支出分類器を初期化
@@ -152,10 +152,10 @@ Future<void> bootstrap() async {
     await notificationService.initialize();
     // 設定が有効な場合のみデイリー記帳リマインドをスケジュールする
     await notificationService.scheduleDailyReminder();
-    debugPrint('[kozuchi] ✅ 通知基盤初期化完了');
+    appLog.debug('[kozuchi] ✅ 通知基盤初期化完了');
   } catch (e) {
     // 通知初期化失敗時もアプリ起動は継続する
-    debugPrint('[kozuchi] ⚠️ 通知基盤初期化失敗（アプリは継続）: $e');
+    appLog.warn('[kozuchi] 通知基盤初期化失敗（アプリは継続）', e);
   }
 
   // ── ディープリンクハンドリングの初期化 ──
@@ -165,8 +165,7 @@ Future<void> bootstrap() async {
   try {
     _pendingInitialDeepLink = await appLinks.getInitialLink();
   } catch (e) {
-    // ignore: avoid_print
-    print('[kozuchi] Error getting initial deep link: $e');
+    appLog.warn('[kozuchi] Error getting initial deep link', e);
   }
 
   // バックグラウンド→フォアグラウンド復帰時のリンクをリッスン
@@ -208,7 +207,7 @@ Future<void> _onDayRollover() async {
   try {
     await _notificationService?.scheduleDailyReminder();
   } catch (e) {
-    debugPrint('[kozuchi] ⚠️ 日付跨ぎの通知再スケジュール失敗: $e');
+    appLog.warn('[kozuchi] 日付跨ぎの通知再スケジュール失敗', e);
   }
 }
 
@@ -217,8 +216,7 @@ Future<void> _onDayRollover() async {
 /// 対応URL形式:
 ///   app://weekly-report?week=YYYY-WW
 void _handleDeepLink(Uri uri) {
-  // ignore: avoid_print
-  print('[kozuchi] Deep link received: $uri');
+  appLog.debug('[kozuchi] Deep link received: $uri');
 
   final week = DeepLinkService.parseWeeklyReportWeek(uri);
   if (week != null) {

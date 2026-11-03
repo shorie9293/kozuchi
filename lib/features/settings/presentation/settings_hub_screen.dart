@@ -6,6 +6,7 @@ import 'package:kozuchi/core/crash/crash_log_screen.dart';
 import 'package:kozuchi/core/infrastructure/app_lock_settings_screen.dart';
 import 'package:kozuchi/core/infrastructure/notification_permission_requester.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/features/about/presentation/about_screen.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_restorer_impl.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_sharer_impl.dart';
@@ -87,7 +88,7 @@ class SettingsHubScreen extends StatelessWidget {
           );
         } catch (e) {
           // プラットフォームチャネルが無い環境（試練等）では例外になり得る。
-          debugPrint('scheduleDailyReminder failed: $e');
+          appLog.warn('scheduleDailyReminder failed', e);
         }
       },
     );

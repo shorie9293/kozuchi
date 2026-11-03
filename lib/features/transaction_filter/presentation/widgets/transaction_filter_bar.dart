@@ -15,7 +15,7 @@ import 'package:kozuchi/features/transaction_filter/presentation/transaction_que
 /// ```dart
 /// TransactionFilterBar(
 ///   initialFilter: const TransactionFilter(),
-///   onChanged: (filter) => print(filter.type),
+///   onChanged: (filter) => handleFilterChanged(filter.type),
 ///   availableCategories: ['食費', '交通費'],
 ///   availableTags: [ExpenseTag(id: 't1', name: '旅行')],
 /// )

@@ -4,6 +4,7 @@ import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/notification_settings/data/notification_settings_repository.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings.dart';
 import 'package:kozuchi/core/infrastructure/notification_permission_requester.dart';
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_app_keys.dart';
 
 /// 通知設定画面。
@@ -125,11 +126,11 @@ class _NotificationSettingsScreenState
   Future<void> _update(NotificationSettings next) async {
     await _repository!.save(next);
     // 保存成功後、通知の再スケジュール等の副作用フックを呼ぶ。
-    // 失敗しても画面は壊さない（debugPrint のみ）。
+    // 失敗しても画面は壊さない（appLog.warn のみ）。
     try {
       await widget.onSaved?.call(next);
     } catch (e) {
-      debugPrint('NotificationSettingsScreen: onSaved failed: $e');
+      appLog.warn('NotificationSettingsScreen: onSaved failed', e);
     }
     if (!mounted) return;
     setState(() => _settings = next);

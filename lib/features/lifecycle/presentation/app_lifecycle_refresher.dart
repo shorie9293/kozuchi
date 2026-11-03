@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/features/lifecycle/domain/day_rollover_detector.dart';
 
 /// アプリが前面復帰した時にローカル暦日の跨ぎを検出し、
@@ -75,7 +77,7 @@ class _AppLifecycleRefresherState extends State<AppLifecycleRefresher>
     try {
       await widget.onRollover();
     } catch (error, stackTrace) {
-      debugPrint('[kozuchi] ⚠️ 日付跨ぎ再計算に失敗: $error\n$stackTrace');
+      appLog.warn('[kozuchi] 日付跨ぎ再計算に失敗', error, stackTrace);
     } finally {
       _isRefreshing = false;
     }

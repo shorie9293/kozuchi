@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/core/widgets/washi_background.dart';
 import 'package:kozuchi/features/quiet_hours/data/quiet_hours_repository.dart';
 import 'package:kozuchi/features/quiet_hours/presentation/quiet_hours_settings_screen.dart';
@@ -740,7 +741,7 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               );
             } catch (e) {
               // プラットフォームチャネルが無い環境（試練等）では例外になり得る。
-              debugPrint('scheduleDailyReminder failed: $e');
+              appLog.warn('scheduleDailyReminder failed', e);
             }
           },
         ),

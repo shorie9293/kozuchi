@@ -1,0 +1,6 @@
+# lib 配下で許容される raw print / debugPrint の上限件数。
+# `\b(debugPrint|print)\s*\(` に一致する出現数（lib/**/*.dart）を数える。
+# 本番ログ垂れ流し是正（AppLogger 移行）で 39 → 0 になった実測値を上限として固定する。
+# 値を増やす変更は本番ログの増加を意味するため、必ず lib/core/logging/app_logger.dart の
+# appLog（debug/info/warn/error）へ移行すること。
+0

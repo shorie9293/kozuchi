@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/core/notification/notification_route_resolver.dart';
 import 'package:kozuchi/features/notification_settings/data/notification_settings_repository.dart';
 import 'package:kozuchi/features/notification_settings/domain/notification_settings.dart';
@@ -89,7 +89,7 @@ class NotificationService {
     await _plugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (response) {
-        debugPrint(
+        appLog.debug(
           '[NotificationService] 通知タップ: id=${response.id}, '
           'payload=${response.payload}',
         );
@@ -111,14 +111,14 @@ class NotificationService {
       allowedRoutes: NotificationRoutes.all,
     );
     if (route == null) {
-      debugPrint('[NotificationService] 遷移先を解決できません: payload=$payload');
+      appLog.warn('[NotificationService] 遷移先を解決できません: payload=$payload');
       return;
     }
 
     _pendingRoute = route;
     final callback = onRouteSelected;
     if (callback == null) {
-      debugPrint('[NotificationService] 遷移先を保留しました: $route');
+      appLog.debug('[NotificationService] 遷移先を保留しました: $route');
       return;
     }
     _pendingRoute = null;
@@ -134,10 +134,10 @@ class NotificationService {
       final details = await _plugin.getNotificationAppLaunchDetails();
       if (details == null || !details.didNotificationLaunchApp) return;
       final payload = details.notificationResponse?.payload;
-      debugPrint('[NotificationService] 通知からの起動: payload=$payload');
+      appLog.debug('[NotificationService] 通知からの起動: payload=$payload');
       _handleNotificationPayload(payload);
     } catch (e) {
-      debugPrint('[NotificationService] 起動時の通知情報を取得できません: $e');
+      appLog.warn('[NotificationService] 起動時の通知情報を取得できません', e);
     }
   }
 
@@ -149,8 +149,8 @@ class NotificationService {
     final deviceOffset = DateTime.now().timeZoneOffset;
     final tzLocalOffset = tz.TZDateTime.now(tz.local).timeZoneOffset;
 
-    debugPrint('[NotificationService] 端末オフセット: $deviceOffset');
-    debugPrint(
+    appLog.debug('[NotificationService] 端末オフセット: $deviceOffset');
+    appLog.debug(
       '[NotificationService] tz.local: ${tz.local.name} '
       '(offset: $tzLocalOffset)',
     );
@@ -158,19 +158,19 @@ class NotificationService {
     if (deviceOffset != tzLocalOffset) {
       final correctTzName = _findTimezoneByOffset(deviceOffset);
       if (correctTzName != null) {
-        debugPrint(
+        appLog.info(
           '[NotificationService] タイムゾーンを上書き: '
           '${tz.local.name} → $correctTzName',
         );
         tz.setLocalLocation(tz.getLocation(correctTzName));
       } else {
-        debugPrint(
-          '[NotificationService] 警告: オフセット $deviceOffset に一致する'
+        appLog.warn(
+          '[NotificationService] オフセット $deviceOffset に一致する'
           'タイムゾーンが見つかりません',
         );
       }
     } else {
-      debugPrint(
+      appLog.debug(
         '[NotificationService] タイムゾーンは正しいです: ${tz.local.name}',
       );
     }
@@ -262,7 +262,7 @@ class NotificationService {
       ),
     );
 
-    debugPrint('[NotificationService] 通知チャンネルを作成しました');
+    appLog.debug('[NotificationService] 通知チャンネルを作成しました');
   }
 
   /// 通知権限をリクエストする。Android 13+ では実行時ダイアログが表示される。
@@ -271,7 +271,7 @@ class NotificationService {
         AndroidFlutterLocalNotificationsPlugin>();
     if (android != null) {
       final granted = await android.requestNotificationsPermission();
-      debugPrint('[NotificationService] 通知権限: $granted');
+      appLog.debug('[NotificationService] 通知権限: $granted');
       return granted ?? false;
     }
     return true;
@@ -384,20 +384,20 @@ class NotificationService {
     if (guard != null) {
       final adjusted = await guard.adjust(scheduledDate);
       if (adjusted == null) {
-        debugPrint(
+        appLog.info(
           '[NotificationService] 静穏時間中のため通知を抑止: $hour:$minute',
         );
         await _plugin.cancel(dailyReminderId);
         return;
       }
       scheduledDate = tz.TZDateTime.from(adjusted, tz.local);
-      debugPrint(
+      appLog.debug(
         '[NotificationService] 静穏時間ガードで繰り延べ: '
         '$hour:$minute → $scheduledDate',
       );
     }
 
-    debugPrint(
+    appLog.debug(
       '[NotificationService] 記帳リマインドをスケジュール: '
       '$hour:$minute → $scheduledDate (mode: $scheduleMode)',
     );
@@ -435,12 +435,12 @@ class NotificationService {
       settings,
       NotificationKind.budgetAlert,
     )) {
-      debugPrint(
+      appLog.info(
         '[NotificationService] 予算超過アラートは無効のため送信しない: $message',
       );
       return;
     }
-    debugPrint('[NotificationService] 予算超過アラートを送信: $message');
+    appLog.debug('[NotificationService] 予算超過アラートを送信: $message');
     await _plugin.show(
       budgetAlertId,
       '💥 予算超過',
@@ -462,7 +462,7 @@ class NotificationService {
 
   /// テスト通知を即時表示する。通知機能の動作確認用。
   Future<void> sendTestNotification() async {
-    debugPrint('[NotificationService] テスト通知を送信します');
+    appLog.debug('[NotificationService] テスト通知を送信します');
     await _plugin.show(
       testNotificationId,
       '🔔 テスト通知',

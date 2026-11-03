@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:kozuchi/core/logging/app_logger.dart';
 
 /// 前面復帰時に観測された暦日の変化。
 enum DayRolloverResult {
@@ -44,8 +44,8 @@ class DayRolloverDetector {
     }
 
     // 暦日が過去へ巻き戻った。lastSeen は据え置く（クランプ）。
-    debugPrint(
-      '[kozuchi] ⚠️ 端末時計の巻き戻しを検出: lastSeen=$_lastSeen / now=$now',
+    appLog.warn(
+      '[kozuchi] 端末時計の巻き戻しを検出: lastSeen=$_lastSeen / now=$now',
     );
     return DayRolloverResult.clockWentBack;
   }
