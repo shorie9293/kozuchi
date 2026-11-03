@@ -15,6 +15,7 @@ import 'package:kozuchi/features/auto_backup/presentation/auto_backup_screen.dar
 import 'package:kozuchi/features/backup/data/backup_repository.dart';
 import 'package:kozuchi/features/backup/domain/backup_service.dart';
 import 'package:kozuchi/features/backup/presentation/backup_screen.dart';
+import 'package:kozuchi/features/help/presentation/help_screen.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
 import 'package:kozuchi/features/quiet_hours/data/quiet_hours_repository.dart';
 import 'package:kozuchi/features/quiet_hours/presentation/quiet_hours_settings_screen.dart';
@@ -37,6 +38,7 @@ class SettingsHubScreen extends StatelessWidget {
   final WidgetBuilder? autoBackupBuilder;
   final WidgetBuilder? aboutBuilder;
   final WidgetBuilder? crashLogBuilder;
+  final WidgetBuilder? helpBuilder;
 
   /// クラッシュ記録の読み出し元（未指定なら端末内ファイル実装）。
   final CrashLogRepository? crashLogRepository;
@@ -61,6 +63,7 @@ class SettingsHubScreen extends StatelessWidget {
     this.autoBackupBuilder,
     this.aboutBuilder,
     this.crashLogBuilder,
+    this.helpBuilder,
     this.crashLogRepository,
     this.currentTextScale = 1.0,
     this.onTextScaleChanged,
@@ -277,6 +280,19 @@ class SettingsHubScreen extends StatelessWidget {
               trailing: const Icon(Icons.swap_horiz),
               enabled: onToggleTheme != null,
               onTap: onToggleTheme,
+            ),
+          ),
+          _tile(
+            key: SettingsHubAppKeys.helpTile,
+            testId: SemanticHelper.createTestId(
+              SemanticTypes.button,
+              'settings_hub_help',
+            ),
+            label: '遊び方・ヘルプ',
+            icon: Icons.help_outline,
+            onTap: () => _push(
+              context,
+              helpBuilder ?? (_) => const HelpScreen(),
             ),
           ),
         ],
