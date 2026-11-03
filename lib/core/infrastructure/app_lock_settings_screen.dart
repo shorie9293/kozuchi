@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/settings/presentation/settings_hub_app_keys.dart';
 import 'app_lock_repository.dart';
 import 'app_lock_service.dart';
+import 'lock_reload_policy.dart';
 
 /// 設定画面: パスコードによるアプリロックの有効化/無効化。
 class AppLockSettingsScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class AppLockSettingsScreen extends StatefulWidget {
 class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
   AppLockService? _service;
   bool _enabled = false;
+  int _graceSeconds = 0;
   final _passcodeController = TextEditingController();
   final _confirmController = TextEditingController();
   String? _error;
@@ -34,7 +37,15 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
     setState(() {
       _service = service;
       _enabled = service.isLocked;
+      _graceSeconds = repo.getRelockGraceSeconds();
     });
+  }
+
+  Future<void> _setGrace(int? seconds) async {
+    if (seconds == null) return;
+    await _service!.setRelockGrace(Duration(seconds: seconds));
+    if (!mounted) return;
+    setState(() => _graceSeconds = seconds);
   }
 
   @override
@@ -79,17 +90,45 @@ class _AppLockSettingsScreenState extends State<AppLockSettingsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _enabled
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.lock, size: 48),
-                      const Text('アプリロック有効'),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _disable,
-                        child: const Text('無効にする'),
-                      ),
-                    ],
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.lock, size: 48),
+                        const Text('アプリロック有効'),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('復帰時に再施錠'),
+                              const SizedBox(width: 12),
+                              DropdownButton<int>(
+                                key: SettingsHubAppKeys.appLockGraceDropdown,
+                                value: _graceSeconds,
+                                onChanged: _setGrace,
+                                items: [
+                                  for (final seconds
+                                      in LockReloadPolicy.graceOptionsSeconds)
+                                    DropdownMenuItem<int>(
+                                      value: seconds,
+                                      child: Text(
+                                        LockReloadPolicy.graceLabel(seconds),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _disable,
+                          child: const Text('無効にする'),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : Padding(

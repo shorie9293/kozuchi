@@ -38,11 +38,12 @@ void main() {
       expect(repo.verifyPasscode(''), isFalse);
     });
 
-    test('ハッシュは平文を含まない', () async {
+    test('ハッシュは平文を含まない（v2形式）', () async {
       await repo.setPasscode('9876');
       final hash = repo.getPasscodeHash()!;
       expect(hash, isNot(contains('9876')));
-      expect(hash.length, 64); // SHA-256 hex
+      expect(hash.startsWith('v2:1200:'), isTrue);
+      expect(hash.split(':').last.length, 64); // SHA-256 hex
     });
 
     test('clearPasscode 後は検証不可', () async {

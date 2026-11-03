@@ -16,4 +16,5 @@ class SettingsHubAppKeys {
   static const Key aboutTile = Key('settings_hub_tile_about');
   static const Key themeTile = Key('settings_hub_tile_theme');
   static const Key helpTile = Key('settings_hub_tile_help');
+  static const Key appLockGraceDropdown = Key('settings_hub_app_lock_grace');
 }
