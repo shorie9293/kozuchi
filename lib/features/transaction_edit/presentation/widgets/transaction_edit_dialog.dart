@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/input/guarded_dialog.dart';
+import 'package:kozuchi/core/input/unsaved_changes.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/transaction_edit/domain/services/transaction_edit_service.dart';
 import 'package:kozuchi/features/transaction_edit/presentation/transaction_edit_app_keys.dart';
@@ -32,9 +34,13 @@ class TransactionEditDialog extends StatefulWidget {
     DateTime? firstDate,
     DateTime? lastDate,
   }) {
-    return showDialog<TransactionModel>(
+    // 入力途中のメモ・金額を誤タップ・戻る操作で失わないよう、確認付きで開く。
+    final key = GlobalKey<TransactionEditDialogState>();
+    return showGuardedDialog<TransactionModel>(
       context: context,
+      isDirty: () => key.currentState?.isDirty ?? false,
       builder: (_) => TransactionEditDialog(
+        key: key,
         transaction: transaction,
         firstDate: firstDate,
         lastDate: lastDate,
@@ -43,10 +49,15 @@ class TransactionEditDialog extends StatefulWidget {
   }
 
   @override
-  State<TransactionEditDialog> createState() => _TransactionEditDialogState();
+  State<TransactionEditDialog> createState() => TransactionEditDialogState();
 }
 
-class _TransactionEditDialogState extends State<TransactionEditDialog> {
+/// ダイアログの状態（破棄確認のため、未保存の変更を外から問い合わせられる）。
+class TransactionEditDialogState extends State<TransactionEditDialog> {
+  late final String _initialAmount;
+  late final String _initialCategory;
+  late final String _initialNote;
+  late final DateTime _initialDate;
   late final TextEditingController _amountController;
   late final TextEditingController _categoryController;
   late final TextEditingController _noteController;
@@ -62,6 +73,25 @@ class _TransactionEditDialogState extends State<TransactionEditDialog> {
     _noteController =
         TextEditingController(text: tx.purpose == tx.category ? '' : tx.purpose);
     _date = DateTime.tryParse(tx.datetime) ?? DateTime.now();
+    _initialAmount = _amountController.text;
+    _initialCategory = _categoryController.text;
+    _initialNote = _noteController.text;
+    _initialDate = _date;
+  }
+
+  /// 未保存の変更があるか（空白差のみは未変更）。
+  bool get isDirty {
+    if (UnsavedChangesGuard.isAnyDirty(
+      {'amount': _initialAmount, 'category': _initialCategory, 'note': _initialNote},
+      {
+        'amount': _amountController.text,
+        'category': _categoryController.text,
+        'note': _noteController.text,
+      },
+    )) {
+      return true;
+    }
+    return _initialDate != _date;
   }
 
   @override
