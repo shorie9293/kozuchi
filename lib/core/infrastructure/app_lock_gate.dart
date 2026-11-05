@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app_lock_repository.dart';
 import 'app_lock_service.dart';
 import 'lock_attempt_policy.dart';
+import 'lock_recovery_policy.dart';
+import 'lock_recovery_service.dart';
 import 'lock_reload_policy.dart';
 
 /// アプリロック有効時に全UIを隠すゲートWidget。
@@ -14,9 +16,15 @@ import 'lock_reload_policy.dart';
 ///
 /// バックグラウンドから復帰した際は、設定された猶予を超えていれば
 /// 再施錠する（既定は即時）。
+///
+/// パスコードを忘れた場合に備え、ロック画面からデータ初期化つきの
+/// 回復導線（[LockRecoveryService]）を開ける。未注入なら本番実装を用いる。
 class AppLockGate extends StatefulWidget {
   final WidgetBuilder unlockedBuilder;
   final AppLockRepository? repository;
+
+  /// 回復処理の差し替え（試練用）。既定は本番実装。
+  final LockRecoveryService? recoveryService;
 
   /// 時刻注入（試練用）。既定は DateTime.now。
   final DateTime Function()? now;
@@ -28,6 +36,7 @@ class AppLockGate extends StatefulWidget {
     super.key,
     required this.unlockedBuilder,
     this.repository,
+    this.recoveryService,
     this.now,
     this.graceOverride,
   });
@@ -36,9 +45,9 @@ class AppLockGate extends StatefulWidget {
   State<AppLockGate> createState() => _AppLockGateState();
 }
 
-class _AppLockGateState extends State<AppLockGate>
-    with WidgetsBindingObserver {
+class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   AppLockService? _service;
+  LockRecoveryService? _recovery;
   bool _initialized = false;
   bool _locked = false;
   bool _obscure = true;
@@ -61,9 +70,16 @@ class _AppLockGateState extends State<AppLockGate>
     final repo = widget.repository ??
         AppLockRepository(await SharedPreferences.getInstance());
     final service = AppLockService(repo, now: widget.now ?? DateTime.now);
+    final recovery = widget.recoveryService ??
+        LockRecoveryService(
+          service,
+          backupExporter: SharedPreferencesLockBackupExporter(),
+          dataEraser: const SharedPreferencesLockDataEraser(),
+        );
     if (!mounted) return;
     setState(() {
       _service = service;
+      _recovery = recovery;
       _locked = service.isLocked;
       _grace = widget.graceOverride ?? service.relockGrace;
       _initialized = true;
@@ -147,6 +163,29 @@ class _AppLockGateState extends State<AppLockGate>
     _codeController.clear();
   }
 
+  /// パスコード忘却時の回復導線（警告 → 確認語 → 実行）。
+  ///
+  /// 二段確認を経た場合のみ [LockRecoveryService] を呼ぶ。ロック解除に
+  /// 至らなかった場合はダイアログ内に留まり、状態は変更しない。
+  Future<void> _openRecovery() async {
+    final recovery = _recovery;
+    if (recovery == null) return;
+
+    final recovered = await showDialog<bool>(
+      context: context,
+      builder: (_) => _LockRecoveryDialog(recovery: recovery),
+    );
+
+    if (!mounted || recovered != true) return;
+    setState(() {
+      _locked = false;
+      _error = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('アプリロックを解除し、データを初期化しました')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
@@ -207,10 +246,101 @@ class _AppLockGateState extends State<AppLockGate>
                 onPressed: lockedOut ? null : _submit,
                 child: const Text('解除'),
               ),
+              const SizedBox(height: 8),
+              TextButton(
+                key: const Key('app_lock_forgot_button'),
+                onPressed: _openRecovery,
+                child: const Text('パスコードをお忘れですか？'),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 回復の二段確認ダイアログ。
+///
+/// 入力欄の [TextEditingController] を自前で保持・破棄する
+/// （ルート破棄まで生存するため、破棄後に参照されることがない）。
+class _LockRecoveryDialog extends StatefulWidget {
+  final LockRecoveryService recovery;
+
+  const _LockRecoveryDialog({required this.recovery});
+
+  @override
+  State<_LockRecoveryDialog> createState() => _LockRecoveryDialogState();
+}
+
+class _LockRecoveryDialogState extends State<_LockRecoveryDialog> {
+  final _controller = TextEditingController();
+  String? _error;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _confirm() async {
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final result = await widget.recovery.recover(
+      confirmation: _controller.text,
+    );
+    if (!mounted) return;
+    if (result.isRecovered) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    setState(() {
+      _submitting = false;
+      _error = result.isRejected
+          ? LockRecoveryPolicy.confirmationMismatchMessage
+          : 'ロックの解除に失敗しました。もう一度お試しください';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(LockRecoveryPolicy.dialogTitle),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(LockRecoveryPolicy.warningText),
+            const SizedBox(height: 16),
+            TextField(
+              key: const Key('app_lock_recovery_confirm_field'),
+              controller: _controller,
+              enabled: !_submitting,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: LockRecoveryPolicy.confirmationLabel,
+                errorText: _error,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed:
+              _submitting ? null : () => Navigator.of(context).pop(false),
+          child: const Text('キャンセル'),
+        ),
+        FilledButton(
+          key: const Key('app_lock_recovery_confirm_button'),
+          onPressed: _submitting ? null : _confirm,
+          child: const Text('初期化して解除'),
+        ),
+      ],
     );
   }
 }
