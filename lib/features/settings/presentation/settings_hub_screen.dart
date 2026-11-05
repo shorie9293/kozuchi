@@ -10,8 +10,10 @@ import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/features/about/presentation/about_screen.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_restorer_impl.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_sharer_impl.dart';
+import 'package:kozuchi/features/auto_backup/data/auto_backup_status_store.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_store.dart';
 import 'package:kozuchi/features/auto_backup/domain/auto_backup_service.dart';
+import 'package:kozuchi/features/auto_backup/domain/auto_backup_status.dart';
 import 'package:kozuchi/features/auto_backup/presentation/auto_backup_screen.dart';
 import 'package:kozuchi/features/backup/data/backup_repository.dart';
 import 'package:kozuchi/features/backup/domain/backup_service.dart';
@@ -44,6 +46,9 @@ class SettingsHubScreen extends StatelessWidget {
   /// クラッシュ記録の読み出し元（未指定なら端末内ファイル実装）。
   final CrashLogRepository? crashLogRepository;
 
+  /// 自動バックアップの状態の読み出し元（未指定なら警告バッジを出さない）。
+  final AutoBackupStatusStore? autoBackupStatusStore;
+
   /// 文字サイズの現在値（ルートが保持する値）。
   final double currentTextScale;
 
@@ -66,6 +71,7 @@ class SettingsHubScreen extends StatelessWidget {
     this.crashLogBuilder,
     this.helpBuilder,
     this.crashLogRepository,
+    this.autoBackupStatusStore,
     this.currentTextScale = 1.0,
     this.onTextScaleChanged,
     this.onToggleTheme,
@@ -114,8 +120,12 @@ class SettingsHubScreen extends StatelessWidget {
         },
       ),
       sharer: SharePlusAutoBackupSharer(),
+      statusStore: FileAutoBackupStatusStore(),
       onBackupNow: () async {
-        await AutoBackupService(store: store).run(buildJson);
+        await AutoBackupService(
+          store: store,
+          statusStore: FileAutoBackupStatusStore(),
+        ).run(buildJson);
       },
     );
   }
@@ -242,19 +252,25 @@ class SettingsHubScreen extends StatelessWidget {
               backupBuilder ?? (_) => const BackupScreen(),
             ),
           ),
-          _tile(
-            key: SettingsHubAppKeys.autoBackupTile,
-            testId: SemanticHelper.createTestId(
-              SemanticTypes.button,
-              'settings_hub_auto_backup',
+          if (autoBackupStatusStore == null)
+            _tile(
+              key: SettingsHubAppKeys.autoBackupTile,
+              testId: SemanticHelper.createTestId(
+                SemanticTypes.button,
+                'settings_hub_auto_backup',
+              ),
+              label: '自動バックアップ',
+              icon: Icons.history,
+              onTap: () => _push(
+                context,
+                autoBackupBuilder ?? (_) => buildAutoBackupScreen(),
+              ),
+            )
+          else
+            _AutoBackupStatusTile(
+              store: autoBackupStatusStore!,
+              builder: autoBackupBuilder ?? (_) => buildAutoBackupScreen(),
             ),
-            label: '自動バックアップ',
-            icon: Icons.history,
-            onTap: () => _push(
-              context,
-              autoBackupBuilder ?? (_) => buildAutoBackupScreen(),
-            ),
-          ),
           _tile(
             key: SettingsHubAppKeys.aboutTile,
             testId: SemanticHelper.createTestId(
@@ -348,6 +364,74 @@ class _CrashLogTileState extends State<_CrashLogTile> {
         key: SettingsHubAppKeys.crashLogTile,
         leading: const Icon(Icons.info_outline),
         title: Text(label),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _open,
+      ),
+    );
+  }
+}
+
+/// 「自動バックアップ」タイル。連続失敗が閾値以上なら警告文言を併記する。
+class _AutoBackupStatusTile extends StatefulWidget {
+  const _AutoBackupStatusTile({required this.store, required this.builder});
+
+  final AutoBackupStatusStore store;
+  final WidgetBuilder builder;
+
+  @override
+  State<_AutoBackupStatusTile> createState() => _AutoBackupStatusTileState();
+}
+
+class _AutoBackupStatusTileState extends State<_AutoBackupStatusTile> {
+  AutoBackupStatus? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    AutoBackupStatus? status;
+    try {
+      status = await widget.store.load();
+    } catch (_) {
+      status = null;
+    }
+    if (!mounted) return;
+    setState(() => _status = status);
+  }
+
+  Future<void> _open() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: widget.builder),
+    );
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final degraded = _status?.isDegraded == true;
+    final subtitle = degraded
+        ? '自動バックアップに失敗しています'
+            '（${_status?.consecutiveFailures ?? 0}回連続）'
+        : '起動時の控えを一覧・復元・共有する';
+    return SemanticHelper.interactive(
+      testId: SemanticHelper.createTestId(
+        SemanticTypes.button,
+        'settings_hub_auto_backup',
+      ),
+      label: '自動バックアップ',
+      child: ListTile(
+        key: SettingsHubAppKeys.autoBackupTile,
+        leading: Icon(
+          degraded ? Icons.warning_amber_outlined : Icons.history,
+        ),
+        title: const Text('自動バックアップ'),
+        subtitle: Text(
+          subtitle,
+          key: degraded ? SettingsHubAppKeys.autoBackupWarning : null,
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: _open,
       ),

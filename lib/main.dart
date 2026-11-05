@@ -26,6 +26,7 @@ import 'package:kozuchi/core/infrastructure/notification_service.dart';
 import 'package:kozuchi/core/notification/notification_tap_router.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_bootstrap.dart';
+import 'package:kozuchi/features/auto_backup/data/auto_backup_status_store.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_store.dart';
 import 'package:kozuchi/features/backup/data/backup_repository.dart';
 import 'package:kozuchi/features/backup/domain/backup_service.dart';
@@ -180,6 +181,7 @@ Future<void> bootstrap() async {
       return BackupService().exportJson(bundle);
     },
     store: FileAutoBackupStore(),
+    statusStore: FileAutoBackupStatusStore(),
   );
 
   final isFirstLaunch = await KozuchiTutorialService.isFirstLaunch();

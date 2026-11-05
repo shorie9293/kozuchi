@@ -1,5 +1,7 @@
+import 'package:kozuchi/features/auto_backup/data/auto_backup_status_store.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_store.dart';
 import 'package:kozuchi/features/auto_backup/domain/auto_backup_policy.dart';
+import 'package:kozuchi/features/auto_backup/domain/auto_backup_status.dart';
 
 /// 自動バックアップ実行の結果。
 class AutoBackupResult {
@@ -38,11 +40,40 @@ class AutoBackupService {
   final AutoBackupPolicy policy;
   final DateTime Function() now;
 
+  /// 試行結果（最終成功・連続失敗）の記録先（null なら記録しない）。
+  final AutoBackupStatusStore? statusStore;
+
   AutoBackupService({
     required this.store,
     this.policy = const AutoBackupPolicy(),
     this.now = DateTime.now,
+    this.statusStore,
   });
+
+  /// 保存済みの状態を読み出す（記録先が無ければ null）。
+  Future<AutoBackupStatus?> loadStatus() async {
+    final store = statusStore;
+    if (store == null) return null;
+    try {
+      return await store.load();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 状態の更新を1箇所に集約する（失敗しても本処理を壊さない）。
+  Future<void> _record(
+    AutoBackupStatus Function(AutoBackupStatus current) update,
+  ) async {
+    final store = statusStore;
+    if (store == null) return;
+    try {
+      final current = await store.load() ?? AutoBackupStatus.initial;
+      await store.save(update(current));
+    } catch (_) {
+      // 記録の失敗は握る（バックアップ本体の成否とは別問題）。
+    }
+  }
 
   /// 自動バックアップを1回分実行する。
   ///
@@ -69,12 +100,15 @@ class AutoBackupService {
         pruned.add(entry.fileName);
       }
 
+      await _record((current) => current.recordSuccess(now()));
+
       return AutoBackupResult(
         ran: true,
         fileName: fileName,
         pruned: List<String>.unmodifiable(pruned),
       );
     } catch (error) {
+      await _record((current) => current.recordFailure(now(), error));
       return AutoBackupResult(ran: false, error: '$error');
     }
   }

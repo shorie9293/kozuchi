@@ -12,6 +12,9 @@ class AutoBackupAppKeys {
   static const Key confirmDialog = Key('auto_backup_confirm_dialog');
   static const Key confirmButton = Key('auto_backup_confirm_button');
   static const Key cancelButton = Key('auto_backup_cancel_button');
+  static const Key failureBanner = Key('auto_backup_failure_banner');
+  static const Key retryButton = Key('auto_backup_retry_button');
+  static const Key lastSuccessText = Key('auto_backup_last_success_text');
 
   static Key row(String fileName) => Key('auto_backup_row_$fileName');
 
