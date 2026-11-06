@@ -1,3 +1,4 @@
+import 'package:kozuchi/core/text/kana_fold.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/tags/domain/models/tagged_transaction.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
@@ -28,6 +29,13 @@ abstract final class TransactionQueryService {
         .trim()
         .replaceAll(RegExp(r'\s+'), ' ');
   }
+
+  /// 検索用の正規化。[normalizeKeyword] にかな畳み込み（[foldKana]）を重ねる。
+  ///
+  /// ひらがな⇄カタカナ・半角カナの表記ゆれを吸収する。
+  /// [normalizeKeyword] の戻り値は変更しない（既存呼び出し互換）。
+  static String normalizeForSearch(String raw) =>
+      foldKana(normalizeKeyword(raw));
 
   /// [tx] が [filter] の全条件を満たすか（AND）。
   ///
@@ -66,9 +74,9 @@ abstract final class TransactionQueryService {
 
     // キーワード（用途またはカテゴリの部分一致）
     if (filter.hasKeyword) {
-      final needle = normalizeKeyword(filter.keyword);
-      final purpose = normalizeKeyword(tx.purpose);
-      final category = normalizeKeyword(tx.category);
+      final needle = normalizeForSearch(filter.keyword);
+      final purpose = normalizeForSearch(tx.purpose);
+      final category = normalizeForSearch(tx.category);
       if (!purpose.contains(needle) && !category.contains(needle)) {
         return false;
       }

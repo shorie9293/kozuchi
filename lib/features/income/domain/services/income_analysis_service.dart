@@ -1,3 +1,5 @@
+import 'package:kozuchi/core/text/kana_fold.dart';
+
 import '../models/income_entry.dart';
 import '../models/income_source_summary.dart';
 
@@ -105,15 +107,18 @@ class IncomeAnalysisService {
 
   /// 収入源で検索する（正規化した部分一致・非破壊）。
   ///
-  /// 空クエリ・空白のみは全件を返す。
+  /// 空クエリ・空白のみは全件を返す。かな表記ゆれ（ひらがな・半角カナ）は
+  /// [foldKana] で吸収する（[normalizeSource] の戻り値自体は変えない）。
   static List<IncomeEntry> searchBySource(
     List<IncomeEntry> entries,
     String query,
   ) {
-    final normalizedQuery = normalizeSource(query);
+    final normalizedQuery = foldKana(normalizeSource(query));
     if (normalizedQuery.isEmpty) return [...entries];
     return entries
-        .where((e) => normalizeSource(e.source).contains(normalizedQuery))
+        .where(
+          (e) => foldKana(normalizeSource(e.source)).contains(normalizedQuery),
+        )
         .toList();
   }
 
