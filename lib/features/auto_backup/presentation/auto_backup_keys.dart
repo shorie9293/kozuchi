@@ -16,6 +16,9 @@ class AutoBackupAppKeys {
   static const Key retryButton = Key('auto_backup_retry_button');
   static const Key lastSuccessText = Key('auto_backup_last_success_text');
 
+  /// 復元確認ダイアログのプレビュー要約行。
+  static const Key restorePreview = Key('auto_backup_restore_preview');
+
   static Key row(String fileName) => Key('auto_backup_row_$fileName');
 
   static Key restoreButton(String fileName) =>

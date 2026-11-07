@@ -9,6 +9,9 @@ import 'package:kozuchi/features/auto_backup/domain/auto_backup_restorer.dart';
 import 'package:kozuchi/features/auto_backup/domain/auto_backup_sharer.dart';
 import 'package:kozuchi/features/auto_backup/domain/auto_backup_status.dart';
 import 'package:kozuchi/features/auto_backup/presentation/auto_backup_keys.dart';
+import 'package:kozuchi/features/backup/data/backup_repository.dart';
+import 'package:kozuchi/features/backup/domain/backup_service.dart';
+import 'package:kozuchi/features/backup/domain/restore_preview.dart';
 
 /// 自動バックアップの閲覧・復元・共有画面。
 ///
@@ -26,6 +29,9 @@ class AutoBackupScreen extends StatefulWidget {
   /// 自動バックアップの状態の読み出し元（null なら状態表示を出さない）。
   final AutoBackupStatusStore? statusStore;
 
+  /// 復元前プレビューの突合先（null ならプレビューを出さない）。
+  final BackupRepository? backupRepository;
+
   final DateTime Function()? now;
 
   const AutoBackupScreen({
@@ -36,6 +42,7 @@ class AutoBackupScreen extends StatefulWidget {
     this.sharer,
     this.onBackupNow,
     this.statusStore,
+    this.backupRepository,
     this.now,
   });
 
@@ -99,17 +106,66 @@ class _AutoBackupScreenState extends State<AutoBackupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// 復元前プレビューを組み立てる。失敗時は null（プレビュー非表示）。
+  Future<RestorePreview?> _buildPreview(String fileName) async {
+    final repository = widget.backupRepository;
+    if (repository == null) return null;
+    final json = _contents[fileName];
+    if (json == null) return null;
+    try {
+      final bundle = BackupService().parse(json);
+      final current = await repository.collect();
+      return compose(bundle: bundle, existing: current.entries);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _restore(String fileName) async {
     final restorer = widget.restorer;
     if (restorer == null) return;
+
+    final preview = await _buildPreview(fileName);
+    if (!mounted) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: AutoBackupAppKeys.confirmDialog,
         title: const Text('復元の確認'),
-        content: const Text(
-          'このバックアップから復元しますか？現在のデータは先に自動バックアップされます',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'このバックアップから復元しますか？現在のデータは先に自動バックアップされます',
+              ),
+              if (preview != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        preview.summary,
+                        key: AutoBackupAppKeys.restorePreview,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(preview.message),
+                      ),
+                      if (preview.samplesText != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(preview.samplesText!),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

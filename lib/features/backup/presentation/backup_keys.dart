@@ -15,5 +15,11 @@ class BackupAppKeys {
   static const Key confirmRestoreButton = Key('backupConfirmRestoreButton');
   static const Key cancelRestoreButton = Key('backupCancelRestoreButton');
 
+  /// 復元前プレビューの要約行（新規／上書き／変更なしの内訳）。
+  static const Key restorePreviewSummary = Key('backupRestorePreviewSummary');
+
+  /// 復元前プレビューの上書き対象キー一覧。
+  static const Key restorePreviewSamples = Key('backupRestorePreviewSamples');
+
   static Key row(String key) => Key('backup_row_$key');
 }

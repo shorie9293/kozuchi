@@ -121,6 +121,7 @@ class SettingsHubScreen extends StatelessWidget {
       ),
       sharer: SharePlusAutoBackupSharer(),
       statusStore: FileAutoBackupStatusStore(),
+      backupRepository: repository,
       onBackupNow: () async {
         await AutoBackupService(
           store: store,

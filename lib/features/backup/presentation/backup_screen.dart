@@ -6,6 +6,7 @@ import 'package:kozuchi/features/backup/data/backup_file_io.dart';
 import 'package:kozuchi/features/backup/data/backup_repository.dart';
 import 'package:kozuchi/features/backup/domain/backup_models.dart';
 import 'package:kozuchi/features/backup/domain/backup_service.dart';
+import 'package:kozuchi/features/backup/domain/restore_preview.dart';
 import 'package:kozuchi/features/backup/presentation/backup_keys.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 
@@ -99,13 +100,58 @@ class _BackupScreenState extends State<BackupScreen> {
     }
 
     if (!mounted) return;
+
+    // 復元前プレビュー（取得に失敗しても復元導線は止めない）
+    RestorePreview? preview;
+    try {
+      final current = await _repository.collect();
+      preview = compose(bundle: bundle, existing: current.entries);
+    } catch (_) {
+      preview = null;
+    }
+
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: BackupAppKeys.confirmRestoreDialog,
         title: const Text('復元の確認'),
-        content: Text(
-          '${bundle.entryCount}件のデータを復元します。\n現在の対象データは上書きされます。よろしいですか？',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${bundle.entryCount}件のデータを復元します。\n現在の対象データは上書きされます。よろしいですか？',
+              ),
+              if (preview != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        preview.summary,
+                        key: BackupAppKeys.restorePreviewSummary,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(preview.message),
+                      ),
+                      if (preview.samplesText != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            preview.samplesText!,
+                            key: BackupAppKeys.restorePreviewSamples,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
