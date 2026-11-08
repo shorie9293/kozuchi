@@ -1,5 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/search/search_history.dart';
+import 'package:kozuchi/core/search/search_history_chips.dart';
+import 'package:kozuchi/core/search/search_history_store.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_filter/presentation/transaction_query_app_keys.dart';
@@ -38,12 +43,18 @@ class TransactionFilterBar extends StatefulWidget {
   /// 選択可能なタグ一覧。既定は空（非表示）。
   final List<ExpenseTag> availableTags;
 
+  /// 検索履歴の永続化先。未指定なら [SharedPreferencesSearchHistoryStore] を用いる。
+  ///
+  /// 試練（テスト）で任意の実装を注入できるよう任意引数にしてある。
+  final SearchHistoryStore? searchHistoryStore;
+
   const TransactionFilterBar({
     super.key,
     required this.initialFilter,
     required this.onChanged,
     this.availableCategories = const [],
     this.availableTags = const [],
+    this.searchHistoryStore,
   });
 
   @override
@@ -57,6 +68,8 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
   late TextEditingController _keywordController;
   late Set<String> _categories;
   late Set<String> _tagIds;
+  late final SearchHistoryStore _searchHistoryStore;
+  SearchHistory _searchHistory = SearchHistory.empty();
 
   @override
   void initState() {
@@ -69,12 +82,51 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
     );
     _categories = Set<String>.of(widget.initialFilter.categories);
     _tagIds = Set<String>.of(widget.initialFilter.tagIds);
+    _searchHistoryStore =
+        widget.searchHistoryStore ?? const SharedPreferencesSearchHistoryStore();
+    _loadSearchHistory();
   }
 
   @override
   void dispose() {
+    // 未確定の検索語も失わないよう、破棄時に現在語を履歴へ残す。
+    _rememberKeyword(notify: false);
     _keywordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSearchHistory() async {
+    try {
+      final history = await _searchHistoryStore.load();
+      if (!mounted || history.isEmpty) return;
+      setState(() => _searchHistory = history);
+    } catch (_) {
+      // 読み出し失敗は「履歴なし」として続行する。
+    }
+  }
+
+  /// 現在の検索語を履歴へ追加する。空語は無視。保存失敗は握り潰す。
+  void _rememberKeyword({bool notify = true}) {
+    final keyword = _keywordController.text;
+    if (keyword.trim().isEmpty) return;
+    final updated = _searchHistory.add(keyword);
+    final changed = updated != _searchHistory;
+    _searchHistory = updated;
+    if (notify && mounted) setState(() {});
+    if (changed) {
+      unawaited(
+        _searchHistoryStore.save(updated).catchError((Object _) {}),
+      );
+    }
+  }
+
+  /// 履歴チップの選択。入力欄と絞込を同時に更新する。
+  void _onHistorySelected(String term) {
+    _keywordController.text = term;
+    _keywordController.selection = TextSelection.collapsed(offset: term.length);
+    _rememberKeyword(notify: false);
+    setState(() {});
+    _emitFilter();
   }
 
   void _emitFilter() {
@@ -217,6 +269,14 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
               ...sections,
               // ── キーワード入力 ──
               _buildKeywordField(cs),
+              // ── 検索履歴チップ ──
+              if (_searchHistory.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                SearchHistoryChips(
+                  entries: _searchHistory.entries,
+                  onSelected: _onHistorySelected,
+                ),
+              ],
               // ── カテゴリチップ ──
               if (widget.availableCategories.isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -243,6 +303,7 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
         controller: _keywordController,
         textInputAction: TextInputAction.search,
         onChanged: (_) => _emitFilter(),
+        onSubmitted: (_) => _rememberKeyword(),
         decoration: InputDecoration(
           isDense: true,
           hintText: 'キーワードで検索',
