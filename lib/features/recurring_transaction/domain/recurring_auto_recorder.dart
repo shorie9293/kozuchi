@@ -36,11 +36,15 @@ class RecurringAutoRecorder {
 
   /// アプリ起動時の自動記録を実行する。
   ///
-  /// 通常は呼び出し側で try/catch により握りつぶし、起動を妨げない。
+  /// 追記（addTransactions）に失敗した場合は例外をそのまま伝播させ、
+  /// lastGenerated は前進させない。これにより次回起動時に同じ期間が
+  /// 再生成され、取引が静かに欠落することがない。
   Future<RecurringAutoRecordResult> run() async {
     final now = clock();
     final definitions = await recurringRepository.loadDefinitions();
     final generated = <TransactionModel>[];
+    // 追記が成功した後でまとめて前進させる定義ID
+    final advancedIds = <String>[];
 
     for (final def in definitions) {
       if (!def.isActive) continue;
@@ -50,22 +54,27 @@ class RecurringAutoRecorder {
 
       final List<TransactionModel> newOnes;
       if (lastGenerated != null) {
-        final lastDay =
-            DateTime(lastGenerated.year, lastGenerated.month, lastGenerated.day);
+        final lastDay = DateTime(
+            lastGenerated.year, lastGenerated.month, lastGenerated.day);
         // 前回生成日時より後（厳密に）の発生分のみ
-        newOnes = due.where((t) => _isStrictlyAfter(t.datetime, lastDay)).toList();
+        newOnes =
+            due.where((t) => _isStrictlyAfter(t.datetime, lastDay)).toList();
       } else {
         // lastGenerated 未設定なら startDate 以降すべて
         newOnes = due;
       }
 
       generated.addAll(newOnes);
-      // lastGenerated を now に進める（発生有無に関わらず）
-      await recurringRepository.saveLastGenerated(def.id, now);
+      advancedIds.add(def.id);
     }
 
     if (generated.isNotEmpty) {
       await transactionRepository.addTransactions(generated);
+    }
+
+    // 追記成功後にのみ前進させる（0件でも前進させ、無駄な再走査を防ぐ）
+    for (final id in advancedIds) {
+      await recurringRepository.saveLastGenerated(id, now);
     }
 
     return RecurringAutoRecordResult(

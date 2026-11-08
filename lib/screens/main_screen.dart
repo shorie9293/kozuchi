@@ -75,6 +75,7 @@ import 'package:kozuchi/features/installment/presentation/screens/upcoming_billi
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
 import 'package:kozuchi/features/calendar_export/presentation/calendar_export_screen.dart';
+import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_record_notice.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_auto_recorder.dart';
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/screens/transaction_history_page.dart';
@@ -114,6 +115,9 @@ class MainScreen extends StatefulWidget {
   /// 支出明細の保存先。null の場合は Supabase（expense_entries）を使用する。
   final ExpenseRepository? expenseRepository;
 
+  /// 起動時の定期取引・自動記帳の実行者。null なら既定実装を用いる（試練用の差し替え点）。
+  final RecurringAutoRecorder? recurringAutoRecorder;
+
   /// 収入明細の保存先。null の場合は SharedPreferences（income_entries）を使用する。
   final IncomeRepository? incomeRepository;
 
@@ -131,6 +135,7 @@ class MainScreen extends StatefulWidget {
     this.onReduceMotionChanged,
     this.expenseRepository,
     this.incomeRepository,
+    this.recurringAutoRecorder,
   });
 
   @override
@@ -182,11 +187,48 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   /// アプリ起動時に定期取引を自動記録する（fire-and-forget）。
+  ///
+  /// 戻り値・例外は [RecurringAutoRecordNotice] に写して可視化する。
+  /// 0件は沈黙、生成ありは非ブロッキングの SnackBar を1回だけ出す。
+  /// 失敗はログに残した上で利用者にも知らせる（起動は妨げない）。
   Future<void> _runRecurringAutoRecord() async {
+    final notice = await _recordRecurringTransactions();
+
+    if (!notice.shouldShow || !mounted) return;
+
+    // initState 直後の呼び出しでも ScaffoldMessenger が確実に存在するよう次フレームで出す
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      final message = notice.message;
+      if (messenger == null || message == null) return;
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 5),
+          action: notice.isFailure
+              ? null
+              : SnackBarAction(label: '確認', onPressed: _openTransactionHistory),
+        ),
+      );
+    });
+
+    // addPostFrameCallback はフレームを要求しないため、描画が落ち着いた後でも
+    // 通知が確実に出るよう次フレームを明示的に促す（沈黙の再発防止）。
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  /// 自動記帳を実行し、結果を通知へ変換する。例外は握って失敗通知にする。
+  Future<RecurringAutoRecordNotice> _recordRecurringTransactions() async {
     try {
-      await const RecurringAutoRecorder().run();
-    } catch (_) {
-      // 自動記録の失敗はアプリ起動を妨げない
+      final result = await (widget.recurringAutoRecorder ??
+              const RecurringAutoRecorder())
+          .run();
+      return RecurringAutoRecordNotice.fromResult(result);
+    } catch (error, stackTrace) {
+      appLog.warn('[kozuchi] 定期取引の自動記帳に失敗', error, stackTrace);
+      return RecurringAutoRecordNotice.failure(error);
     }
   }
 
