@@ -10,9 +10,16 @@ import 'package:kozuchi/features/tags/presentation/tag_app_keys.dart';
 class TagManagementScreen extends StatefulWidget {
   final TagRepository repository;
 
+  /// 全期間の取引キーを返す関数。
+  ///
+  /// 未指定なら「使われていないタグ紐付けの整理」導線を出さない（従来挙動）。
+  /// 指定時は画面末尾に整理用の項目を表示する。
+  final Future<List<String>> Function()? orphanKeyLoader;
+
   const TagManagementScreen({
     super.key,
     this.repository = const TagRepository(),
+    this.orphanKeyLoader,
   });
 
   @override
@@ -63,6 +70,56 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
     setState(() => _tags = updated);
   }
 
+  /// 孤児タグ紐付け（取引が存在しない紐付け）を整理する。
+  ///
+  /// 取引キーの取得に失敗した場合は何も削除せず、その旨を表示する。
+  Future<void> _pruneOrphans() async {
+    final loader = widget.orphanKeyLoader;
+    if (loader == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: TagAppKeys.pruneOrphanDialog,
+        title: const Text('使われていないタグ紐付けを整理'),
+        content: const Text('取引が存在しない紐付けを削除します。よろしいですか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            key: TagAppKeys.pruneOrphanConfirmButton,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('整理する'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    List<String> keys;
+    try {
+      keys = await loader();
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('取引を取得できませんでした。整理は行っていません')),
+      );
+      return;
+    }
+    if (!mounted) return;
+
+    final removed = await widget.repository.pruneOrphans(keys);
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          removed > 0 ? '$removed件の紐付けを整理しました' : '整理する紐付けはありません',
+        ),
+      ),
+    );
+  }
+
   /// タグ名入力ダイアログ。確定時は名前、キャンセル時は null を返す。
   Future<String?> _showNameDialog({
     required String title,
@@ -94,32 +151,57 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _tags.isEmpty
-              ? const Center(child: Text('タグがありません'))
-              : ListView.builder(
-                  itemCount: _tags.length,
-                  itemBuilder: (context, index) {
-                    final tag = _tags[index];
-                    return Semantics(
-                      label: 'タグ ${tag.name}',
-                      child: ListTile(
-                        key: TagAppKeys.listTile(tag.id),
-                        leading: CircleAvatar(
-                          radius: 10,
-                          backgroundColor: Color(tag.colorValue),
-                        ),
-                        title: Text(tag.name),
-                        onTap: () => _renameTag(tag),
-                        trailing: IconButton(
-                          key: TagAppKeys.deleteButton(tag.id),
-                          tooltip: '${tag.name} を削除',
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => _deleteTag(tag),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+          : Column(
+              children: [
+                Expanded(child: _buildTagList()),
+                if (widget.orphanKeyLoader != null) _buildPruneTile(),
+              ],
+            ),
+    );
+  }
+
+  /// タグ一覧（空状態を含む）。
+  Widget _buildTagList() {
+    if (_tags.isEmpty) {
+      return const Center(child: Text('タグがありません'));
+    }
+    return ListView.builder(
+      itemCount: _tags.length,
+      itemBuilder: (context, index) {
+        final tag = _tags[index];
+        return Semantics(
+          label: 'タグ ${tag.name}',
+          child: ListTile(
+            key: TagAppKeys.listTile(tag.id),
+            leading: CircleAvatar(
+              radius: 10,
+              backgroundColor: Color(tag.colorValue),
+            ),
+            title: Text(tag.name),
+            onTap: () => _renameTag(tag),
+            trailing: IconButton(
+              key: TagAppKeys.deleteButton(tag.id),
+              tooltip: '${tag.name} を削除',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => _deleteTag(tag),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 孤児タグ紐付けの整理導線（loader 指定時のみ）。
+  Widget _buildPruneTile() {
+    return SafeArea(
+      top: false,
+      child: ListTile(
+        key: TagAppKeys.pruneOrphanTile,
+        leading: const Icon(Icons.cleaning_services_outlined),
+        title: const Text('使われていないタグ紐付けを整理'),
+        subtitle: const Text('削除した取引に残ったタグ紐付けを取り除きます'),
+        onTap: _pruneOrphans,
+      ),
     );
   }
 }

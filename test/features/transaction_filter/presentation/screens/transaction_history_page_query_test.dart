@@ -68,6 +68,26 @@ class FakeTagRepository implements TagRepository {
     assignments = {...assignments, transactionKey: tagIds};
     return assignments;
   }
+
+  // TagRepository に removeKeys/pruneOrphans が追加されたため、インターフェース
+  // 実装義務を満たす最小実装を補う（本試練では呼ばれない）。
+  @override
+  Future<bool> removeKeys(Iterable<String> transactionKeys) async {
+    final targets = transactionKeys.toSet();
+    final before = assignments.length;
+    assignments = Map<String, List<String>>.from(assignments)
+      ..removeWhere((key, _) => targets.contains(key));
+    return assignments.length != before;
+  }
+
+  @override
+  Future<int> pruneOrphans(Iterable<String> knownTransactionKeys) async {
+    final known = knownTransactionKeys.toSet();
+    final before = assignments.length;
+    assignments = Map<String, List<String>>.from(assignments)
+      ..removeWhere((key, _) => !known.contains(key));
+    return before - assignments.length;
+  }
 }
 
 void main() {

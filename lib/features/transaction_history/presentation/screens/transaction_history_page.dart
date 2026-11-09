@@ -4,6 +4,8 @@ import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
 import 'package:kozuchi/core/haptics.dart';
 import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
+import 'package:kozuchi/domain/services/expense_entry_mapper.dart';
+import 'package:kozuchi/domain/services/expense_repository.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/calendar/presentation/calendar_app_keys.dart';
 import 'package:kozuchi/features/calendar/presentation/transaction_calendar_screen.dart';
@@ -98,6 +100,9 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   final UndoBuffer<TransactionModel> _undoBuffer =
       UndoBuffer<TransactionModel>();
 
+  /// Supabase 支出明細の保存先（孤児紐付けの判定に全期間キーを集めるため保持）。
+  ExpenseRepository? _expenseRepository;
+
   @override
   void initState() {
     super.initState();
@@ -107,13 +112,17 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     } else {
       // 案B: 取引履歴は Supabase `expense_entries`（支出明細）を正とする。
       // 旧 localhost:8080 API（TransactionService）には依存しない。
+      final expenseRepository = SupabaseExpenseRepository(
+        cloudStore: CloudSyncService(client: SupabaseProvider.client),
+        userIdProvider: () => SupabaseProvider.currentUserId,
+      );
+      _expenseRepository = expenseRepository;
       _controller = TransactionController(
-        expenseRepository: SupabaseExpenseRepository(
-          cloudStore: CloudSyncService(client: SupabaseProvider.client),
-          userIdProvider: () => SupabaseProvider.currentUserId,
-        ),
+        expenseRepository: expenseRepository,
         initialFilter: _defaultFilter(),
         localRepository: widget.localRepository,
+        // 削除時のタグ紐付け掃除・Undo 復元のためタグリポジトリを渡す。
+        tagRepository: widget.tagRepository,
       );
       _ownsController = true;
     }
@@ -214,6 +223,32 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       startDate: period.start,
       endDate: DateTime(now.year, now.month, now.day),
     );
+  }
+
+  /// 全期間の取引キーを集める（孤児タグ紐付けの判定用）。
+  ///
+  /// Supabase 支出明細（全期間）とローカル取引を取引キーへ変換する。
+  /// 取得に失敗した場合は例外を投げる（呼び出し側の画面が握る）。
+  Future<List<String>> _loadAllTransactionKeys() async {
+    final keys = <String>{};
+    final expenseRepo = _expenseRepository;
+    if (expenseRepo != null) {
+      final entries = await expenseRepo.getEntries(
+        start: DateTime(2000),
+        end: DateTime(2100),
+      );
+      final transactions = ExpenseEntryMapper.toTransactionModels(entries);
+      for (final transaction in transactions) {
+        keys.add(TaggedTransaction.keyOfTransaction(transaction));
+      }
+    }
+    final localRepo = widget.localRepository;
+    if (localRepo != null) {
+      for (final transaction in await localRepo.loadAll()) {
+        keys.add(TaggedTransaction.keyOfTransaction(transaction));
+      }
+    }
+    return List.unmodifiable(keys.toList());
   }
 
   /// タグ定義と紐付けを読み込んでタグ別集計画面へ遷移する。
@@ -340,8 +375,10 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
               icon: const Icon(Icons.sell_outlined),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      TagManagementScreen(repository: widget.tagRepository),
+                  builder: (_) => TagManagementScreen(
+                    repository: widget.tagRepository,
+                    orphanKeyLoader: _loadAllTransactionKeys,
+                  ),
                 ),
               ),
             ),

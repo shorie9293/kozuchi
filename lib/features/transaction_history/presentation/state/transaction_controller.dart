@@ -5,6 +5,9 @@ import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/domain/services/expense_entry_mapper.dart';
 import 'package:kozuchi/domain/services/expense_repository.dart';
 import 'package:kozuchi/features/csv_import/data/local_transaction_repository.dart';
+import 'package:kozuchi/features/tags/data/tag_repository.dart';
+import 'package:kozuchi/features/tags/domain/models/tagged_transaction.dart';
+import 'package:kozuchi/features/tags/domain/tag_assignment_maintenance.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_history/data/transaction_service.dart';
 
@@ -28,6 +31,12 @@ class TransactionController extends ChangeNotifier {
   /// null の場合はローカル取引を表示しない。
   final LocalTransactionRepository? _localRepository;
 
+  /// タグ紐付けの保存先（未指定ならタグ機能に一切触れない＝従来挙動）。
+  final TagRepository? _tagRepository;
+
+  /// 削除時に退避したタグ紐付け（Undo 復元用。直前の1件のみ）。
+  TagAssignmentBackup? _pendingTagBackup;
+
   List<TransactionModel> _transactions = [];
   bool _isLoading = false;
   String? _error;
@@ -39,9 +48,11 @@ class TransactionController extends ChangeNotifier {
     TransactionFilter? initialFilter,
     LocalTransactionRepository? localRepository,
     ExpenseRepository? expenseRepository,
+    TagRepository? tagRepository,
   })  : _service = service,
         _localRepository = localRepository,
         _expenseRepository = expenseRepository,
+        _tagRepository = tagRepository,
         _filter = initialFilter ?? const TransactionFilter();
 
   // ── 公開ゲッター ──────────────────────────────────
@@ -151,15 +162,44 @@ class TransactionController extends ChangeNotifier {
   /// Supabase 支出明細（[ExpenseRepository]）が設定済みで、かつ取引が
   /// [TransactionModel.id] を持つ場合のみ削除可能。削除後に再取得する。
   /// 訂正不能（リポジトリ未設定・id 無し・旧API/ローカル取引）なら false。
+  ///
+  /// [TagRepository] が設定済みの場合、削除前にタグ紐付けを退避し、
+  /// 削除成功後に紐付けを消す（同じ内容の取引を再登録してもタグが
+  /// 復活しないようにするため）。タグ側の失敗は握り、削除結果は変えない。
   Future<bool> deleteTransaction(TransactionModel transaction) async {
     final repo = _expenseRepository;
     final id = transaction.id;
     if (repo == null || id == null || id.isEmpty) return false;
+
+    final tagRepo = _tagRepository;
+    final tagKey = TaggedTransaction.keyOfTransaction(transaction);
+    var currentTags = const <String>[];
+    if (tagRepo != null) {
+      try {
+        currentTags = await tagRepo.tagsFor(tagKey);
+      } catch (_) {
+        // タグ読取の失敗は削除を妨げない
+      }
+    }
+
     try {
       await repo.deleteEntry(id);
     } catch (_) {
       return false;
     }
+
+    if (tagRepo != null) {
+      _pendingTagBackup = TagAssignmentBackup.of(
+        transactionKey: tagKey,
+        tagIds: currentTags,
+      );
+      try {
+        await tagRepo.removeKeys([tagKey]);
+      } catch (_) {
+        // 紐付け削除の失敗は取引削除の成否に影響させない
+      }
+    }
+
     await fetchTransactions();
     return true;
   }
@@ -178,7 +218,10 @@ class TransactionController extends ChangeNotifier {
     try {
       // 同一IDが既に存在する場合は何もしない（二重登録の防止）。
       final existing = await repo.getEntryById(id);
-      if (existing != null) return true;
+      if (existing != null) {
+        await _restoreTagBackup(transaction);
+        return true;
+      }
       final date = DateTime.tryParse(transaction.datetime);
       if (date == null) return false;
       final purpose = transaction.purpose.trim();
@@ -199,8 +242,31 @@ class TransactionController extends ChangeNotifier {
     } catch (_) {
       return false;
     }
+    // 再登録できたら、削除時に退避したタグ紐付けを戻す（同一キーのときのみ）。
+    await _restoreTagBackup(transaction);
     await fetchTransactions();
     return true;
+  }
+
+  /// 削除時に退避したタグ紐付けを復元する（失敗は握る）。
+  ///
+  /// 退避が無い・タグリポジトリ未設定・キー不一致なら何もしない。
+  Future<void> _restoreTagBackup(TransactionModel transaction) async {
+    final backup = _pendingTagBackup;
+    final tagRepo = _tagRepository;
+    if (backup == null || tagRepo == null) return;
+    if (backup.isEmpty) {
+      _pendingTagBackup = null;
+      return;
+    }
+    final key = TaggedTransaction.keyOfTransaction(transaction);
+    if (!backup.matches(key)) return;
+    try {
+      await tagRepo.assignTags(backup.transactionKey, backup.tagIds);
+    } catch (_) {
+      // 復元の失敗は握る（取引の復元自体は成功している）
+    }
+    _pendingTagBackup = null;
   }
 
   /// 支出明細由来の取引を編集する（[edited] は同IDの取引）。

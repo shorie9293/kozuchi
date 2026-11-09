@@ -29,4 +29,9 @@ class TagAppKeys {
   // ── 取引履歴からの導線 ──
   static const Key historyTagSummaryButton = Key('transactionHistory_tagButton');
   static const Key historyTagManageButton = Key('transactionHistory_tagManageButton');
+
+  // ── 孤児タグ紐付けの整理 ──
+  static const Key pruneOrphanTile = Key('tag_pruneOrphanTile');
+  static const Key pruneOrphanDialog = Key('tag_pruneOrphanDialog');
+  static const Key pruneOrphanConfirmButton = Key('tag_pruneOrphanConfirmButton');
 }

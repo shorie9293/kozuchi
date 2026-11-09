@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
+import 'package:kozuchi/features/tags/domain/tag_assignment_maintenance.dart';
 
 /// タグ定義とタグ紐付けの永続化リポジトリ
 ///
@@ -179,5 +180,59 @@ class TagRepository {
     }
     await saveAssignments(assignments);
     return assignments;
+  }
+
+  // ── 紐付けの整理（削除連動・孤児刈り取り） ─────────
+
+  /// 指定した取引キーの紐付けを削除する。
+  ///
+  /// 変更が無ければ保存せず false。空文字キーは無視する。
+  Future<bool> removeKeys(Iterable<String> transactionKeys) async {
+    final targets = <String>{};
+    try {
+      for (final key in transactionKeys) {
+        if (key.isNotEmpty) targets.add(key);
+      }
+    } catch (_) {
+      return false;
+    }
+    if (targets.isEmpty) return false;
+
+    final assignments = Map<String, List<String>>.from(await loadAssignments());
+    var changed = false;
+    for (final key in targets) {
+      if (assignments.remove(key) != null) changed = true;
+    }
+    if (!changed) return false;
+    await saveAssignments(assignments);
+    return true;
+  }
+
+  /// 実在しない取引の紐付け（孤児）を刈り取る。
+  ///
+  /// 既知の取引が空の場合は全紐付け消失を避けるため何もしない（0 を返す）。
+  /// 刈り取った件数（キー数）を返す。
+  Future<int> pruneOrphans(Iterable<String> knownTransactionKeys) async {
+    final known = <String>[];
+    try {
+      for (final key in knownTransactionKeys) {
+        if (key.isNotEmpty) known.add(key);
+      }
+    } catch (_) {
+      return 0;
+    }
+    if (!TagAssignmentPrune.canPrune(known)) return 0;
+
+    final assignments = await loadAssignments();
+    final orphans = TagAssignmentPrune.orphanKeys(
+      knownTransactionKeys: known,
+      assignments: assignments,
+    );
+    if (orphans.isEmpty) return 0;
+
+    final next = Map<String, List<String>>.from(assignments)
+      ..removeWhere((key, _) => orphans.contains(key));
+    await saveAssignments(next);
+    return orphans.length;
   }
 }
