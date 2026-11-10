@@ -375,6 +375,8 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           SnackBar(content: Text('📚 キャリアコーチボーナス！『${result.bookTitle}』の蔵書追加でEXP +${result.bonusExp}')),
         );
       }
+    }).catchError((Object e) {
+      appLog.warn('[main_screen] 蔵書ボーナスの共有ファイル読取に失敗', e);
     });
   }
 
@@ -391,6 +393,8 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           SnackBar(content: Text('$rankEmoji rpg-task討伐ボーナス！『${result.taskTitle}』討伐でEXP +${result.bonusExp}')),
         );
       }
+    }).catchError((Object e) {
+      appLog.warn('[main_screen] rpg-task討伐ボーナスの共有ファイル読取に失敗', e);
     });
   }
 
@@ -408,6 +412,8 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           ),
         );
       }
+    }).catchError((Object e) {
+      appLog.warn('[main_screen] 読了バフの共有ファイル読取に失敗', e);
     });
   }
 
@@ -432,7 +438,10 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   void _exportCurrentQuest() {
     if (_currentQuest != null && _currentQuest!.title != 'アドバイザーと契約せよ') {
-      widget.exporter.export(_currentQuest);
+      widget.exporter.export(_currentQuest).catchError((Object e) {
+        // 共有ストレージ未設定などは連携の本処理を止めない（観測だけ残す）
+        appLog.warn('[main_screen] kozuchi_quest.json の書出に失敗', e);
+      });
     }
   }
 

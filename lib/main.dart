@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:io';
+
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:app_links/app_links.dart';
@@ -23,6 +26,7 @@ import 'package:kozuchi/core/infrastructure/env.dart';
 import 'package:kozuchi/core/infrastructure/auth_service.dart';
 import 'package:kozuchi/core/infrastructure/deep_link_service.dart';
 import 'package:kozuchi/core/infrastructure/notification_service.dart';
+import 'package:kozuchi/core/infrastructure/shared_file_store.dart';
 import 'package:kozuchi/core/notification/notification_tap_router.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/auto_backup/data/auto_backup_bootstrap.dart';
@@ -95,6 +99,24 @@ Future<void> bootstrap() async {
 
   // ━━━ 未捕捉例外の受け皿（既存の Crashlytics 設定へ合流する）━━━
   installCrashGuard();
+
+  // ━━━ 共有ストレージ（現世をまたぐ受け渡し）の初期化 ━━━
+  // Android 実機では SAF（Storage Access Framework）の共有フォルダを使う。
+  // フォルダ未選択でも起動は妨げない（連携画面から選んでもらう）。
+  try {
+    if (Platform.isAndroid) {
+      SharedFileStore.configure(AndroidSharedFileStore());
+    } else {
+      final dir = await getApplicationDocumentsDirectory();
+      SharedFileStore.configure(
+        FileSharedFileStore(Directory('${dir.path}/takamagahara_shared')),
+      );
+    }
+    final ready = await SharedFileStore.instance.ensureDirectory();
+    appLog.info('[main] 共有ストレージ: ${ready ? '準備OK' : '未設定（連携機能は停止中）'}');
+  } catch (e) {
+    appLog.warn('[main] 共有ストレージ初期化失敗（アプリは継続）: $e');
+  }
 
   // ━━━ Firebase 運用監視基盤（Crashlytics クラッシュ検知 + Analytics KPI計測）━━━
   try {

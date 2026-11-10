@@ -1,29 +1,28 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:kozuchi/core/infrastructure/shared_file_store.dart';
+import 'package:kozuchi/core/logging/app_logger.dart';
+
 /// クロスアプリ実績集計サービス
 ///
-/// 共有ストレージ (`/data/local/tmp/takamagahara_shared/`) から
+/// 共有ストレージ（現世をまたぐ受け渡しフォルダ）から
 /// rpg-task（敵討伐）・tsundoku-quest（読了）のイベントデータを読み取り、
 /// kozuchi自身の金獲得量と合わせて「三現世制覇」等の相互実績判定に用いる。
+///
+/// 保存先の解決:
+/// - [basePath] が非 null → そのディレクトリを直に読む（試練・デスクトップ）
+/// - [basePath] が null → [SharedFileStore.instance]（Android は SAF）
 class CrossAppAchievementAggregator {
-  /// 共有ストレージのベースパス
-  final String basePath;
+  /// 共有ストレージのベースパス。null なら [SharedFileStore.instance] を使う。
+  final String? basePath;
 
-  const CrossAppAchievementAggregator({
-    this.basePath = '/data/local/tmp/takamagahara_shared',
-  });
+  const CrossAppAchievementAggregator({this.basePath});
 
-  /// rpg-task の敵討伐イベントファイルのパス
-  String get _enemyDefeatPath => '$basePath/rpg_enemy_defeat_events.jsonl';
-
-  /// tsundoku-quest の読了イベントファイルのパス
-  String get _bookCompletedPath =>
-      '$basePath/tsundoku_book_completed.json';
-
-  /// tsundoku-quest の報酬イベント（JSONL）のパス
-  String get _rewardEventsPath =>
-      '$basePath/tsundoku_reward_events.jsonl';
+  /// 読み取り元。basePath 指定時はそのディレクトリ、未指定時は共有ストア。
+  ISharedFileStore get _store => basePath != null
+      ? FileSharedFileStore(Directory(basePath!))
+      : SharedFileStore.instance;
 
   // ── 個別カウンター ──
 
@@ -32,7 +31,10 @@ class CrossAppAchievementAggregator {
   /// JSONL 形式の `rpg_enemy_defeat_events.jsonl` から
   /// `event == "enemy_defeated"` の行数を数える。
   Future<int> countEnemyDefeats() async {
-    return _countJsonlEvents(_enemyDefeatPath, 'enemy_defeated');
+    return _countJsonlEvents(
+      SharedCrossAppFiles.rpgEnemyDefeatJsonl,
+      'enemy_defeated',
+    );
   }
 
   /// 読了回数を共有ストレージから集計する
@@ -44,23 +46,25 @@ class CrossAppAchievementAggregator {
   Future<int> countBooksRead() async {
     int count = 0;
 
-    // 単一JSONファイルの確認
-    final singleFile = File(_bookCompletedPath);
-    if (await singleFile.exists()) {
+    // 単一JSONファイルの確認（無い＝未連携なので正常系）
+    final content = await _read(SharedCrossAppFiles.tsundokuBookCompleted);
+    if (content != null) {
       try {
-        final content = await singleFile.readAsString();
         final json = jsonDecode(content) as Map<String, dynamic>;
         if (json['event'] == 'book_completed') {
           count += 1;
         }
-      } catch (_) {
-        // 読み取りエラーは無視
+      } on FormatException {
+        // 壊れた JSON はスキップ（共有相手の書込途中など）
       }
     }
 
     // JSONL ファイルの確認
-    count += await _countJsonlEvents(_rewardEventsPath, 'book_completed',
-        fieldName: 'event_type');
+    count += await _countJsonlEvents(
+      SharedCrossAppFiles.tsundokuRewardEvents,
+      'book_completed',
+      fieldName: 'event_type',
+    );
 
     return count;
   }
@@ -94,45 +98,51 @@ class CrossAppAchievementAggregator {
 
     return ThreeWorldsStatus(
       conditions: conditions,
-      allMet: enemiesDefeated >= 10 &&
-          booksRead >= 5 &&
-          goldEarned >= 1000,
+      allMet: enemiesDefeated >= 10 && booksRead >= 5 && goldEarned >= 1000,
     );
   }
 
   // ── 内部ヘルパー ──
 
+  /// 共有ストアから 1 ファイル読む。
+  ///
+  /// 存在しなければ null（未連携＝正常系）。読取そのものの失敗は
+  /// [SharedStorageException] として上位へ伝える（無音に捨てない）。
+  Future<String?> _read(String fileName) async {
+    try {
+      return await _store.readString(fileName);
+    } on SharedStorageException catch (e) {
+      appLog.warn('[CrossAppAchievementAggregator] 共有ストレージ読取失敗', e);
+      rethrow;
+    }
+  }
+
   /// JSONL ファイルから特定イベントの出現回数を数える
   ///
-  /// [filePath] の各行を JSON としてパースし、
+  /// [fileName] の各行を JSON としてパースし、
   /// `json[fieldName] == eventType` に一致する行数を返す。
-  /// ファイルが存在しない or 読み取りエラー時は 0 を返す。
+  /// ファイルが存在しない（未連携）なら 0。壊れた行はスキップする。
   Future<int> _countJsonlEvents(
-    String filePath,
+    String fileName,
     String eventType, {
     String fieldName = 'event',
   }) async {
-    final file = File(filePath);
-    if (!await file.exists()) return 0;
+    final content = await _read(fileName);
+    if (content == null) return 0;
 
-    try {
-      final lines = await file.readAsLines();
-      int count = 0;
-      for (final line in lines) {
-        if (line.trim().isEmpty) continue;
-        try {
-          final json = jsonDecode(line) as Map<String, dynamic>;
-          if (json[fieldName] == eventType) {
-            count++;
-          }
-        } catch (_) {
-          // 不正な行はスキップ
+    int count = 0;
+    for (final line in const LineSplitter().convert(content)) {
+      if (line.trim().isEmpty) continue;
+      try {
+        final json = jsonDecode(line) as Map<String, dynamic>;
+        if (json[fieldName] == eventType) {
+          count++;
         }
+      } on FormatException {
+        // 不正な行はスキップ
       }
-      return count;
-    } catch (_) {
-      return 0;
     }
+    return count;
   }
 }
 

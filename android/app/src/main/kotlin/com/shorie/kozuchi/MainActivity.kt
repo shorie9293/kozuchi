@@ -9,6 +9,10 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+
+    /** 現世をまたぐ共有フォルダ（SAF）の橋渡し。 */
+    private var sharedStorageBridge: SharedStorageBridge? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -39,5 +43,17 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+
+        // 現世をまたぐ共有フォルダ（SAF）のチャネル。
+        // フォルダ選択は ACTION_OPEN_DOCUMENT_TREE → onActivityResult で結果を返す。
+        val storage = SharedStorageBridge(this)
+        sharedStorageBridge = storage
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SharedStorageBridge.CHANNEL)
+            .setMethodCallHandler(storage)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        sharedStorageBridge?.onActivityResult(requestCode, resultCode, data)
     }
 }
