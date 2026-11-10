@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
+import 'package:kozuchi/features/transaction_history/domain/bulk_selection.dart';
 import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_item.dart';
 
 /// 取引一覧を表示するスクロール可能なリストWidget。
@@ -36,6 +37,15 @@ class TransactionListWidget extends StatelessWidget {
   /// 削除メニュー選択時コールバック。
   final void Function(TransactionModel transaction)? onDeleteTap;
 
+  /// 一括選択の状態（どの取引が選ばれているか）。
+  final BulkSelection selection;
+
+  /// 一括選択モードか。true のとき各行にチェックボックスを出す。
+  final bool selectionMode;
+
+  /// 行の長押し時コールバック（一括選択モードの開始）。
+  final void Function(TransactionModel transaction)? onLongPress;
+
   const TransactionListWidget({
     super.key,
     this.transactions = const [],
@@ -46,6 +56,9 @@ class TransactionListWidget extends StatelessWidget {
     this.onReceiptTap,
     this.onEditTap,
     this.onDeleteTap,
+    this.selection = const BulkSelection.empty(),
+    this.selectionMode = false,
+    this.onLongPress,
   });
 
   @override
@@ -212,16 +225,19 @@ class TransactionListWidget extends StatelessWidget {
       itemCount: transactions.length,
       itemBuilder: (context, index) {
         final transaction = transactions[index];
+        final id = transaction.id;
         return TransactionListItem(
           transaction: transaction,
+          selectionMode: selectionMode,
+          selected: id != null && selection.contains(id),
+          onLongPress:
+              onLongPress == null ? null : () => onLongPress!(transaction),
           onTap: onTransactionTap == null
               ? null
               : () => onTransactionTap!(transaction),
-          onReceiptTap: onReceiptTap == null
-              ? null
-              : () => onReceiptTap!(transaction),
-          onEditTap:
-              onEditTap == null ? null : () => onEditTap!(transaction),
+          onReceiptTap:
+              onReceiptTap == null ? null : () => onReceiptTap!(transaction),
+          onEditTap: onEditTap == null ? null : () => onEditTap!(transaction),
           onDeleteTap:
               onDeleteTap == null ? null : () => onDeleteTap!(transaction),
         );

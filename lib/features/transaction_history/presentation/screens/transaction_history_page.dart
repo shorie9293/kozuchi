@@ -19,7 +19,10 @@ import 'package:kozuchi/features/transaction_filter/presentation/widgets/transac
 import 'package:kozuchi/features/transaction_filter/presentation/widgets/transaction_query_summary_bar.dart';
 import 'package:kozuchi/features/receipt_viewer/presentation/screens/receipt_image_viewer_screen.dart';
 import 'package:kozuchi/features/transaction_edit/presentation/widgets/transaction_edit_dialog.dart';
+import 'package:kozuchi/features/transaction_history/domain/bulk_delete_service.dart';
+import 'package:kozuchi/features/transaction_history/domain/bulk_selection.dart';
 import 'package:kozuchi/features/transaction_history/presentation/state/transaction_controller.dart';
+import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_item.dart';
 import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_widget.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/tags/data/tag_repository.dart';
@@ -360,52 +363,212 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     await _controller.restoreTransaction(transaction);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('取引履歴'),
+  // ── 一括選択モード ──────────────────────────────────────
+
+  /// 一括選択の状態（空＝通常モード）。
+  BulkSelection _selection = const BulkSelection.empty();
+
+  /// 一括選択モード中か（1件以上選択されている間）。
+  bool get _isSelecting => _selection.isSelecting;
+
+  /// 一括削除の実行中か（二重実行の防止）。
+  bool _isBulkDeleting = false;
+
+  /// 行の長押し／選択モード中のタップで選択をトグルする。
+  ///
+  /// 長押しで呼ばれた場合はその取引が選択され、選択モードが開始する。
+  void _toggleSelection(TransactionModel transaction) {
+    final id = transaction.id;
+    if (id == null || id.isEmpty) return;
+    hapticTap();
+    setState(() {
+      _selection = _selection.toggle(id);
+    });
+  }
+
+  /// 表示中の取引をすべて選択に加える（全選択）。
+  void _selectAllVisible(List<TransactionModel> visible) {
+    final ids = <String>[];
+    for (final transaction in visible) {
+      final id = transaction.id;
+      if (id != null && id.isNotEmpty) ids.add(id);
+    }
+    if (ids.isEmpty) return;
+    setState(() {
+      _selection = _selection.selectAll(ids);
+    });
+  }
+
+  /// 選択をすべて解除して通常モードへ戻る。
+  void _clearSelection() {
+    if (!_isSelecting) return;
+    setState(() {
+      _selection = const BulkSelection.empty();
+    });
+  }
+
+  /// 一括削除の確認ダイアログを出す。確定で true。
+  Future<bool> _confirmBulkDelete(int count) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('一括削除'),
+        content: Text('選択した $count件を削除します。取り消せます。'),
         actions: [
-          SemanticHelper.interactive(
-            testId: 'history_btn_tag_manage',
-            label: 'タグ管理',
-            child: IconButton(
-              key: TagAppKeys.historyTagManageButton,
-              tooltip: 'タグ管理',
-              icon: const Icon(Icons.sell_outlined),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => TagManagementScreen(
-                    repository: widget.tagRepository,
-                    orphanKeyLoader: _loadAllTransactionKeys,
-                  ),
-                ),
-              ),
-            ),
+          TextButton(
+            key: HistorySelectionKeys.cancelDelete,
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
           ),
-          SemanticHelper.interactive(
-            testId: 'history_btn_tag_summary',
-            label: 'タグ別集計',
-            child: IconButton(
-              key: TagAppKeys.historyTagSummaryButton,
-              tooltip: 'タグ別集計',
-              icon: const Icon(Icons.label_outline),
-              onPressed: () => _openTagSummary(context),
-            ),
-          ),
-          SemanticHelper.interactive(
-            testId: 'history_btn_open_calendar',
-            label: '取引カレンダー',
-            child: IconButton(
-              key: CalendarAppKeys.openButton,
-              tooltip: '取引カレンダー',
-              icon: const Icon(Icons.calendar_month),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TransactionCalendarScreen()),
-              ),
-            ),
+          FilledButton(
+            key: HistorySelectionKeys.confirmDelete,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('削除する'),
           ),
         ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  /// 選択中の取引を一括削除する。
+  ///
+  /// [visible] には**画面に表示中の取引のみ**を渡す。計画（
+  /// [buildBulkDeletePlan]）が visible と照合するため、絞込中でも
+  /// 絞込外の取引を巻き込まない。成功分は Undo で元順序のまま復元する。
+  Future<void> _deleteSelected(List<TransactionModel> visible) async {
+    if (_isBulkDeleting || !_isSelecting) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final plan = buildBulkDeletePlan(visible: visible, selection: _selection);
+    if (plan.toDelete.isEmpty) {
+      setState(() {
+        _selection = const BulkSelection.empty();
+      });
+      messenger.showSnackBar(
+        const SnackBar(content: Text('削除できる取引がありません')),
+      );
+      return;
+    }
+
+    final confirmed = await _confirmBulkDelete(plan.toDelete.length);
+    if (!confirmed || !mounted) return;
+    hapticTap();
+
+    setState(() {
+      _isBulkDeleting = true;
+    });
+    final outcome = await BulkDeleteService(
+      deleteOne: _controller.deleteTransaction,
+    ).run(plan.toDelete);
+    if (!mounted) return;
+    setState(() {
+      _isBulkDeleting = false;
+      _selection = const BulkSelection.empty();
+    });
+
+    if (outcome.deleted == 0) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('この取引は削除できません')),
+      );
+      return;
+    }
+
+    final message = outcome.isComplete
+        ? '${outcome.deleted}件の取引を削除しました'
+        : '${outcome.deleted}件を削除しました（${outcome.failed}件は失敗）';
+    final deletedItems = outcome.deletedItems;
+    showUndoSnackBar(
+      context,
+      message: message,
+      onUndo: () => _restoreDeletedItems(deletedItems),
+    );
+  }
+
+  /// 一括削除した取引を元順序のまま逐次復元する（失敗は握る）。
+  Future<void> _restoreDeletedItems(List<TransactionModel> items) async {
+    for (final item in items) {
+      try {
+        await _controller.restoreTransaction(item);
+      } catch (_) {
+        // 1件の復元失敗で残りの復元を止めない（画面は壊さない）
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // AppBar（選択件数・全選択）でも表示集合を参照するため先に求める。
+    final result = _queryResult();
+    return Scaffold(
+      appBar: AppBar(
+        title:
+            _isSelecting ? Text('${_selection.count}件選択') : const Text('取引履歴'),
+        actions: _isSelecting
+            ? [
+                // ── 選択モード中は「全選択」「閉じる」に差し替える ──
+                SemanticHelper.interactive(
+                  testId: 'history_btn_bulk_select_all',
+                  label: '全選択',
+                  child: IconButton(
+                    key: HistorySelectionKeys.selectAll,
+                    tooltip: '全選択',
+                    icon: const Icon(Icons.select_all),
+                    onPressed: () => _selectAllVisible(result.transactions),
+                  ),
+                ),
+                SemanticHelper.interactive(
+                  testId: 'history_btn_bulk_close',
+                  label: '選択を閉じる',
+                  child: IconButton(
+                    key: HistorySelectionKeys.close,
+                    tooltip: '閉じる',
+                    icon: const Icon(Icons.close),
+                    onPressed: _clearSelection,
+                  ),
+                ),
+              ]
+            : [
+                SemanticHelper.interactive(
+                  testId: 'history_btn_tag_manage',
+                  label: 'タグ管理',
+                  child: IconButton(
+                    key: TagAppKeys.historyTagManageButton,
+                    tooltip: 'タグ管理',
+                    icon: const Icon(Icons.sell_outlined),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TagManagementScreen(
+                          repository: widget.tagRepository,
+                          orphanKeyLoader: _loadAllTransactionKeys,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SemanticHelper.interactive(
+                  testId: 'history_btn_tag_summary',
+                  label: 'タグ別集計',
+                  child: IconButton(
+                    key: TagAppKeys.historyTagSummaryButton,
+                    tooltip: 'タグ別集計',
+                    icon: const Icon(Icons.label_outline),
+                    onPressed: () => _openTagSummary(context),
+                  ),
+                ),
+                SemanticHelper.interactive(
+                  testId: 'history_btn_open_calendar',
+                  label: '取引カレンダー',
+                  child: IconButton(
+                    key: CalendarAppKeys.openButton,
+                    tooltip: '取引カレンダー',
+                    icon: const Icon(Icons.calendar_month),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const TransactionCalendarScreen()),
+                    ),
+                  ),
+                ),
+              ],
       ),
       body: ListenableBuilder(
         listenable: _controller,
@@ -438,15 +601,67 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   isLoading: _controller.isLoading,
                   errorMessage: _controller.error,
                   onRetry: () => _controller.refetch(),
-                  onTransactionTap: _assignTags,
+                  // 選択モード中のタップは「選択トグル」に差し替える。
+                  onTransactionTap:
+                      _isSelecting ? _toggleSelection : _assignTags,
+                  onLongPress: _toggleSelection,
+                  selection: _selection,
+                  selectionMode: _isSelecting,
                   onReceiptTap: _openReceipt,
                   onEditTap: _editTransaction,
                   onDeleteTap: _deleteTransaction,
                 ),
               ),
+              // ── 一括選択バー（選択中のみ） ──
+              if (_isSelecting) _buildSelectionBar(result.transactions),
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// 一括選択モードの下部バー（削除・解除）。
+  ///
+  /// [visible] は画面に表示中の取引のみ。削除はこの集合と選択を照合するため、
+  /// 絞込外の取引を巻き込まない。
+  Widget _buildSelectionBar(List<TransactionModel> visible) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      elevation: 8,
+      color: colorScheme.surfaceContainerHighest,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: SemanticHelper.interactive(
+                  testId: 'history_btn_bulk_delete',
+                  label: '選択した取引を削除',
+                  child: FilledButton.icon(
+                    key: HistorySelectionKeys.deleteButton,
+                    onPressed:
+                        _isBulkDeleting ? null : () => _deleteSelected(visible),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('削除'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SemanticHelper.interactive(
+                testId: 'history_btn_bulk_clear',
+                label: '選択を解除',
+                child: TextButton(
+                  key: HistorySelectionKeys.clearButton,
+                  onPressed: _clearSelection,
+                  child: const Text('解除'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
