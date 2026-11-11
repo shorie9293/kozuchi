@@ -41,4 +41,19 @@ class KozuchiAppKeys {
   static const Key monthlyReportEmpty = Key('monthlyReportEmpty');
   static const Key monthlyReportTotalExpense = Key('monthlyReportTotalExpense');
   static const Key monthlyReportBalance = Key('monthlyReportBalance');
+
+  // ── CSVインポート（重複スキップ・取込前確認） ──
+  static const Key csvImport_previewCard = Key('csvImport_previewCard');
+  static const Key csvImport_freshCountText = Key('csvImport_freshCountText');
+  static const Key csvImport_duplicateCountText =
+      Key('csvImport_duplicateCountText');
+  static const Key csvImport_confirmButton = Key('csvImport_confirmButton');
+  static const Key csvImport_includeDuplicatesSwitch =
+      Key('csvImport_includeDuplicatesSwitch');
+  static const Key csvImport_unverifiedNotice =
+      Key('csvImport_unverifiedNotice');
+  static const Key csvImport_unverifiedOverrideButton =
+      Key('csvImport_unverifiedOverrideButton');
+  static const Key csvImport_cancelPreviewButton =
+      Key('csvImport_cancelPreviewButton');
 }
