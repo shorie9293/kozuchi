@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/features/income/presentation/screens/income_input_screen.dart';
 
@@ -90,6 +91,88 @@ void main() {
       expect(result, isNull);
       // エラーメッセージが表示される
       expect(find.text('金額を入力せよ'), findsOneWidget);
+    });
+
+    testWidgets('全角数字の収入金額も記録できる', (WidgetTester tester) async {
+      final player = PlayerModel(hp: 50000);
+      IncomeResult? result;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                final r = await Navigator.of(context).push<IncomeResult>(
+                  MaterialPageRoute(
+                    builder: (_) => IncomeInputScreen(player: player),
+                  ),
+                );
+                result = r;
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入金額（円）'),
+        '３００００',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入源'),
+        '給与',
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, '収入を記録する'));
+      await tester.pumpAndSettle();
+
+      expect(result, isNotNull);
+      expect(result!.amount, 30000);
+      expect(result!.updatedPlayer.hp, 80000);
+    });
+
+    testWidgets('非数の収入金額は記録せず理由を表示する', (WidgetTester tester) async {
+      final player = PlayerModel(hp: 50000);
+      IncomeResult? result;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                final r = await Navigator.of(context).push<IncomeResult>(
+                  MaterialPageRoute(
+                    builder: (_) => IncomeInputScreen(player: player),
+                  ),
+                );
+                result = r;
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入金額（円）'),
+        'abc',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '収入源'),
+        '給与',
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, '収入を記録する'));
+      await tester.pumpAndSettle();
+
+      expect(result, isNull);
+      expect(find.text('収入の記録'), findsOneWidget);
+      expect(find.text(AmountParser.notNumberMessage), findsOneWidget);
     });
   });
 }

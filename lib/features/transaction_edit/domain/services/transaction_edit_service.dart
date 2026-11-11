@@ -1,3 +1,4 @@
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 
 /// 取引編集の入力検証と編集後取引の組み立てを行う純粋サービス。
@@ -9,13 +10,8 @@ class TransactionEditService {
   /// 金額文字列をパースする。カンマ区切り・全角数字を許容する。
   ///
   /// 0 以下・非数・空文字は null（不正入力）。
-  static int? parseAmount(String raw) {
-    final normalized = _normalize(raw).replaceAll(',', '');
-    if (normalized.isEmpty) return null;
-    final value = int.tryParse(normalized);
-    if (value == null || value <= 0) return null;
-    return value;
-  }
+  /// 正準実装は [AmountParser.tryParse] に委譲する。
+  static int? parseAmount(String raw) => AmountParser.tryParse(raw);
 
   /// 編集結果の [TransactionModel] を組み立てる。
   ///

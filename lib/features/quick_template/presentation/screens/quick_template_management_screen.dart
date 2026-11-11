@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/quick_template/data/quick_template_repository.dart';
 import 'package:kozuchi/features/quick_template/domain/models/expense_template.dart';
 import 'package:kozuchi/features/quick_template/domain/quick_template_service.dart';
@@ -148,6 +149,7 @@ class _TemplateAddDialogState extends State<_TemplateAddDialog> {
   final _amountController = TextEditingController();
   final _purposeController = TextEditingController();
   String? _selectedCategory;
+  String? _amountError;
 
   static const List<String> _categories = [
     '食費', '娯楽', '交通', '光熱費', '交際費', 'その他',
@@ -162,9 +164,14 @@ class _TemplateAddDialogState extends State<_TemplateAddDialog> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+    final parsed = AmountParser.parseAmount(_amountController.text);
+    if (parsed.value == null) {
+      setState(() => _amountError = parsed.errorMessage);
+      return;
+    }
     if (_selectedCategory == null) return;
     Navigator.of(context).pop(_TemplateFormResult(
-      amount: int.parse(_amountController.text),
+      amount: parsed.value!,
       purpose: _purposeController.text.trim(),
       category: _selectedCategory!,
     ));
@@ -183,15 +190,20 @@ class _TemplateAddDialogState extends State<_TemplateAddDialog> {
               key: QuickTemplateAppKeys.amountField,
               controller: _amountController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '金額（円）',
                 prefixText: '¥ ',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                errorText: _amountError,
               ),
+              onChanged: (_) {
+                if (_amountError != null) {
+                  setState(() => _amountError = null);
+                }
+              },
               validator: (value) {
-                final amount = int.tryParse(value ?? '');
-                if (amount == null || amount <= 0) return '有効な金額を入力せよ';
-                return null;
+                final parsed = AmountParser.parseAmount(value ?? '');
+                return parsed.value == null ? parsed.errorMessage : null;
               },
             ),
             const SizedBox(height: 12),

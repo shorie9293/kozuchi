@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
@@ -214,7 +215,16 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final amount = int.parse(_amountController.text);
+    final parsed = AmountParser.parseAmount(_amountController.text);
+    if (parsed.value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(parsed.errorMessage ?? AmountParser.emptyMessage),
+        ),
+      );
+      return;
+    }
+    final amount = parsed.value!;
 
     final repository = widget.expenseRepository;
     if (repository == null) {
@@ -360,9 +370,12 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                   hintText: '例: ${widget.quest.suggestedOffering}',
                 ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return '金額を入力せよ';
-                    final amount = int.tryParse(value);
-                    if (amount == null || amount <= 0) return '有効な金額を入力せよ';
+                    if (value == null || value.trim().isEmpty) {
+                      return '金額を入力せよ';
+                    }
+                    final parsed = AmountParser.parseAmount(value);
+                    if (parsed.value == null) return parsed.errorMessage;
+                    final amount = parsed.value!;
                     if (amount > widget.player.hp) return '残高（¥${widget.player.hp}）を超える支出はできぬ';
                     return null;
                   },

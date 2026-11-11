@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/goals/data/goal.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 
@@ -73,14 +74,29 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final targetParsed = AmountParser.parseAmount(_targetAmountController.text);
+    final currentText = _currentAmountController.text;
+    // 現在の積立額は未入力なら 0 を許容する（0 は正当値）。
+    final currentParsed = currentText.trim().isEmpty
+        ? null
+        : AmountParser.parseAmount(currentText, allowZero: true);
+    if (targetParsed.value == null ||
+        (currentParsed != null && currentParsed.value == null)) {
+      final message = targetParsed.errorMessage ?? currentParsed?.errorMessage;
+      if (message != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
       final title = _titleController.text.trim();
-      final targetAmount = int.parse(_targetAmountController.text.trim());
-      final currentAmount = _currentAmountController.text.trim().isEmpty
-          ? 0
-          : int.parse(_currentAmountController.text.trim());
+      final targetAmount = targetParsed.value!;
+      final currentAmount = currentParsed?.value ?? 0;
       final deadlineStr = _deadline != null
           ? '${_deadline!.year}-${_deadline!.month.toString().padLeft(2, '0')}-${_deadline!.day.toString().padLeft(2, '0')}'
           : null;
@@ -184,11 +200,8 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
                   if (v == null || v.trim().isEmpty) {
                     return '目標金額を入力してください';
                   }
-                  final amount = int.tryParse(v.trim());
-                  if (amount == null || amount <= 0) {
-                    return '正の整数で入力してください';
-                  }
-                  return null;
+                  final parsed = AmountParser.parseAmount(v);
+                  return parsed.value == null ? parsed.errorMessage : null;
                 },
                 textInputAction: TextInputAction.next,
               ),
@@ -210,10 +223,9 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
                 keyboardType: TextInputType.number,
                 validator: (v) {
                   if (v != null && v.trim().isNotEmpty) {
-                    final amount = int.tryParse(v.trim());
-                    if (amount == null || amount < 0) {
-                      return '0以上の整数で入力してください';
-                    }
+                    final parsed =
+                        AmountParser.parseAmount(v, allowZero: true);
+                    if (parsed.value == null) return parsed.errorMessage;
                   }
                   return null;
                 },

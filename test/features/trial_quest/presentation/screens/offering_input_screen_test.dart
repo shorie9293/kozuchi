@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/trial_quest/presentation/screens/offering_input_screen.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
@@ -148,6 +150,84 @@ void main() {
       expect(capturedResult!.note, '楽しいひとときだった');
       // HPが5000減っている
       expect(capturedResult!.updatedPlayer.hp, 95000);
+    });
+
+    testWidgets('全角数字の支出金額も記録できる', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      OfferingResult? capturedResult;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.of(context).push<OfferingResult>(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        OfferingInputScreen(quest: quest, player: player),
+                  ),
+                );
+                capturedResult = result;
+              },
+              child: const Text('開く'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('開く'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField).first, '１２３');
+      await tester.enterText(find.byType(TextFormField).at(1), '昼食');
+      final submitButton = find.text('支出を実行する');
+      await tester.ensureVisible(submitButton);
+      await tester.pumpAndSettle();
+      await tester.tap(submitButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('支出の記録'), findsNothing);
+      expect(capturedResult, isNotNull);
+      expect(capturedResult!.amount, 123);
+    });
+
+    testWidgets('非数の支出金額は画面を閉じず理由を表示する', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      OfferingResult? capturedResult;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.of(context).push<OfferingResult>(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        OfferingInputScreen(quest: quest, player: player),
+                  ),
+                );
+                capturedResult = result;
+              },
+              child: const Text('開く'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('開く'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField).first, 'abc');
+      await tester.enterText(find.byType(TextFormField).at(1), '昼食');
+      final submitButton = find.text('支出を実行する');
+      await tester.ensureVisible(submitButton);
+      await tester.pumpAndSettle();
+      await tester.tap(submitButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('支出の記録'), findsOneWidget);
+      expect(capturedResult, isNull);
+      expect(find.text(AmountParser.notNumberMessage), findsOneWidget);
     });
   });
 }

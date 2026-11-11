@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/quick_template/data/quick_template_repository.dart';
 import 'package:kozuchi/features/quick_template/domain/models/expense_template.dart';
 import 'package:kozuchi/features/quick_template/presentation/quick_template_app_keys.dart';
@@ -99,6 +100,51 @@ void main() {
 
       expect(find.text('昼食'), findsOneWidget);
       expect(find.text('¥500・食費・使用 0回'), findsOneWidget);
+    });
+
+    testWidgets('全角数字の金額でもテンプレートを保存できる', (tester) async {
+      await _pumpScreen(tester);
+      await tester.tap(find.byKey(QuickTemplateAppKeys.addButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(QuickTemplateAppKeys.amountField),
+        '５００',
+      );
+      await tester.enterText(
+        find.byKey(QuickTemplateAppKeys.purposeField),
+        '昼食',
+      );
+      await tester.tap(find.text('食費'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(QuickTemplateAppKeys.saveButton));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('¥500・食費・使用 0回'), findsOneWidget);
+    });
+
+    testWidgets('非数の金額はダイアログを閉じず理由を表示する', (tester) async {
+      await _pumpScreen(tester);
+      await tester.tap(find.byKey(QuickTemplateAppKeys.addButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(QuickTemplateAppKeys.amountField),
+        'abc',
+      );
+      await tester.enterText(
+        find.byKey(QuickTemplateAppKeys.purposeField),
+        '昼食',
+      );
+      await tester.tap(find.text('食費'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(QuickTemplateAppKeys.saveButton));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text(AmountParser.notNumberMessage), findsOneWidget);
+      expect(find.text('テンプレートはまだありません'), findsOneWidget);
     });
   });
 }

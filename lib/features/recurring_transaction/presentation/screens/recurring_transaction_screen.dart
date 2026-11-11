@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_transaction.dart';
 import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
@@ -184,7 +185,17 @@ class _RecurringFormDialogState extends State<_RecurringFormDialog> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    final amount = int.parse(_amountController.text.replaceAll(',', ''));
+    final parsed =
+        AmountParser.parseAmount(_amountController.text, allowNegative: true);
+    if (parsed.value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(parsed.errorMessage ?? AmountParser.emptyMessage),
+        ),
+      );
+      return;
+    }
+    final amount = parsed.value!;
     final dayOfMonth = int.tryParse(_dayOfMonthController.text) ?? 1;
 
     Navigator.of(context).pop(
@@ -232,10 +243,10 @@ class _RecurringFormDialogState extends State<_RecurringFormDialog> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return '金額を入力せよ';
-                  final n = int.tryParse(v.replaceAll(',', ''));
-                  if (n == null || n == 0) return '有効な金額を入力せよ';
-                  return null;
+                  if (v == null || v.trim().isEmpty) return '金額を入力せよ';
+                  final parsed =
+                      AmountParser.parseAmount(v, allowNegative: true);
+                  return parsed.value == null ? parsed.errorMessage : null;
                 },
               ),
               const SizedBox(height: 12),

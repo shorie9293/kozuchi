@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 
 /// 収入記録結果
@@ -54,7 +55,16 @@ class _IncomeInputScreenState extends State<IncomeInputScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    final amount = int.parse(_amountController.text);
+    final parsed = AmountParser.parseAmount(_amountController.text);
+    if (parsed.value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(parsed.errorMessage ?? AmountParser.emptyMessage),
+        ),
+      );
+      return;
+    }
+    final amount = parsed.value!;
     final updatedPlayer = widget.player.addHp(amount);
     Navigator.of(context).pop(IncomeResult(
       amount: amount,
@@ -115,9 +125,8 @@ class _IncomeInputScreenState extends State<IncomeInputScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return '金額を入力せよ';
-                  final amount = int.tryParse(value);
-                  if (amount == null || amount <= 0) return '有効な金額を入力せよ';
-                  return null;
+                  final parsed = AmountParser.parseAmount(value);
+                  return parsed.value == null ? parsed.errorMessage : null;
                 },
               ),
               const SizedBox(height: 16),

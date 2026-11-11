@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_transaction.dart';
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
@@ -92,6 +93,45 @@ void main() {
     testWidgets('未登録時は空メッセージが表示される', (tester) async {
       await pumpScreen(tester);
       expect(find.text('定期取引はまだありません'), findsOneWidget);
+    });
+  });
+
+  group('RecurringTransactionScreen 全角数字入力', () {
+    testWidgets('全角数字の金額をそのまま保存できる', (tester) async {
+      await pumpScreen(tester);
+
+      await tester.tap(find.text('定期取引を追加'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+          find.byKey(const Key('recurringTx_purposeField')), '家賃');
+      await tester.enterText(
+          find.byKey(const Key('recurringTx_amountField')), '１２３４５');
+      await tester.tap(find.byKey(const Key('recurringTx_saveButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      final defs = await repository.loadDefinitions();
+      expect(defs, hasLength(1));
+      expect(defs[0].amount, 12345);
+    });
+
+    testWidgets('非数の金額はダイアログを閉じず理由を表示する', (tester) async {
+      await pumpScreen(tester);
+
+      await tester.tap(find.text('定期取引を追加'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+          find.byKey(const Key('recurringTx_purposeField')), '家賃');
+      await tester.enterText(
+          find.byKey(const Key('recurringTx_amountField')), 'abc');
+      await tester.tap(find.byKey(const Key('recurringTx_saveButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text(AmountParser.notNumberMessage), findsOneWidget);
+      expect(await repository.loadDefinitions(), isEmpty);
     });
   });
 }

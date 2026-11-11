@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/goals/data/goal.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_form_screen.dart';
@@ -214,6 +215,41 @@ void main() {
       ));
       await tester.pumpAndSettle();
       expect(find.text('目標を作成'), findsNothing);
+    });
+  });
+
+  group('GoalFormScreen 全角数字入力', () {
+    testWidgets('全角数字の目標金額・積立額で作成できる', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: GoalFormScreen(apiService: _createService(_createSuccessMockClient())),
+      ));
+      await tester.pumpAndSettle();
+
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), '旅行');
+      await tester.enterText(fields.at(1), '１，０００');
+      await tester.enterText(fields.at(2), '０');
+      await tester.tap(find.text('目標を作成'));
+      await tester.pumpAndSettle();
+
+      // 例外なく保存され、画面が閉じる
+      expect(find.text('新しい目標'), findsNothing);
+    });
+
+    testWidgets('非数の目標金額は画面を閉じず理由を表示する', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: GoalFormScreen(apiService: _createService(_createSuccessMockClient())),
+      ));
+      await tester.pumpAndSettle();
+
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), '旅行');
+      await tester.enterText(fields.at(1), 'abc');
+      await tester.tap(find.text('目標を作成'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('新しい目標'), findsOneWidget);
+      expect(find.text(AmountParser.notNumberMessage), findsOneWidget);
     });
   });
 }
