@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/format/money_format.dart' as money_format;
 import 'package:kozuchi/features/transaction_filter/presentation/transaction_query_app_keys.dart';
 
 /// 絞込結果のサマリーバー。
@@ -32,16 +33,11 @@ class TransactionQuerySummaryBar extends StatelessWidget {
     this.onReset,
   });
 
-  /// 金額を ¥1,234,567 形式に整形する
-  static String formatYen(int amount) {
-    final digits = amount.abs().toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-      buffer.write(digits[i]);
-    }
-    return '¥${amount < 0 ? '-' : ''}$buffer';
-  }
+  /// 金額を ¥1,234,567 形式に整形する（正準実装へ委譲）
+  ///
+  /// 既存テストが本名を参照するため存置。負値は `-¥500` となり、
+  /// かつての `¥-500`（記号の後ろにマイナス）は生成しない。
+  static String formatYen(int amount) => money_format.formatYen(amount);
 
   @override
   Widget build(BuildContext context) {

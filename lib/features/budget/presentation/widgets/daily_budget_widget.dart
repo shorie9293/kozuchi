@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/features/budget/domain/daily_budget.dart';
 
 /// 日割り予算表示ウィジェット
@@ -132,7 +133,7 @@ class DailyBudgetWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '¥${_formatAmount(budget.dailyAllowance)}/日',
+                    '${formatYenCompact(budget.dailyAllowance)}/日',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -206,7 +207,7 @@ class DailyBudgetWidget extends StatelessWidget {
         Expanded(
           child: _buildStatItem(
             label: '残予算',
-            value: '¥${_formatAmount(budget.remainingBudget)}',
+            value: formatYenCompact(budget.remainingBudget),
             colorScheme: colorScheme,
             accentColor: budget.isOverBudget ? Colors.red : Colors.green,
           ),
@@ -224,7 +225,7 @@ class DailyBudgetWidget extends StatelessWidget {
         Expanded(
           child: _buildStatItem(
             label: '月予算',
-            value: '¥${_formatAmount(budget.monthlyBudget)}',
+            value: formatYenCompact(budget.monthlyBudget),
             colorScheme: colorScheme,
             accentColor: colorScheme.primary,
           ),
@@ -233,7 +234,7 @@ class DailyBudgetWidget extends StatelessWidget {
         Expanded(
           child: _buildStatItem(
             label: '当月支出',
-            value: '¥${_formatAmount(budget.totalSpent)}',
+            value: formatYenCompact(budget.totalSpent),
             colorScheme: colorScheme,
             accentColor: budget.isOverBudget ? Colors.red : Colors.orange,
           ),
@@ -278,18 +279,5 @@ class DailyBudgetWidget extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// 金額のフォーマット（3桁カンマ区切り）
-  String _formatAmount(int amount) {
-    if (amount >= 10000) {
-      final man = (amount / 10000).toStringAsFixed(1);
-      // 末尾が.0の場合は整数表示
-      if (man.endsWith('.0')) {
-        return '${amount ~/ 10000}万';
-      }
-      return '${man}万';
-    }
-    return amount.toString();
   }
 }

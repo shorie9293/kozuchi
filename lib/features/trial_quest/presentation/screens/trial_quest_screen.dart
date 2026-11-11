@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/classifier/classifier_service.dart';
@@ -250,7 +251,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '¥${_formatNumber(_quest.suggestedOffering)}',
+                          formatYen(_quest.suggestedOffering),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -330,7 +331,7 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
           ),
           const SizedBox(height: 4),
           if (_quest.offeringAmount != null)
-            Text('金額: ¥${_formatNumber(_quest.offeringAmount!)}'),
+            Text('金額: ${formatYen(_quest.offeringAmount!)}'),
           if (_quest.offeringPurpose != null)
             Text('用途: ${_quest.offeringPurpose}'),
           if (_quest.offeringNote != null && _quest.offeringNote!.isNotEmpty)
@@ -525,13 +526,6 @@ class _TrialQuestScreenState extends State<TrialQuestScreen> {
           const Icon(Icons.check, size: 12, color: Colors.green),
         ],
       ],
-    );
-  }
-
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
     );
   }
 }

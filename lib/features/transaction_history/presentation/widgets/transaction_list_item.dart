@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/receipt_viewer/presentation/receipt_viewer_app_keys.dart';
 import 'package:kozuchi/features/transaction_edit/presentation/transaction_edit_app_keys.dart';
@@ -125,7 +126,7 @@ class TransactionListItem extends StatelessWidget {
         SizedBox(
           width: 100,
           child: Text(
-            _formatAmount(transaction.amount),
+            formatYen(transaction.amount),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -209,20 +210,6 @@ class TransactionListItem extends StatelessWidget {
           ),
       ],
     );
-  }
-
-  /// 金額を ¥ 付きカンマ区切りでフォーマットする。
-  /// 収入（正）: ¥1,000  /  支出（負）: -¥1,000
-  String _formatAmount(int amount) {
-    final absStr = amount.abs().toString().replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (m) => '${m[1]},',
-        );
-    if (amount >= 0) {
-      return '¥$absStr';
-    } else {
-      return '-¥$absStr';
-    }
   }
 
   /// カテゴリを小さなバッジ（Tag）として表示する。

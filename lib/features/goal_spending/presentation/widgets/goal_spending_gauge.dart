@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/format/money_format.dart';
+
 /// 目標支出消化率ゲージ
 ///
 /// 月間予算に対する当月支出の消化率をプログレスバーで表示する。
@@ -211,7 +213,7 @@ class GoalSpendingGauge extends StatelessWidget {
       children: [
         _buildStatItem(
           '残予算',
-          '¥${_format(_remainingBudget)}',
+          formatYenCompact(_remainingBudget),
           colorScheme,
           _isOverBudget ? Colors.red : Colors.green,
         ),
@@ -225,14 +227,14 @@ class GoalSpendingGauge extends StatelessWidget {
         const SizedBox(width: 8),
         _buildStatItem(
           '月予算',
-          '¥${_format(monthlyBudget)}',
+          formatYenCompact(monthlyBudget),
           colorScheme,
           colorScheme.primary,
         ),
         const SizedBox(width: 8),
         _buildStatItem(
           '日割',
-          '¥${_format(_dailyAllowance)}',
+          formatYenCompact(_dailyAllowance),
           colorScheme,
           _isOverBudget ? Colors.red : Colors.orange,
         ),
@@ -276,18 +278,6 @@ class GoalSpendingGauge extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  String _format(int amount) {
-    if (amount >= 10000) {
-      final man = (amount / 10000).toStringAsFixed(1);
-      if (man.endsWith('.0')) return '${amount ~/ 10000}万';
-      return '${man}万';
-    }
-    return amount.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
     );
   }
 }

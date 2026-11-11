@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/features/csv_import/domain/csv_import_service.dart';
 import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
 
@@ -233,7 +234,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
                           ),
                           title: Text(tx.purpose),
                           trailing: Text(
-                            _formatAmount(tx.amount),
+                            formatYenSigned(tx.amount),
                             style: TextStyle(
                               color: tx.isIncome
                                   ? Colors.green.shade700
@@ -446,13 +447,5 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
         ],
       ),
     );
-  }
-
-  String _formatAmount(int amount) {
-    final absStr = amount.abs().toString().replaceAllMapped(
-          RegExp(r'(\d)(?=(?:\d{3})+(?!\d))'),
-          (m) => '${m[1]},',
-        );
-    return amount >= 0 ? '+¥$absStr' : '-¥$absStr';
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
 import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
@@ -155,18 +156,18 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
             style: theme.textTheme.labelMedium,
           ),
           Text(
-            '¥${_formatYen(summary.latestBalance)}',
+            formatYen(summary.latestBalance),
             style: theme.textTheme.headlineSmall
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            '直近$monthsヶ月: 収入 ¥${_formatYen(summary.totalIncome)} / '
-            '支出 ¥${_formatYen(summary.totalExpense)}',
+            '直近$monthsヶ月: 収入 ${formatYen(summary.totalIncome)} / '
+            '支出 ${formatYen(summary.totalExpense)}',
             style: theme.textTheme.bodySmall,
           ),
           Text(
-            '月平均の純増減: ¥${_formatYen(summary.averageMonthlyNet.round())}',
+            '月平均の純増減: ${formatYen(summary.averageMonthlyNet.round())}',
             style: theme.textTheme.bodySmall,
           ),
         ],
@@ -193,13 +194,13 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
                 ),
                 Expanded(
                   child: Text(
-                    '¥${_formatYen(p.balance)}',
+                    formatYen(p.balance),
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
                 Text(
-                  '${p.netChange >= 0 ? '+' : '-'}¥${_formatYen(p.netChange.abs())}',
+                  formatYenSigned(p.netChange),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: p.netChange >= 0
                         ? Colors.green
@@ -211,15 +212,5 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
           ),
       ],
     );
-  }
-
-  static String _formatYen(int value) {
-    final s = value.abs().toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buffer.write(',');
-      buffer.write(s[i]);
-    }
-    return value < 0 ? '-$buffer' : buffer.toString();
   }
 }

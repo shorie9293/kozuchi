@@ -1,3 +1,5 @@
+import 'package:kozuchi/core/format/money_format.dart';
+
 /// 貯蓄目標（Goal）のデータモデル
 ///
 /// kozuchiサーバーの /api/goals エンドポイントと対応。
@@ -68,17 +70,7 @@ class Goal {
   }
 
   /// 表示用の金額フォーマット（例: "¥50,000"）
-  String formatAmount(int amount) {
-    if (amount == 0) return '¥0';
-    final negative = amount < 0;
-    final absStr = amount.abs().toString();
-    final buffer = StringBuffer();
-    if (negative) buffer.write('-');
-    buffer.write('¥');
-    for (int i = 0; i < absStr.length; i++) {
-      if (i > 0 && (absStr.length - i) % 3 == 0) buffer.write(',');
-      buffer.write(absStr[i]);
-    }
-    return buffer.toString();
-  }
+  ///
+  /// 整形は正準 [formatYen] に委譲する（既存テストが本名を参照するため存置）。
+  String formatAmount(int amount) => formatYen(amount);
 }

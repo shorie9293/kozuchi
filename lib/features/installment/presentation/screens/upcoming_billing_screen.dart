@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/installment_plan.dart';
@@ -128,7 +129,7 @@ class _UpcomingBillingScreenState extends State<UpcomingBillingScreen> {
             const SizedBox(height: 4),
             Text(
               key: InstallmentAppKeys.upcomingTotal,
-              _formatYen(summary.totalAmount),
+              formatYen(summary.totalAmount),
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
@@ -162,7 +163,7 @@ class _UpcomingBillingScreenState extends State<UpcomingBillingScreen> {
               ),
               const Spacer(),
               Text(
-                _formatYen(group.totalAmount),
+                formatYen(group.totalAmount),
                 style: TextStyle(fontSize: 13, color: colorScheme.outline),
               ),
             ],
@@ -189,22 +190,10 @@ class _UpcomingBillingScreenState extends State<UpcomingBillingScreen> {
           style: TextStyle(fontSize: 12, color: colorScheme.outline),
         ),
         trailing: Text(
-          _formatYen(billing.amount),
+          formatYen(billing.amount),
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
       ),
     );
   }
-}
-
-/// 円表記（3桁区切り、¥ 接頭）。
-String _formatYen(int amount) {
-  final negative = amount < 0;
-  final digits = amount.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(digits[i]);
-  }
-  return '${negative ? '-' : ''}¥$buffer';
 }

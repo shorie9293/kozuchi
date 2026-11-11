@@ -43,7 +43,9 @@ void main() {
     testWidgets('3桁区切りの金額を整形する', (tester) async {
       expect(TransactionQuerySummaryBar.formatYen(1234567), '¥1,234,567');
       expect(TransactionQuerySummaryBar.formatYen(0), '¥0');
-      expect(TransactionQuerySummaryBar.formatYen(-500), '¥-500');
+      // 正準 money_format へ委譲したため、負値は記号の前にマイナスが付く
+      // （旧: '¥-500' という記号の後ろにマイナスが来る誤表記だった）。
+      expect(TransactionQuerySummaryBar.formatYen(-500), '-¥500');
     });
 
     testWidgets('0件時は空状態文言を表示する', (tester) async {

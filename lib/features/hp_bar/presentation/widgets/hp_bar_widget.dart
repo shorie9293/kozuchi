@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
 
 /// HPバー（残高）表示Widget
@@ -49,7 +50,7 @@ class HpBarWidget extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const Spacer(),
               Text(
-                '¥${_formatNumber(player.hp)}',
+                formatYen(player.hp),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -132,7 +133,7 @@ class HpBarWidget extends StatelessWidget {
             children: [
               // 生活防衛ライン
               Text(
-                '生活防衛 ¥${_formatNumber(PlayerModel.livingDefenseLine)}',
+                '生活防衛 ${formatYen(PlayerModel.livingDefenseLine)}',
                 style: TextStyle(
                   fontSize: 11,
                   color: colorScheme.outline,
@@ -173,13 +174,6 @@ class HpBarWidget extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
     );
   }
 }

@@ -80,7 +80,9 @@ void main() {
         ),
       );
 
-      expect(model.progressText, '¥3万 / ¥10万');
+      // 正準 formatYenCompact へ委譲したため、万表記には ¥ を付けない
+      // （旧: '¥3万 / ¥10万'。1万未満は '¥9,999' と ¥ 付きになる）。
+      expect(model.progressText, '3万 / 10万');
       expect(model.progressFraction, 0.35);
     });
 

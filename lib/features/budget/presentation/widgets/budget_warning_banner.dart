@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/format/money_format.dart';
+
 /// 予算超過接近時の警告バナー
 ///
 /// 月間支出が予算の閾値（デフォルト80%）を超えた場合に表示する。
@@ -110,7 +112,7 @@ class BudgetWarningBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '¥${_formatNumber(spentAmount)} / ¥${_formatNumber(budgetAmount)}',
+                '${formatYen(spentAmount)} / ${formatYen(budgetAmount)}',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -119,8 +121,8 @@ class BudgetWarningBanner extends StatelessWidget {
               ),
               Text(
                 remaining >= 0
-                    ? '残り ¥${_formatNumber(remaining)}'
-                    : '¥${_formatNumber(remaining.abs())} 超過',
+                    ? '残り ${formatYen(remaining)}'
+                    : '${formatYen(remaining.abs())} 超過',
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.white.withValues(alpha: 0.8),
@@ -130,13 +132,6 @@ class BudgetWarningBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
     );
   }
 }

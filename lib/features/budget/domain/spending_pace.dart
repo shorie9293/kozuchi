@@ -1,3 +1,5 @@
+import 'package:kozuchi/core/format/money_format.dart' as money_format;
+
 /// 支出ペースと月末着地予測のドメインモデル
 ///
 /// 月間予算と当月支出の実績から、1日あたりのペース・月末着地見込みを算出する。
@@ -31,16 +33,10 @@ enum SpendingPaceLevel {
 }
 
 /// 3桁カンマ区切りの金額文字列に整形する（例: 99200 → '99,200'）
-String formatAmount(int amount) {
-  final digits = amount.abs().toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    buf.write(digits[i]);
-    final rest = digits.length - i - 1;
-    if (rest > 0 && rest % 3 == 0) buf.write(',');
-  }
-  return amount < 0 ? '-${buf.toString()}' : buf.toString();
-}
+///
+/// 整形規則は正準 [money_format.formatYenBare] が唯一の正。
+/// 既存テストが本名を参照するため存置する。
+String formatAmount(int amount) => money_format.formatYenBare(amount);
 
 /// 支出ペースと月末着地予測の計算結果モデル
 class SpendingPace {
@@ -126,11 +122,11 @@ class SpendingPace {
 
   /// 例: '1日あたり ¥3,200 ペース'
   String get paceLabel =>
-      '1日あたり ¥${formatAmount(dailyPace.round())} ペース';
+      '1日あたり ${money_format.formatYen(dailyPace.round())} ペース';
 
   /// 例: 'このペースだと月末 ¥99,200 着地見込み'
   String get forecastLabel =>
-      'このペースだと月末 ¥${formatAmount(projectedTotal)} 着地見込み';
+      'このペースだと月末 ${money_format.formatYen(projectedTotal)} 着地見込み';
 
   /// 画面1行要約（レベル絵文字+label+着地見込み）
   String get summaryLabel => '${level.emoji} ${level.label} — $forecastLabel';

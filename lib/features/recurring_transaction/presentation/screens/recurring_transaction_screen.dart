@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_transaction.dart';
@@ -112,7 +113,7 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _formatAmount(def.amount),
+              formatYenSigned(def.amount),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: isIncome ? Colors.green.shade700 : Colors.red.shade700,
@@ -137,14 +138,6 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
       RecurringFrequency.weekly => '${weekdays[def.dayOfWeek - 1]}曜日',
       RecurringFrequency.monthly => '毎月${def.dayOfMonth}日',
     };
-  }
-
-  String _formatAmount(int amount) {
-    final absStr = amount.abs().toString().replaceAllMapped(
-          RegExp(r'(\d)(?=(?:\d{3})+(?!\d))'),
-          (m) => '${m[1]},',
-        );
-    return amount >= 0 ? '+¥$absStr' : '-¥$absStr';
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/features/budget/domain/spending_pace.dart';
 
 /// 支出ペースと月末着地予測を表示するウィジェット
@@ -191,8 +192,8 @@ class SpendingPaceWidget extends StatelessWidget {
   String _overPaceText() {
     final v = pace.overPacePerDay;
     return v > 0
-        ? '1日 ¥${formatAmount(v)} 使いすぎ'
-        : '1日 ¥${formatAmount(-v)} 余裕';
+        ? '1日 ${formatYen(v)} 使いすぎ'
+        : '1日 ${formatYen(-v)} 余裕';
   }
 
   Color _levelColor(SpendingPaceLevel level) => switch (level) {

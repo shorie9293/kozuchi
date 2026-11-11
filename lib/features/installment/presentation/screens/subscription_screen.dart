@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/subscription.dart';
@@ -126,12 +127,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const SizedBox(height: 4),
             Text(
               key: InstallmentAppKeys.subscriptionMonthlyTotal,
-              _formatYen(monthlyTotal),
+              formatYen(monthlyTotal),
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
-              '年額 ${_formatYen(monthlyTotal * 12)}',
+              '年額 ${formatYen(monthlyTotal * 12)}',
               style: TextStyle(fontSize: 13, color: colorScheme.outline),
             ),
           ],
@@ -148,7 +149,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         key: InstallmentAppKeys.subscriptionTile(sub.id),
         title: Text(sub.purpose),
         subtitle: Text(
-          '月額 ${_formatYen(sub.amount)} ・ 毎月${sub.billingDay}日 ・ 次回 ${_formatDate(next)}',
+          '月額 ${formatYen(sub.amount)} ・ 毎月${sub.billingDay}日 ・ 次回 ${_formatDate(next)}',
           style: TextStyle(
             fontSize: 12,
             color: sub.isActive ? colorScheme.outline : colorScheme.outline.withValues(alpha: 0.6),
@@ -287,17 +288,6 @@ class _AddSubscriptionDialogState extends State<_AddSubscriptionDialog> {
       ],
     );
   }
-}
-
-String _formatYen(int amount) {
-  final negative = amount < 0;
-  final digits = amount.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(digits[i]);
-  }
-  return '${negative ? '-' : ''}¥$buffer';
 }
 
 String _formatDate(DateTime date) =>

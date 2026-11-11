@@ -1,3 +1,5 @@
+import 'package:kozuchi/core/format/money_format.dart';
+
 /// 実績APIレスポンス用モデル
 ///
 /// GET /api/achievements のレスポンスJSONをパースする。
@@ -57,7 +59,7 @@ class AchievementApiModel {
     // criteria_type に応じて表示形式を変える
     switch (criteriaType) {
       case 'total_donation':
-        return '¥${_formatNumber(c)} / ¥${_formatNumber(t)}';
+        return '${formatYenCompact(c)} / ${formatYenCompact(t)}';
       case 'streak_days':
         return '$c / $t日';
       case 'offering_count':
@@ -72,13 +74,6 @@ class AchievementApiModel {
     if (unlocked || progress == null) return null;
     if (progress!.target <= 0) return 1.0;
     return (progress!.current / progress!.target).clamp(0.0, 1.0);
-  }
-
-  static String _formatNumber(int n) {
-    if (n >= 10000) {
-      return '${(n ~/ 10000)}万';
-    }
-    return n.toString();
   }
 }
 

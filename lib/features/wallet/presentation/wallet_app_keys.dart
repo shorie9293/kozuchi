@@ -1,5 +1,13 @@
 import 'package:flutter/widgets.dart';
 
+/// 金額の表示整形（正準実装）。
+///
+/// かつて本ファイルが持っていた formatYen / formatYenSigned の重複実装を
+/// 廃止し、正準モジュールから再輸出する。財布機能内の呼出側は
+/// これまで通り本ファイルを import するだけで使える。
+export 'package:kozuchi/core/format/money_format.dart'
+    show formatYen, formatYenSigned;
+
 /// 財布（口座・支払い手段）機能の試練用Key。
 ///
 /// [KozuchiAppKeys] とは分離し、財布機能の Key はここで一元管理する。
@@ -46,22 +54,6 @@ class WalletAppKeys {
   static const Key movementSaveButton = Key('wallet_movementSaveButton');
   static const Key movementDialogError = Key('wallet_movementDialogError');
 }
-
-/// 金額・日付の表示整形（財布機能内で共用）
-String formatYen(int amount) {
-  final negative = amount < 0;
-  final digits = amount.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(digits[i]);
-  }
-  return '${negative ? '-' : ''}¥$buffer';
-}
-
-/// 符号を明示した金額表示（入金は +、出金は −）
-String formatYenSigned(int amount) =>
-    amount > 0 ? '+${formatYen(amount)}' : formatYen(amount);
 
 /// 日付表示（YYYY/MM/DD）
 String formatDate(DateTime date) {

@@ -1,3 +1,4 @@
+import 'package:kozuchi/core/format/money_format.dart' as money_format;
 import 'package:kozuchi/domain/models/expense_entry.dart';
 import 'package:kozuchi/features/weekly_quest/domain/models/active_weekly_quest.dart';
 import 'package:kozuchi/features/weekly_quest/domain/models/weekly_quest.dart';
@@ -80,17 +81,10 @@ class WeeklyQuestProgress {
     return '達成！${formatYen(remainingAmount)} の余裕';
   }
 
-  /// 3桁カンマ区切りの円表記（intl 非依存）。
-  static String formatYen(int amount) {
-    final negative = amount < 0;
-    final digits = amount.abs().toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-      buffer.write(digits[i]);
-    }
-    return '${negative ? '-' : ''}¥$buffer';
-  }
+  /// 3桁カンマ区切りの円表記（正準実装へ委譲）。
+  ///
+  /// 既存テストが本名を参照するため存置。整形規則は [money_format.formatYen] が唯一の正。
+  static String formatYen(int amount) => money_format.formatYen(amount);
 
   @override
   bool operator ==(Object other) =>

@@ -1,3 +1,5 @@
+import 'package:kozuchi/core/format/money_format.dart';
+
 import 'goal.dart';
 
 /// 貯蓄目標の達成予測結果（不変モデル）
@@ -55,22 +57,12 @@ class GoalForecast {
     if (required != null) {
       final months = monthsRemaining;
       final term = months == null ? '' : '（あと${months}ヶ月）';
-      return '⏳ 期限までに月${_formatYen(required)}$term が必要';
+      return '⏳ 期限までに月${formatYen(required)}$term が必要';
     }
     if (deadlineLabel != null) {
       return '⚠️ 期限（$deadlineLabel）を過ぎています';
     }
     return '📊 予測を計算できません';
-  }
-
-  static String _formatYen(int amount) {
-    final s = amount.toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buffer.write(',');
-      buffer.write(s[i]);
-    }
-    return '¥$buffer';
   }
 }
 

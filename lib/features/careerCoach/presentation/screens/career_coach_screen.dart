@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/features/careerCoach/domain/career_coach_review_service.dart';
 import 'package:kozuchi/features/trial_quest/data/deepseek_review_service.dart';
 
@@ -43,18 +44,6 @@ class _CareerCoachScreenState extends State<CareerCoachScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  /// 収支額を表示用フォーマットに変換（例: +¥20,000 / -¥10,000）
-  String _formatBalance(int balance) {
-    final sign = balance >= 0 ? '+' : '-';
-    final s = balance.abs().toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return '$sign¥$buf';
   }
 
   @override
@@ -150,7 +139,7 @@ class _CareerCoachScreenState extends State<CareerCoachScreen> {
           Row(
             children: [
               Text(
-                _formatBalance(review.balance),
+                formatYenSigned(review.balance),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

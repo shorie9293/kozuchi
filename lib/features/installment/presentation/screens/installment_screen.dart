@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/installment_plan.dart';
@@ -125,12 +126,12 @@ class _InstallmentScreenState extends State<InstallmentScreen> {
             const SizedBox(height: 4),
             Text(
               key: InstallmentAppKeys.installmentRemainingTotal,
-              _formatYen(remainingTotal),
+              formatYen(remainingTotal),
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
-              '毎月の返済額 ${_formatYen(InstallmentService.totalMonthlyInstallmentBurden(_plans))}',
+              '毎月の返済額 ${formatYen(InstallmentService.totalMonthlyInstallmentBurden(_plans))}',
               style: TextStyle(fontSize: 13, color: colorScheme.outline),
             ),
           ],
@@ -173,7 +174,7 @@ class _InstallmentScreenState extends State<InstallmentScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '月額 ${_formatYen(monthly)} ・ 残り${plan.remainingCount}回 ・ 残債 ${_formatYen(remaining)}',
+                '月額 ${formatYen(monthly)} ・ 残り${plan.remainingCount}回 ・ 残債 ${formatYen(remaining)}',
                 style: TextStyle(fontSize: 13, color: colorScheme.outline),
               ),
               const SizedBox(height: 8),
@@ -321,16 +322,4 @@ class _AddInstallmentDialogState extends State<_AddInstallmentDialog> {
       ],
     );
   }
-}
-
-/// 円表記（3桁区切り）。
-String _formatYen(int amount) {
-  final negative = amount < 0;
-  final digits = amount.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(digits[i]);
-  }
-  return '${negative ? '-' : ''}¥$buffer';
 }
