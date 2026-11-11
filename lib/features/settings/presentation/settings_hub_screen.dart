@@ -22,6 +22,7 @@ import 'package:kozuchi/features/help/presentation/help_screen.dart';
 import 'package:kozuchi/features/notification_settings/presentation/notification_settings_screen.dart';
 import 'package:kozuchi/features/quiet_hours/data/quiet_hours_repository.dart';
 import 'package:kozuchi/features/quiet_hours/presentation/quiet_hours_settings_screen.dart';
+import 'package:kozuchi/features/settings/presentation/cross_app_link_status_screen.dart';
 import 'package:kozuchi/features/settings/presentation/settings_hub_app_keys.dart';
 import 'package:kozuchi/screens/reduce_motion_settings_screen.dart';
 import 'package:kozuchi/screens/text_scale_settings_screen.dart';
@@ -39,6 +40,7 @@ class SettingsHubScreen extends StatelessWidget {
   final WidgetBuilder? quietHoursBuilder;
   final WidgetBuilder? backupBuilder;
   final WidgetBuilder? autoBackupBuilder;
+  final WidgetBuilder? crossAppLinkStatusScreenBuilder;
   final WidgetBuilder? aboutBuilder;
   final WidgetBuilder? crashLogBuilder;
   final WidgetBuilder? helpBuilder;
@@ -67,6 +69,7 @@ class SettingsHubScreen extends StatelessWidget {
     this.quietHoursBuilder,
     this.backupBuilder,
     this.autoBackupBuilder,
+    this.crossAppLinkStatusScreenBuilder,
     this.aboutBuilder,
     this.crashLogBuilder,
     this.helpBuilder,
@@ -311,6 +314,20 @@ class SettingsHubScreen extends StatelessWidget {
             onTap: () => _push(
               context,
               helpBuilder ?? (_) => const HelpScreen(),
+            ),
+          ),
+          _tile(
+            key: SettingsHubAppKeys.crossAppLinkStatusTile,
+            testId: SemanticHelper.createTestId(
+              SemanticTypes.button,
+              'settings_hub_cross_app_link_status',
+            ),
+            label: '連携状況（現世間の受け渡し）',
+            icon: Icons.swap_horiz,
+            onTap: () => _push(
+              context,
+              crossAppLinkStatusScreenBuilder ??
+                  (_) => const CrossAppLinkStatusScreen(),
             ),
           ),
         ],

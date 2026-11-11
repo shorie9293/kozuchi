@@ -62,6 +62,7 @@ void main() {
         SettingsHubAppKeys.aboutTile,
         SettingsHubAppKeys.themeTile,
         SettingsHubAppKeys.helpTile,
+        SettingsHubAppKeys.crossAppLinkStatusTile,
       ]);
     });
   });

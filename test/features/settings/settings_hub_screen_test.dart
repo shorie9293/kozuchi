@@ -20,6 +20,7 @@ Future<void> _pumpHub(
   WidgetBuilder? notificationBuilder,
   WidgetBuilder? aboutBuilder,
   WidgetBuilder? autoBackupBuilder,
+  WidgetBuilder? crossAppLinkStatusScreenBuilder,
   VoidCallback? onToggleTheme,
 }) async {
   await tester.pumpWidget(MaterialApp(
@@ -28,6 +29,7 @@ Future<void> _pumpHub(
       notificationBuilder: notificationBuilder,
       aboutBuilder: aboutBuilder,
       autoBackupBuilder: autoBackupBuilder,
+      crossAppLinkStatusScreenBuilder: crossAppLinkStatusScreenBuilder,
       onToggleTheme: onToggleTheme,
     ),
   ));
@@ -141,6 +143,34 @@ void main() {
 
       expect(calls, 1);
       expect(find.text('自動バックアップ画面'), findsOneWidget);
+    });
+
+    testWidgets('連携状況タップで注入したビルダーが呼ばれる', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      var calls = 0;
+      await _pumpHub(
+        tester,
+        crossAppLinkStatusScreenBuilder: (_) {
+          calls++;
+          return _stub('連携状況画面');
+        },
+      );
+
+      final tile = find.byKey(SettingsHubAppKeys.crossAppLinkStatusTile);
+      expect(tile, findsOneWidget);
+      expect(find.text('連携状況（現世間の受け渡し）'), findsOneWidget);
+
+      await tester.ensureVisible(tile);
+      await tester.pump();
+      await tester.tap(tile);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(calls, 1);
+      expect(find.text('連携状況画面'), findsOneWidget);
     });
 
     testWidgets('テーマ切替タップで注入したコールバックが呼ばれる', (tester) async {
