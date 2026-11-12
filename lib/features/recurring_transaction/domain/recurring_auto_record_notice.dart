@@ -23,10 +23,20 @@ class RecurringAutoRecordNotice {
   /// SnackBar 等で表示すべきか
   bool get shouldShow => message != null;
 
-  /// 自動記帳の結果から通知を導く。0件なら沈黙する。
+  /// 自動記帳の結果から通知を導く。
+  ///
+  /// 破損時は 0件でも沈黙しない（「定期取引が無い」と混同させない）。
+  /// 破損していない 0件のみ沈黙する。
   static RecurringAutoRecordNotice fromResult(
       RecurringAutoRecordResult result) {
     final count = result.generatedCount;
+    if (result.storageUnverified) {
+      return RecurringAutoRecordNotice(
+        generatedCount: count,
+        message: '⚠️ 定期取引の保存データが壊れているため、自動記帳を見送りました',
+        isFailure: true,
+      );
+    }
     if (count <= 0) {
       return RecurringAutoRecordNotice(
         generatedCount: count,

@@ -3,6 +3,7 @@ import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
+import 'package:kozuchi/features/recurring_transaction/domain/recurring_storage_result.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_transaction.dart';
 import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
 
@@ -26,6 +27,10 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
   List<RecurringTransaction> _definitions = [];
   bool _isLoading = true;
 
+  /// 保存データを信頼できるか（false の間は追加・削除を止める）
+  bool _storageVerified = true;
+  String? _storageError;
+
   @override
   void initState() {
     super.initState();
@@ -34,10 +39,12 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
   }
 
   Future<void> _load() async {
-    final defs = await _repository.loadDefinitions();
+    final result = await _repository.loadDefinitionsResult();
     if (mounted) {
       setState(() {
-        _definitions = defs;
+        _definitions = result.definitions;
+        _storageVerified = result.verified;
+        _storageError = result.errorMessage;
         _isLoading = false;
       });
     }
@@ -48,15 +55,41 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
       context: context,
       builder: (_) => const _RecurringFormDialog(),
     );
-    if (added != null) {
-      await _repository.addDefinition(added);
-      await _load();
+    if (added == null) return;
+
+    final saved = await _repository.addDefinition(added);
+    if (!saved.ok) {
+      // 破損データを上書きしないため保存を止めた旨を必ず伝える
+      _showMessage(saved.errorMessage ?? RecurringSaveResult.blockedMessage);
     }
+    await _load();
   }
 
   Future<void> _delete(String id) async {
-    await _repository.removeDefinition(id);
+    final removed = await _repository.removeDefinition(id);
+    if (!removed.ok) {
+      _showMessage(removed.errorMessage ?? RecurringSaveResult.blockedMessage);
+    }
     await _load();
+  }
+
+  /// 破損データを退避キーへ移し、以後の保存を可能にする
+  Future<void> _archiveCorrupt() async {
+    final archived = await _repository.archiveCorruptData();
+    if (!mounted) return;
+    _showMessage(
+      archived
+          ? '破損データを退避しました。元のデータは退避キーに残っています'
+          : '退避できる破損データが見つかりませんでした',
+    );
+    await _load();
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -68,21 +101,28 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
       appBar: AppBar(title: const Text('定期取引')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _definitions.isEmpty
-              ? Center(
-                  child: Text(
-                    '定期取引はまだありません',
-                    style: TextStyle(color: colorScheme.outline),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _definitions.length,
-                  itemBuilder: (context, index) {
-                    final def = _definitions[index];
-                    return _buildDefinitionCard(def, colorScheme);
-                  },
+          : Column(
+              children: [
+                if (!_storageVerified) _buildCorruptionBanner(colorScheme),
+                Expanded(
+                  child: _definitions.isEmpty
+                      ? Center(
+                          child: Text(
+                            '定期取引はまだありません',
+                            style: TextStyle(color: colorScheme.outline),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: _definitions.length,
+                          itemBuilder: (context, index) {
+                            final def = _definitions[index];
+                            return _buildDefinitionCard(def, colorScheme);
+                          },
+                        ),
                 ),
+              ],
+            ),
       floatingActionButton: SemanticHelper.interactive(
         testId: 'btn_recurringTx_add',
         label: '定期取引を追加',
@@ -92,6 +132,46 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
           icon: const Icon(Icons.add),
           label: const Text('定期取引を追加'),
         ),
+      ),
+    );
+  }
+
+  /// 破損データの警告と退避導線（無言で空にしない）
+  Widget _buildCorruptionBanner(ColorScheme colorScheme) {
+    return Container(
+      width: double.infinity,
+      color: colorScheme.errorContainer,
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '⚠️ 定期取引の保存データが壊れています',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onErrorContainer,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _storageError ?? RecurringDefinitionsLoadResult.corruptMessage,
+            style: TextStyle(fontSize: 12, color: colorScheme.onErrorContainer),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'このままでは新しい定期取引を追加できません。'
+            '退避すると元のデータは退避キーに残ります。',
+            style: TextStyle(fontSize: 12, color: colorScheme.onErrorContainer),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              key: const Key('recurringTx_archiveCorrupt'),
+              onPressed: _archiveCorrupt,
+              child: const Text('破損データを退避して新規作成'),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -7,9 +7,20 @@ import 'package:kozuchi/features/recurring_transaction/domain/recurring_transact
 class RecurringAutoRecordResult {
   final int generatedCount;
   final List<TransactionModel> transactions;
+
+  /// 保存データが破損していて自動記帳を**見送った**か。
+  ///
+  /// 0件計上を「定期取引が無い」と混同しないためのフラグ。
+  final bool storageUnverified;
+
+  /// 見送り・失敗の理由（正常時は null）
+  final String? errorMessage;
+
   const RecurringAutoRecordResult({
     required this.generatedCount,
     required this.transactions,
+    this.storageUnverified = false,
+    this.errorMessage,
   });
 }
 
@@ -41,7 +52,28 @@ class RecurringAutoRecorder {
   /// 再生成され、取引が静かに欠落することがない。
   Future<RecurringAutoRecordResult> run() async {
     final now = clock();
-    final definitions = await recurringRepository.loadDefinitions();
+    final defsResult = await recurringRepository.loadDefinitionsResult();
+    // 破損した定義を根拠に取引を生まない（不信なデータで副作用を起こさない）
+    if (!defsResult.verified) {
+      return RecurringAutoRecordResult(
+        generatedCount: 0,
+        transactions: const [],
+        storageUnverified: true,
+        errorMessage: defsResult.errorMessage,
+      );
+    }
+    final lastGeneratedResult =
+        await recurringRepository.loadLastGeneratedResult();
+    // 進捗が読めないと「全部が未生成」に見え、過去分を二重計上する
+    if (!lastGeneratedResult.verified) {
+      return RecurringAutoRecordResult(
+        generatedCount: 0,
+        transactions: const [],
+        storageUnverified: true,
+        errorMessage: lastGeneratedResult.errorMessage,
+      );
+    }
+    final definitions = defsResult.definitions;
     final generated = <TransactionModel>[];
     // 追記が成功した後でまとめて前進させる定義ID
     final advancedIds = <String>[];
@@ -49,7 +81,7 @@ class RecurringAutoRecorder {
     for (final def in definitions) {
       if (!def.isActive) continue;
 
-      final lastGenerated = await recurringRepository.loadLastGenerated(def.id);
+      final lastGenerated = lastGeneratedResult.valueFor(def.id);
       final due = generator.generateFor(def, now);
 
       final List<TransactionModel> newOnes;
