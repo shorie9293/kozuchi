@@ -1,4 +1,5 @@
 import 'package:kozuchi/core/text/kana_fold.dart';
+import 'package:kozuchi/core/time/local_calendar_date.dart';
 
 import '../models/income_entry.dart';
 import '../models/income_source_summary.dart';
@@ -97,10 +98,10 @@ class IncomeAnalysisService {
     required DateTime start,
     required DateTime end,
   }) {
-    final startDay = DateTime(start.year, start.month, start.day);
-    final endDay = DateTime(end.year, end.month, end.day);
+    final startDay = localCalendarDate(start);
+    final endDay = localCalendarDate(end);
     return entries.where((e) {
-      final day = DateTime(e.date.year, e.date.month, e.date.day);
+      final day = localCalendarDate(e.date);
       return !day.isBefore(startDay) && !day.isAfter(endDay);
     }).toList();
   }

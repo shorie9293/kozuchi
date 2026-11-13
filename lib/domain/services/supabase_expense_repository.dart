@@ -1,3 +1,4 @@
+import '../../core/time/local_calendar_date.dart';
 import '../models/expense_entry.dart';
 import 'expense_cloud_store.dart';
 import 'expense_repository.dart';
@@ -78,5 +79,5 @@ class SupabaseExpenseRepository implements ExpenseRepository {
     return null;
   }
 
-  DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+  DateTime _dayOnly(DateTime dt) => localCalendarDate(dt);
 }

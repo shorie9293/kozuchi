@@ -231,9 +231,12 @@ class TransactionListItem extends StatelessWidget {
   }
 
   /// ISO 8601 日時文字列を "yyyy/MM/dd HH:mm" 形式に変換する。
+  ///
+  /// クラウド由来の Z 付き文字列でも**ローカル時刻**で表示する
+  /// （UTC のまま組むと JST 早朝の取引が前日 23:xx に見える）。
   String _formatDatetime(String isoString) {
     try {
-      final dt = DateTime.parse(isoString);
+      final dt = DateTime.parse(isoString).toLocal();
       final year = dt.year.toString();
       final month = dt.month.toString().padLeft(2, '0');
       final day = dt.day.toString().padLeft(2, '0');

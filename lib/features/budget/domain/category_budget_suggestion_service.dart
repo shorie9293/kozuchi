@@ -1,3 +1,4 @@
+import 'package:kozuchi/core/time/local_calendar_date.dart';
 import 'package:kozuchi/domain/models/expense_entry.dart';
 import 'package:kozuchi/features/budget/domain/category_budget_suggestion.dart';
 
@@ -55,8 +56,7 @@ class CategoryBudgetSuggestionService {
     final monthlyTotals = <String, Map<String, int>>{};
     for (final entry in entries) {
       if (entry.amount <= 0) continue;
-      final monthKey =
-          '${entry.date.year}-${entry.date.month.toString().padLeft(2, '0')}';
+      final monthKey = localMonthKey(entry.date);
       if (!windowSet.contains(monthKey)) continue;
       final category =
           entry.category.trim().isEmpty ? '未分類' : entry.category.trim();

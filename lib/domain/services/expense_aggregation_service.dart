@@ -1,5 +1,6 @@
 import 'package:kozuchi/features/budget/domain/budget_period.dart';
 
+import '../../core/time/local_calendar_date.dart';
 import '../models/expense_entry.dart';
 import '../models/aggregation_result.dart';
 import 'expense_repository.dart';
@@ -207,8 +208,8 @@ class ExpenseAggregationService {
     );
   }
 
-  /// 日付から時刻を除去（日単位の比較用）
-  DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+  /// 日付から時刻を除去（日単位の比較用・ローカル暦）
+  DateTime _dayOnly(DateTime dt) => localCalendarDate(dt);
 
   /// 週の開始日（月曜日）を返す
   DateTime _weekStart(DateTime date) {

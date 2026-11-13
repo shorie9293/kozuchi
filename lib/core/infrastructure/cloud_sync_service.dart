@@ -112,8 +112,14 @@ class CloudSyncService implements ExpenseCloudStore {
       filter = filter.gt('updated_at', lastSyncAt.toUtc().toIso8601String());
     }
     final response = await filter.order('date', ascending: false);
-    return (response as List<dynamic>)
-        .map((row) => ExpenseEntry.fromJson(_rowToExpenseJson(row))).toList();
+    // 1行の破損で全件を失わない（破損行は読み飛ばす）。
+    // 日時は tryFromJson が必ずローカル瞬間へ正規化する。
+    final restored = <ExpenseEntry>[];
+    for (final row in response as List<dynamic>) {
+      final entry = ExpenseEntry.tryFromJson(_rowToExpenseJson(row));
+      if (entry != null) restored.add(entry);
+    }
+    return restored;
   }
 
   Future<int> getExpenseCount({required String userId}) async {

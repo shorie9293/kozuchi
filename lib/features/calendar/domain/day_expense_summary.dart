@@ -1,3 +1,4 @@
+import '../../../core/time/local_calendar_date.dart';
 import '../../../domain/models/expense_entry.dart';
 
 /// 一日分の支出サマリ
@@ -18,7 +19,7 @@ class DayExpenseSummary {
     required DateTime date,
     required this.totalAmount,
     required List<ExpenseEntry> entries,
-  })  : date = DateTime(date.year, date.month, date.day),
+  })  : date = localCalendarDate(date),
         entries = List.unmodifiable(
           List.of(entries)
             ..sort((a, b) {
@@ -32,7 +33,7 @@ class DayExpenseSummary {
     }
     var sum = 0;
     for (final entry in entries) {
-      final entryDay = DateTime(entry.date.year, entry.date.month, entry.date.day);
+      final entryDay = localCalendarDate(entry.date);
       if (entryDay != this.date) {
         throw ArgumentError(
           'entry ${entry.id} date ${entry.date} is not on $date',

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../core/time/local_calendar_date.dart';
 import '../models/expense_entry.dart';
 import 'expense_repository.dart';
 
@@ -58,7 +59,7 @@ class InMemoryExpenseRepository implements ExpenseRepository {
     return null;
   }
 
-  DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+  DateTime _dayOnly(DateTime dt) => localCalendarDate(dt);
 }
 
 /// SharedPreferences 実装の ExpenseRepository
@@ -167,5 +168,5 @@ class SharedPrefsExpenseRepository implements ExpenseRepository {
     return null;
   }
 
-  DateTime _dayOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+  DateTime _dayOnly(DateTime dt) => localCalendarDate(dt);
 }

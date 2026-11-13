@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import '../../../core/time/local_calendar_date.dart';
 import '../../../domain/models/expense_entry.dart';
 import '../domain/calendar_service.dart';
 import '../domain/day_expense_summary.dart';
@@ -216,9 +217,7 @@ class _TransactionCalendarScreenState extends State<TransactionCalendarScreen> {
 
   Widget _dayCell(DayExpenseSummary? day, DateTime now) {
     if (day == null) return const SizedBox.shrink();
-    final isToday = now.year == day.date.year &&
-        now.month == day.date.month &&
-        now.day == day.date.day;
+    final isToday = isSameLocalCalendarDay(now, day.date);
     final hasExpense = day.entryCount > 0;
 
     return InkWell(

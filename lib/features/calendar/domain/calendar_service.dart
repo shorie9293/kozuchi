@@ -1,3 +1,4 @@
+import '../../../core/time/local_calendar_date.dart';
 import '../../../domain/models/expense_entry.dart';
 import 'day_expense_summary.dart';
 import 'month_calendar.dart';
@@ -5,6 +6,7 @@ import 'month_calendar.dart';
 /// 取引カレンダーを構築するサービス
 ///
 /// 純粋ロジックのみ。now は引数注入（DateTime.now() を内部で呼ばない）。
+/// 日付は必ずローカル暦（[localCalendarDate]）で切る。
 class CalendarService {
   const CalendarService();
 
@@ -19,19 +21,17 @@ class CalendarService {
     required int month,
   }) {
     final daysInMonth = DateTime(year, month + 1, 0).day;
-    final filtered = entries
-        .where((e) =>
-            e.amount > 0 &&
-            e.date.year == year &&
-            e.date.month == month)
-        .toList();
+    final byDayOfMonth = <int, List<ExpenseEntry>>{};
+    for (final entry in entries) {
+      if (entry.amount <= 0) continue;
+      final day = localCalendarDate(entry.date);
+      if (day.year != year || day.month != month) continue;
+      byDayOfMonth.putIfAbsent(day.day, () => <ExpenseEntry>[]).add(entry);
+    }
 
     final days = List.generate(daysInMonth, (i) {
       final day = DateTime(year, month, i + 1);
-      final dayEntries = filtered
-          .where((e) =>
-              e.date.year == year && e.date.month == month && e.date.day == i + 1)
-          .toList();
+      final dayEntries = byDayOfMonth[i + 1] ?? const <ExpenseEntry>[];
       return DayExpenseSummary(
         date: day,
         totalAmount: dayEntries.fold(0, (sum, e) => sum + e.amount),
@@ -55,11 +55,13 @@ class CalendarService {
     return (year: total ~/ 12, month: total % 12 + 1);
   }
 
-  /// [now] が [year] 年 [month] 月か
+  /// [now] が [year] 年 [month] 月か（ローカル暦で判定）
   bool isCurrentMonth({
     required int year,
     required int month,
     required DateTime now,
-  }) =>
-      now.year == year && now.month == month;
+  }) {
+    final local = localCalendarDate(now);
+    return local.year == year && local.month == month;
+  }
 }

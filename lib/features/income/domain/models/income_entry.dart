@@ -1,3 +1,5 @@
+import 'package:kozuchi/core/time/local_calendar_date.dart';
+
 /// 収入一件を表すモデル
 ///
 /// Kozuchiアプリで記録される収入データの最小単位。
@@ -38,11 +40,17 @@ class IncomeEntry {
   /// 破損データ（不正なamount / 空のsource）は
   /// [IncomeEntry] の検証で例外になるため、呼出側で読み飛ばすこと。
   factory IncomeEntry.fromJson(Map<String, dynamic> json) {
+    final date = tryParseStoredDateTime(json['date']);
+    if (date == null) {
+      throw FormatException(
+        'IncomeEntry.date is not a valid ISO-8601 string: ${json['date']}',
+      );
+    }
     return IncomeEntry(
       id: json['id'] as String,
       amount: json['amount'] as int,
       source: json['source'] as String,
-      date: DateTime.parse(json['date'] as String),
+      date: date,
       note: json['note'] as String?,
     );
   }
