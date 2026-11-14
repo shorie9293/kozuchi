@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
 import 'package:kozuchi/core/haptics.dart';
+import 'package:kozuchi/core/logging/app_logger.dart';
 import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
 import 'package:kozuchi/domain/services/expense_entry_mapper.dart';
 import 'package:kozuchi/domain/services/expense_repository.dart';
@@ -106,6 +107,11 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   /// Supabase 支出明細の保存先（孤児紐付けの判定に全期間キーを集めるため保持）。
   ExpenseRepository? _expenseRepository;
 
+  /// クラウド読込の警告（読み飛ばし・照合不能）を既に表示したか。
+  ///
+  /// 再読込のたびに同じ SnackBar を積み重ねないための一度きりフラグ。
+  bool _cloudLoadNoticeShown = false;
+
   @override
   void initState() {
     super.initState();
@@ -167,6 +173,38 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   /// コントローラ更新（再取得・フィルタ変更）時にタグ紐付けを再読込する。
   void _onControllerChanged() {
     _loadTags();
+    _notifyCloudLoadIssues();
+  }
+
+  /// 直近の読込で読み飛ばし・照合不能があれば一度だけ警告する（非ブロッキング）。
+  ///
+  /// 明細が静かに減ると家計の集計が狂うため、握り潰さずに可視化する。
+  /// 再読込で同じ通知を積み重ねないよう [_cloudLoadNoticeShown] で一度きりにする。
+  void _notifyCloudLoadIssues() {
+    if (_cloudLoadNoticeShown) return;
+    final repository = _expenseRepository;
+    if (repository is! SupabaseExpenseRepository) return;
+
+    if (!repository.lastCanVerify) {
+      _cloudLoadNoticeShown = true;
+      appLog.warn('expense_entries: クラウド明細を照合できませんでした（応答がリストでない）');
+      _showCloudLoadNotice('⚠️ クラウド明細を照合できませんでした');
+      return;
+    }
+    if (repository.lastSkippedCount > 0) {
+      final skipped = repository.lastSkippedCount;
+      _cloudLoadNoticeShown = true;
+      appLog.warn('expense_entries: クラウドの明細 $skipped件を型不整合のため読み飛ばしました');
+      _showCloudLoadNotice('⚠️ クラウドの明細 $skipped件を型不整合のため読み飛ばしました');
+    }
+  }
+
+  /// クラウド読込の警告を SnackBar で出す（画面操作はブロックしない）。
+  void _showCloudLoadNotice(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
+    );
   }
 
   /// タグ定義と紐付けを読み込む（失敗時は空でフォールバック）。

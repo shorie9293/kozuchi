@@ -18,7 +18,35 @@ class SupabaseExpenseRepository implements ExpenseRepository {
   })  : _cloudStore = cloudStore,
         _userIdProvider = userIdProvider;
 
+  /// 直近の読込で型不整合により読み飛ばした行数。
+  ///
+  /// 画面側が「静かに件数が減った」ことに気づけるよう公開する
+  /// （[ExpenseRepository] インタフェースには足さない — 既存実装が壊れるため）。
+  int lastSkippedCount = 0;
+
+  /// 直近の読込で照合できたか（false は応答がリストでなかった等）。
+  bool lastCanVerify = true;
+
   String? get _userId => _userIdProvider();
+
+  /// 読込結果を適用し、[lastSkippedCount] / [lastCanVerify] を更新する。
+  ///
+  /// 壊れた行を数えられるストア（[ExpenseEntriesResultSource]）なら結果付きで、
+  /// そうでなければ従来どおり件数のみで読む（既存フェイクとの互換）。
+  Future<List<ExpenseEntry>> _loadAll(String userId) async {
+    final store = _cloudStore;
+    if (store is ExpenseEntriesResultSource) {
+      // 無関係なインタフェース間なので型昇格は効かない（明示的に扱う）。
+      final source = store as ExpenseEntriesResultSource;
+      final result = await source.loadExpenseEntriesResult(userId: userId);
+      lastSkippedCount = result.skippedCount;
+      lastCanVerify = result.canVerify;
+      return result.entries;
+    }
+    lastSkippedCount = 0;
+    lastCanVerify = true;
+    return store.loadExpenseEntries(userId: userId);
+  }
 
   @override
   Future<void> saveEntry(ExpenseEntry entry) => saveEntries([entry]);
@@ -37,7 +65,7 @@ class SupabaseExpenseRepository implements ExpenseRepository {
   }) async {
     final userId = _userId;
     if (userId == null) return [];
-    final all = await _cloudStore.loadExpenseEntries(userId: userId);
+    final all = await _loadAll(userId);
     final startDay = _dayOnly(start);
     final endDay = _dayOnly(end);
     return all.where((e) {
@@ -51,7 +79,7 @@ class SupabaseExpenseRepository implements ExpenseRepository {
   Future<int> getEntryCount() async {
     final userId = _userId;
     if (userId == null) return 0;
-    final all = await _cloudStore.loadExpenseEntries(userId: userId);
+    final all = await _loadAll(userId);
     return all.length;
   }
 
@@ -72,7 +100,7 @@ class SupabaseExpenseRepository implements ExpenseRepository {
   Future<ExpenseEntry?> getEntryById(String id) async {
     final userId = _userId;
     if (userId == null) return null;
-    final all = await _cloudStore.loadExpenseEntries(userId: userId);
+    final all = await _loadAll(userId);
     for (final entry in all) {
       if (entry.id == id) return entry;
     }

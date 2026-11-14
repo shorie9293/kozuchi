@@ -3,6 +3,7 @@ import 'package:kozuchi/domain/models/player_model.dart';
 import 'package:kozuchi/domain/models/expense_entry.dart';
 import 'package:kozuchi/domain/models/daily_quest.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
+import 'package:kozuchi/core/infrastructure/expense_entries_load_result.dart';
 import 'package:kozuchi/domain/services/expense_cloud_store.dart';
 import 'package:kozuchi/features/weekly_quest/domain/models/weekly_quest.dart';
 
@@ -36,7 +37,8 @@ enum ConflictDecision { upload, useServer, firstSync }
 /// Cloud sync service using Supabase for player data persistence.
 ///
 /// [ExpenseCloudStore] を実装し、支出明細の保存/取得を提供する。
-class CloudSyncService implements ExpenseCloudStore {
+class CloudSyncService
+    implements ExpenseCloudStore, ExpenseEntriesResultSource {
   final SupabaseClient _client;
 
   CloudSyncService({required SupabaseClient client}) : _client = client;
@@ -105,21 +107,54 @@ class CloudSyncService implements ExpenseCloudStore {
     await _client.from('expense_entries').upsert(rows);
   }
 
+  /// 支出明細を取得する（date 降順）。
+  ///
+  /// 破損行があっても例外を投げず、読めた行だけを返す。
+  /// 読み飛ばし件数・照合可否が要る呼出側は
+  /// [loadExpenseEntriesResult] を使う。
   Future<List<ExpenseEntry>> loadExpenseEntries({
+    required String userId, DateTime? lastSyncAt}) async {
+    final result = await loadExpenseEntriesResult(
+      userId: userId, lastSyncAt: lastSyncAt);
+    return result.entries;
+  }
+
+  @override
+  Future<ExpenseEntriesLoadResult> loadExpenseEntriesResult({
     required String userId, DateTime? lastSyncAt}) async {
     var filter = _client.from('expense_entries').select().eq('user_id', userId);
     if (lastSyncAt != null) {
       filter = filter.gt('updated_at', lastSyncAt.toUtc().toIso8601String());
     }
-    final response = await filter.order('date', ascending: false);
-    // 1行の破損で全件を失わない（破損行は読み飛ばす）。
+    dynamic response;
+    try {
+      response = await filter.order('date', ascending: false);
+    } on TypeError {
+      // postgrest は応答本文を List として復号できないと、この層へ届く前に
+      // TypeError で落ちる。型不整合な応答＝「照合そのものができない」。
+      return const ExpenseEntriesLoadResult(
+        entries: [], skippedCount: 0, canVerify: false);
+    }
+    // 応答がリストでなければ「照合そのものができない」。ここで throw しない。
+    if (response is! List) {
+      return const ExpenseEntriesLoadResult(
+        entries: [], skippedCount: 0, canVerify: false);
+    }
+    // 1行の破損で全件を失わない（破損行は読み飛ばして数える）。
     // 日時は tryFromJson が必ずローカル瞬間へ正規化する。
     final restored = <ExpenseEntry>[];
-    for (final row in response as List<dynamic>) {
-      final entry = ExpenseEntry.tryFromJson(_rowToExpenseJson(row));
-      if (entry != null) restored.add(entry);
+    var skipped = 0;
+    for (final row in response) {
+      final json = tryRowToExpenseJson(row);
+      final entry = json == null ? null : ExpenseEntry.tryFromJson(json);
+      if (entry == null) {
+        skipped++;
+      } else {
+        restored.add(entry);
+      }
     }
-    return restored;
+    return ExpenseEntriesLoadResult(
+      entries: restored, skippedCount: skipped, canVerify: true);
   }
 
   Future<int> getExpenseCount({required String userId}) async {
@@ -251,8 +286,11 @@ class CloudSyncService implements ExpenseCloudStore {
     final results = <String, dynamic>{};
     final player = await loadPlayerState(userId: userId);
     results['player_save'] = player?.toJson();
-    final expenses = await loadExpenseEntries(userId: userId);
-    results['expense_entries'] = expenses.map((e) => e.toJson()).toList();
+    final expenses = await loadExpenseEntriesResult(userId: userId);
+    results['expense_entries'] =
+        expenses.entries.map((e) => e.toJson()).toList();
+    // 読み飛ばした破損行の件数（後方互換: 既存キーは不変のまま追加）。
+    results['expense_entries_skipped'] = expenses.skippedCount;
     final daily = await loadDailyQuests(userId: userId);
     results['daily_quests'] = daily?.toJson();
     final weekly = await loadWeeklyQuests(userId: userId);
@@ -283,14 +321,29 @@ class CloudSyncService implements ExpenseCloudStore {
     return DateTime.tryParse(updatedAt);
   }
 
-  /// Convert Supabase row to ExpenseEntry JSON format.
-  Map<String, dynamic> _rowToExpenseJson(dynamic row) {
-    final r = row as Map<String, dynamic>;
+  /// Supabase の行を ExpenseEntry の JSON 形式へ写す。**throw しない**。
+  ///
+  /// 型が合わない行は `null`（呼出側は読み飛ばして件数を数える）。
+  /// 意味の検証（amount <= 0 等）はここでは行わない — 型だけを見て、
+  /// 意味は [ExpenseEntry.tryFromJson] に一任する（判定の二重定義を避ける）。
+  static Map<String, dynamic>? tryRowToExpenseJson(Object? row) {
+    if (row is! Map) return null;
+    final id = row['id'];
+    final amount = row['amount'];
+    final category = row['category'];
+    final date = row['date'];
+    if (id is! String || amount is! int || category is! String || date is! String) {
+      return null;
+    }
+    final note = row['note'];
+    final receipt = row['receipt_image_path'];
     return {
-      'id': r['id'] as String, 'amount': r['amount'] as int,
-      'category': r['category'] as String, 'date': r['date'] as String,
-      'note': r['note'] as String?,
-      'receiptImagePath': r['receipt_image_path'] as String?,
+      'id': id,
+      'amount': amount,
+      'category': category,
+      'date': date,
+      'note': note is String ? note : null,
+      'receiptImagePath': receipt is String ? receipt : null,
     };
   }
 }

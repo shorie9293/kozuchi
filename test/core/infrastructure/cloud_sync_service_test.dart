@@ -19,7 +19,7 @@ void main() {
       });
     });
 
-    group('_rowToExpenseJson transformation', () {
+    group('Supabase 行 → ExpenseEntry 変換（写像の回帰）', () {
       test('converts Supabase row to ExpenseEntry JSON', () {
         final row = {
           'id': 'test-uuid',
