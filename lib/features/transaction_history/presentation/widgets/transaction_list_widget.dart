@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/transaction_history/domain/bulk_selection.dart';
 import 'package:kozuchi/features/transaction_history/presentation/widgets/transaction_list_item.dart';
@@ -46,6 +47,18 @@ class TransactionListWidget extends StatelessWidget {
   /// 行の長押し時コールバック（一括選択モードの開始）。
   final void Function(TransactionModel transaction)? onLongPress;
 
+  /// 空状態の見出し（既定は従来どおり「取引がありません」）。
+  final String emptyTitle;
+
+  /// 空状態の補足説明（null なら描画しない）。
+  final String? emptyDescription;
+
+  /// 空状態の行動ボタン文言（[onEmptyAction] と対で指定する）。
+  final String? emptyActionLabel;
+
+  /// 空状態の行動ボタン処理（[emptyActionLabel] と対で指定する）。
+  final VoidCallback? onEmptyAction;
+
   const TransactionListWidget({
     super.key,
     this.transactions = const [],
@@ -59,6 +72,10 @@ class TransactionListWidget extends StatelessWidget {
     this.selection = const BulkSelection.empty(),
     this.selectionMode = false,
     this.onLongPress,
+    this.emptyTitle = '取引がありません',
+    this.emptyDescription,
+    this.emptyActionLabel,
+    this.onEmptyAction,
   });
 
   @override
@@ -191,27 +208,17 @@ class TransactionListWidget extends StatelessWidget {
 
   /// 空リスト表示。
   ///
-  /// 取引が一件もない状態を表すメッセージを中央に表示する。
+  /// 取引が一件もない状態を見出しで示し、行動導線が渡されていれば
+  /// 「次の一手」のボタンも併せて差し出す（[EmptyStateView]）。
   Widget _buildEmptyView(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 64,
-            color: theme.colorScheme.outline.withAlpha(128),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '取引がありません',
-            style: TextStyle(
-              fontSize: 16,
-              color: theme.colorScheme.outline,
-            ),
-          ),
-        ],
+    return EmptyStateView(
+      key: const ValueKey('transaction_list_empty_view'),
+      icon: Icons.receipt_long_outlined,
+      spec: EmptyStateSpec(
+        title: emptyTitle,
+        description: emptyDescription,
+        actionLabel: emptyActionLabel,
+        onAction: onEmptyAction,
       ),
     );
   }

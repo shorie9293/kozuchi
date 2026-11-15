@@ -88,6 +88,33 @@ void main() {
       expect(find.byType(Card), findsNothing);
     });
 
+    testWidgets('空状態の行動導線を渡すと押せるボタンになる', (tester) async {
+      var tapped = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TransactionListWidget(
+              emptyDescription: '記録すると、ここに取引が並びます。',
+              emptyActionLabel: '取引を記録する',
+              onEmptyAction: () => tapped++,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('記録すると、ここに取引が並びます。'), findsOneWidget);
+      await tester.tap(find.text('取引を記録する'));
+      await tester.pump();
+
+      expect(tapped, 1);
+    });
+
+    testWidgets('空状態の行動導線を渡さなければボタンは描画されない', (tester) async {
+      await pumpWidget(tester);
+
+      expect(find.byType(FilledButton), findsNothing);
+    });
+
     // ── エラー状態 ───────────────────────────────────────────────
 
     testWidgets('エラーメッセージとリトライボタンが表示される', (tester) async {

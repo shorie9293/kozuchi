@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/core/text/amount_parser.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_storage_result.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_transaction.dart';
@@ -106,10 +107,14 @@ class _RecurringTransactionScreenState extends State<RecurringTransactionScreen>
                 if (!_storageVerified) _buildCorruptionBanner(colorScheme),
                 Expanded(
                   child: _definitions.isEmpty
-                      ? Center(
-                          child: Text(
-                            '定期取引はまだありません',
-                            style: TextStyle(color: colorScheme.outline),
+                      ? EmptyStateView(
+                          key: KozuchiAppKeys.recurringTx_emptyView,
+                          icon: Icons.event_repeat,
+                          spec: EmptyStateSpec(
+                            title: '定期取引はまだありません',
+                            description: '家賃や給与など、毎回同じ取引を自動で記録できます。',
+                            actionLabel: '定期取引を追加する',
+                            onAction: _openAddDialog,
                           ),
                         )
                       : ListView.builder(

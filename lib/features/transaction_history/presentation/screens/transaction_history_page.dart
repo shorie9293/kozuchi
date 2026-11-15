@@ -176,6 +176,26 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     _notifyCloudLoadIssues();
   }
 
+  /// 空状態から絞り込みを既定条件へ戻す（該当0件からの復帰導線）。
+  void _resetFilterToDefault() {
+    _controller.updateFilter(_defaultFilter());
+  }
+
+  /// 現在の絞り込みが画面既定（期間＝締め日起点〜本日・種別全件）か。
+  ///
+  /// [TransactionFilter.isDefault] は「日付指定なし」を既定とみなすため、
+  /// この画面の既定（期間を明示する）とは一致しない。よって既定条件そのものと
+  /// 比較して「絞込で0件」か「元から0件」かを判別する。
+  bool get _isDefaultFilter => _controller.filter == _defaultFilter();
+
+  /// 空状態から記録導線へ戻る。
+  ///
+  /// 支出の記録FABはホーム画面が持つため、履歴画面は畳んで戻るだけにする
+  /// （空状態で行き止まりにしないための既存動線の再利用）。
+  void _backToRecordEntry() {
+    Navigator.of(context).maybePop();
+  }
+
   /// 直近の読込で読み飛ばし・照合不能があれば一度だけ警告する（非ブロッキング）。
   ///
   /// 明細が静かに減ると家計の集計が狂うため、握り潰さずに可視化する。
@@ -639,6 +659,15 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
                   isLoading: _controller.isLoading,
                   errorMessage: _controller.error,
                   onRetry: () => _controller.refetch(),
+                  // 空状態では行き止まりにせず、次の一手を差し出す。
+                  // 絞込中なら解除、そうでなければ記録導線（ホーム）へ戻る。
+                  emptyDescription: _isDefaultFilter
+                      ? '記録すると、ここに取引が並びます。'
+                      : '条件を変えると該当する取引が表示されます。',
+                  emptyActionLabel: _isDefaultFilter ? '取引を記録する' : '絞り込みを解除する',
+                  onEmptyAction: _isDefaultFilter
+                      ? _backToRecordEntry
+                      : _resetFilterToDefault,
                   // 選択モード中のタップは「選択トグル」に差し替える。
                   onTransactionTap:
                       _isSelecting ? _toggleSelection : _assignTags,

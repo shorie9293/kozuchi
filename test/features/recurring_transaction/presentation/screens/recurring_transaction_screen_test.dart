@@ -5,6 +5,7 @@ import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/recurring_transaction/data/recurring_transaction_repository.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_transaction.dart';
 import 'package:kozuchi/features/recurring_transaction/presentation/screens/recurring_transaction_screen.dart';
+import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -93,6 +94,19 @@ void main() {
     testWidgets('未登録時は空メッセージが表示される', (tester) async {
       await pumpScreen(tester);
       expect(find.text('定期取引はまだありません'), findsOneWidget);
+      expect(find.byKey(KozuchiAppKeys.recurringTx_emptyView), findsOneWidget);
+    });
+
+    testWidgets('空状態から「定期取引を追加する」で追加ダイアログが開く', (tester) async {
+      await pumpScreen(tester);
+
+      await tester.tap(find.text('定期取引を追加する'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(KozuchiAppKeys.recurringTx_purposeField),
+        findsOneWidget,
+      );
     });
   });
 

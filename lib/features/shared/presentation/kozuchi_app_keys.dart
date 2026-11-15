@@ -27,6 +27,7 @@ class KozuchiAppKeys {
   static const Key recurringTx_dayOfMonthField =
       Key('recurringTx_dayOfMonthField');
   static const Key recurringTx_saveButton = Key('recurringTx_saveButton');
+  static const Key recurringTx_emptyView = Key('recurringTx_emptyView');
 
   static Key recurringTxDeleteButton(String id) =>
       Key('recurringTx_deleteButton_$id');
