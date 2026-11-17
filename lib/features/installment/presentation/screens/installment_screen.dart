@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:kozuchi/core/format/money_format.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/installment_plan.dart';
@@ -94,10 +95,16 @@ class _InstallmentScreenState extends State<InstallmentScreen> {
                 _buildSummaryCard(colorScheme, remainingTotal),
                 Expanded(
                   child: _plans.isEmpty
-                      ? const Center(
-                          child: Text(
-                            '分割払いはありません',
-                            key: InstallmentAppKeys.installmentEmpty,
+                      ? KeyedSubtree(
+                          key: InstallmentAppKeys.installmentEmpty,
+                          child: EmptyStateView(
+                            key: const ValueKey('installment_empty_view'),
+                            icon: Icons.credit_card_outlined,
+                            spec: EmptyStateSpec(
+                              title: '分割払いはありません',
+                              actionLabel: '分割払いを追加',
+                              onAction: _addPlan,
+                            ),
                           ),
                         )
                       : ListView.builder(

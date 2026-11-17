@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/tags/data/tag_repository.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
 import 'package:kozuchi/features/tags/presentation/tag_app_keys.dart';
@@ -163,7 +164,15 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
   /// タグ一覧（空状態を含む）。
   Widget _buildTagList() {
     if (_tags.isEmpty) {
-      return const Center(child: Text('タグがありません'));
+      return EmptyStateView(
+        key: const ValueKey('tag_management_empty_view'),
+        icon: Icons.sell_outlined,
+        spec: EmptyStateSpec(
+          title: 'タグがありません',
+          actionLabel: 'タグを追加',
+          onAction: _createTag,
+        ),
+      );
     }
     return ListView.builder(
       itemCount: _tags.length,

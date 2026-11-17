@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/presentation/installment_app_keys.dart';
 import 'package:kozuchi/features/installment/presentation/screens/upcoming_billing_screen.dart';
@@ -40,6 +41,9 @@ void main() {
 
     expect(find.byKey(InstallmentAppKeys.upcomingScreen), findsOneWidget);
     expect(find.byKey(InstallmentAppKeys.upcomingEmpty), findsOneWidget);
+    expect(find.byType(EmptyStateView), findsOneWidget);
+    // 追加導線を持たない画面なので行動ボタンは出さない
+    expect(find.byKey(EmptyStateView.actionButtonKey), findsNothing);
     expect(find.text('¥0'), findsOneWidget);
   });
 

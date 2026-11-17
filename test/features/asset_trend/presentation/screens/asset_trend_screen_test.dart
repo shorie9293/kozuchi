@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/asset_trend/presentation/screens/asset_trend_screen.dart';
 import 'package:kozuchi/features/transaction_history/presentation/state/transaction_controller.dart';
@@ -86,6 +87,9 @@ void main() {
     testWidgets('データが空の場合はメッセージを表示する', (tester) async {
       await pumpScreen(tester, _MockTransactionController());
       expect(find.text('資産推移データがありません'), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      // 追加導線を持たない画面なので行動ボタンは出さない
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsNothing);
     });
 
     testWidgets('取引データから累積残高グラフとサマリーを表示する', (tester) async {

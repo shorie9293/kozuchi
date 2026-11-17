@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/core/format/money_format.dart';
 import 'package:kozuchi/core/infrastructure/cloud_sync_service.dart';
 import 'package:kozuchi/core/infrastructure/supabase_provider.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/domain/services/supabase_expense_repository.dart';
 import 'package:kozuchi/features/asset_trend/domain/asset_trend_service.dart';
 import 'package:kozuchi/features/asset_trend/domain/monthly_asset_point.dart';
@@ -98,7 +99,11 @@ class _AssetTrendScreenState extends State<AssetTrendScreen> {
             months: widget.months,
           );
           if (points.isEmpty) {
-            return const Center(child: Text('資産推移データがありません'));
+            return EmptyStateView(
+              key: const ValueKey('asset_trend_empty_view'),
+              icon: Icons.show_chart,
+              spec: EmptyStateSpec(title: '資産推移データがありません'),
+            );
           }
           return _buildContent(points);
         },

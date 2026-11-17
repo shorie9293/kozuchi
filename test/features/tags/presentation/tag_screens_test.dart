@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/tags/data/tag_repository.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
@@ -43,6 +44,9 @@ void main() {
 
       expect(find.text('タグ管理'), findsOneWidget);
       expect(find.text('タグがありません'), findsOneWidget);
+      // 共通部品 EmptyStateView が1つ描かれ、追加の一手が差し出される
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsOneWidget);
     });
 
     testWidgets('タグを追加できる', (tester) async {
@@ -148,6 +152,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('取引がありません'), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      // 追加導線を持たない画面なので行動ボタンは出さない
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsNothing);
     });
 
     testWidgets('タグを選ぶと絞り込み件数が表示される', (tester) async {

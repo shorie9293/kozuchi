@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/tags/data/tag_repository.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
@@ -71,9 +72,10 @@ class _TagSummaryScreenState extends State<TagSummaryScreen> {
         children: [
           _buildHeader(result),
           if (widget.tags.isEmpty && result.untaggedCount == 0)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: Text('取引がありません')),
+            EmptyStateView(
+              key: const ValueKey('tag_summary_empty_view'),
+              icon: Icons.pie_chart_outline,
+              spec: EmptyStateSpec(title: '取引がありません'),
             ),
           for (final total in result.totals) _buildTagRow(total),
           _buildUntaggedRow(result),

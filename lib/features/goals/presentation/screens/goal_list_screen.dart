@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/goals/data/goal.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/features/goals/data/goal_forecast.dart';
@@ -177,30 +178,12 @@ class _GoalListScreenState extends State<GoalListScreen> {
     }
 
     if (_goals.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.flag_outlined,
-                size: 64, color: colorScheme.onSurface.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            Text(
-              _statusFilter != null ? '該当する目標はありません' : 'まだ目標がありません',
-              style: TextStyle(
-                fontSize: 16,
-                color: colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (_statusFilter == null)
-              Text(
-                '右下のボタンから目標を追加してください',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-              ),
-          ],
+      return EmptyStateView(
+        key: const ValueKey('goal_list_empty_view'),
+        icon: Icons.flag_outlined,
+        spec: EmptyStateSpec(
+          title: _statusFilter != null ? '該当する目標はありません' : 'まだ目標がありません',
+          description: _statusFilter == null ? '右下のボタンから目標を追加してください' : null,
         ),
       );
     }

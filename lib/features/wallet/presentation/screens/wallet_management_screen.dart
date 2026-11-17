@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/wallet/data/wallet_repository.dart';
 import 'package:kozuchi/features/wallet/domain/models/wallet.dart';
 import 'package:kozuchi/features/wallet/domain/models/wallet_movement.dart';
@@ -111,9 +112,17 @@ class _WalletManagementScreenState extends State<WalletManagementScreen> {
                 _TotalCard(summary: summary),
                 Expanded(
                   child: _wallets.isEmpty
-                      ? const Center(
+                      ? KeyedSubtree(
                           key: WalletAppKeys.empty,
-                          child: Text('財布がありません'),
+                          child: EmptyStateView(
+                            key: const ValueKey('wallet_management_empty_view'),
+                            icon: Icons.account_balance_wallet_outlined,
+                            spec: EmptyStateSpec(
+                              title: '財布がありません',
+                              actionLabel: '財布を追加',
+                              onAction: _addWallet,
+                            ),
+                          ),
                         )
                       : ListView.builder(
                           itemCount: summary.balances.length,

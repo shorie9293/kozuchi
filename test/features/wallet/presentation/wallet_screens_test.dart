@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/wallet/data/wallet_repository.dart';
 import 'package:kozuchi/features/wallet/domain/models/wallet.dart';
 import 'package:kozuchi/features/wallet/presentation/screens/wallet_management_screen.dart';
@@ -38,6 +39,8 @@ void main() {
       await pumpManagement(tester);
       expect(find.byKey(WalletAppKeys.managementScreen), findsOneWidget);
       expect(find.byKey(WalletAppKeys.empty), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsOneWidget);
       expect(find.text('¥0'), findsOneWidget);
     });
 
@@ -189,6 +192,8 @@ void main() {
 
       expect(find.byKey(WalletAppKeys.movementTile('m1')), findsNothing);
       expect(find.byKey(WalletAppKeys.movementsEmpty), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsOneWidget);
       expect(await repository.loadMovements(), isEmpty);
     });
 

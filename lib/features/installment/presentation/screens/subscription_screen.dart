@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:kozuchi/core/format/money_format.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/subscription.dart';
@@ -95,10 +96,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 _buildSummaryCard(colorScheme, monthlyTotal),
                 Expanded(
                   child: _subscriptions.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'サブスクはありません',
-                            key: InstallmentAppKeys.subscriptionEmpty,
+                      ? KeyedSubtree(
+                          key: InstallmentAppKeys.subscriptionEmpty,
+                          child: EmptyStateView(
+                            key: const ValueKey('subscription_empty_view'),
+                            icon: Icons.autorenew,
+                            spec: EmptyStateSpec(
+                              title: 'サブスクはありません',
+                              actionLabel: 'サブスクを追加',
+                              onAction: _addSubscription,
+                            ),
                           ),
                         )
                       : ListView.builder(

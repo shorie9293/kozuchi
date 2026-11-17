@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/presentation/installment_app_keys.dart';
 import 'package:kozuchi/features/installment/presentation/screens/installment_screen.dart';
@@ -34,6 +35,8 @@ void main() {
       await pumpInstallment(tester);
       expect(find.byKey(InstallmentAppKeys.installmentScreen), findsOneWidget);
       expect(find.byKey(InstallmentAppKeys.installmentEmpty), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsOneWidget);
     });
 
     testWidgets('ダイアログから分割払いを追加できる', (tester) async {
@@ -106,6 +109,8 @@ void main() {
       await pumpSubscription(tester);
       expect(find.byKey(InstallmentAppKeys.subscriptionScreen), findsOneWidget);
       expect(find.byKey(InstallmentAppKeys.subscriptionEmpty), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsOneWidget);
     });
 
     testWidgets('ダイアログからサブスクを追加し月額合計に反映する', (tester) async {

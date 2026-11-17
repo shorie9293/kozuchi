@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/wallet/data/wallet_repository.dart';
 import 'package:kozuchi/features/wallet/domain/models/wallet.dart';
 import 'package:kozuchi/features/wallet/domain/models/wallet_movement.dart';
@@ -117,9 +118,17 @@ class _WalletMovementsScreenState extends State<WalletMovementsScreen> {
                 ),
                 Expanded(
                   child: _movements.isEmpty
-                      ? const Center(
+                      ? KeyedSubtree(
                           key: WalletAppKeys.movementsEmpty,
-                          child: Text('入出金の記録がありません'),
+                          child: EmptyStateView(
+                            key: const ValueKey('wallet_movements_empty_view'),
+                            icon: Icons.swap_vert,
+                            spec: EmptyStateSpec(
+                              title: '入出金の記録がありません',
+                              actionLabel: '入出金を記録',
+                              onAction: _addMovement,
+                            ),
+                          ),
                         )
                       : ListView.builder(
                           itemCount: _movements.length,

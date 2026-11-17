@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
 import 'package:kozuchi/features/goals/presentation/screens/goal_list_screen.dart';
 
@@ -151,6 +152,9 @@ void main() {
 
       expect(find.text('まだ目標がありません'), findsOneWidget);
       expect(find.text('右下のボタンから目標を追加してください'), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      // 追加は既存のFABが担うため、空状態に行動ボタンは重ねない
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsNothing);
     });
 
     // ── 目標一覧表示 ──────────────────────────────

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kozuchi/core/text/amount_parser.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/quick_template/data/quick_template_repository.dart';
 import 'package:kozuchi/features/quick_template/domain/models/expense_template.dart';
 import 'package:kozuchi/features/quick_template/presentation/quick_template_app_keys.dart';
@@ -78,6 +79,8 @@ void main() {
       await tester.tap(find.byKey(QuickTemplateAppKeys.deleteButton('a')));
       await tester.pump();
       expect(find.text('テンプレートはまだありません'), findsOneWidget);
+      expect(find.byType(EmptyStateView), findsOneWidget);
+      expect(find.byKey(EmptyStateView.actionButtonKey), findsOneWidget);
     });
 
     testWidgets('追加ダイアログで新規テンプレートを保存できる', (tester) async {

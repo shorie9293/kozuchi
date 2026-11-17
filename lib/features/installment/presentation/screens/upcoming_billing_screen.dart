@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:kozuchi/core/format/money_format.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/installment_plan.dart';
@@ -83,10 +84,12 @@ class _UpcomingBillingScreenState extends State<UpcomingBillingScreen> {
                 _buildSummaryCard(colorScheme, summary),
                 Expanded(
                   child: summary.isEmpty
-                      ? const Center(
-                          child: Text(
-                            '支払い予定はありません',
-                            key: InstallmentAppKeys.upcomingEmpty,
+                      ? KeyedSubtree(
+                          key: InstallmentAppKeys.upcomingEmpty,
+                          child: EmptyStateView(
+                            key: const ValueKey('upcoming_billing_empty_view'),
+                            icon: Icons.event_available_outlined,
+                            spec: EmptyStateSpec(title: '支払い予定はありません'),
                           ),
                         )
                       : ListView.builder(

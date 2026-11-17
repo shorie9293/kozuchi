@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:kozuchi/core/text/amount_parser.dart';
+import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/quick_template/data/quick_template_repository.dart';
 import 'package:kozuchi/features/quick_template/domain/models/expense_template.dart';
 import 'package:kozuchi/features/quick_template/domain/quick_template_service.dart';
@@ -75,9 +76,6 @@ class _QuickTemplateManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
       key: QuickTemplateAppKeys.managementScreen,
       appBar: AppBar(
@@ -94,10 +92,13 @@ class _QuickTemplateManagementScreenState
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _templates.isEmpty
-              ? Center(
-                  child: Text(
-                    'テンプレートはまだありません',
-                    style: TextStyle(color: colorScheme.outline),
+              ? EmptyStateView(
+                  key: const ValueKey('quick_template_management_empty_view'),
+                  icon: Icons.bolt_outlined,
+                  spec: EmptyStateSpec(
+                    title: 'テンプレートはまだありません',
+                    actionLabel: 'テンプレートを追加',
+                    onAction: _showAddDialog,
                   ),
                 )
               : ListView(
