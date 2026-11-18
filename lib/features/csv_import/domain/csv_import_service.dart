@@ -146,22 +146,72 @@ class CsvImportService {
     final duplicateCount = plan.canVerify ? plan.duplicateCount : 0;
 
     if (toWrite.isNotEmpty) {
-      try {
-        await repository.addTransactions(toWrite);
-      } catch (_) {
-        // 保存失敗は例外を投げず、結果のメッセージとして返す
-        return CsvImportResult(
-          importedCount: 0,
-          skippedCount: errorMessages.length + 1,
-          errorMessages: <String>[
-            ...errorMessages,
-            '取引の保存に失敗しました',
-          ],
-          transactions: const <TransactionModel>[],
-          duplicateCount: duplicateCount,
-          canVerify: plan.canVerify,
-          unverifiedCount: plan.canVerify ? null : plan.incoming.length,
-        );
+      // 照合不能の明示上書きでも、壊れた原本が実在するなら書かない
+      // （全件置換で既存履歴が消えるため）。定期取引の自動記帳と同じ結論に揃える。
+      // 退避の成否がその判別になる（addTransactions は throw 前に退避するため、
+      // 例外を捕まえてからでは「初回か否か」が分からない）。
+      if (!plan.canVerify && allowUnverified) {
+        if (await repository.archiveCorruptData()) {
+          return _blocked(
+            errorMessages: errorMessages,
+            duplicateCount: duplicateCount,
+            canVerify: plan.canVerify,
+            incomingCount: plan.incoming.length,
+            message:
+                '保存済みの取引を読めなかったため、書き込みを見送りました（既存データは変更していません）',
+          );
+        }
+        // 退避対象が無い＝保存領域が空で読めなかっただけ＝失うものが無い。
+        // 利用者が明示した上書き取込なので、通常の追記経路で通す。
+        try {
+          await repository.addTransactions(toWrite);
+        } on TransactionStorageCorruptException {
+          // 追記経路が拒否した場合も、退避済み原本が無い以上は失うものが無い。
+          // 明示許可に従って置換する（退避キーが無いので消えるデータは無い）。
+          try {
+            await repository.saveAll(toWrite);
+          } catch (_) {
+            return _blocked(
+              errorMessages: errorMessages,
+              duplicateCount: duplicateCount,
+              canVerify: plan.canVerify,
+              incomingCount: plan.incoming.length,
+              message: '取引の保存に失敗しました',
+            );
+          }
+        } catch (_) {
+          return _blocked(
+            errorMessages: errorMessages,
+            duplicateCount: duplicateCount,
+            canVerify: plan.canVerify,
+            incomingCount: plan.incoming.length,
+            message: '取引の保存に失敗しました',
+          );
+        }
+      } else {
+        try {
+          await repository.addTransactions(toWrite);
+        } on TransactionStorageCorruptException {
+          // 破損は「保存失敗」ではない。既存履歴が壊れている事実を告げ、
+          // 書き込み0・既存原本不変で見送る（定期取引の自動記帳と同じ結論）。
+          return _blocked(
+            errorMessages: errorMessages,
+            duplicateCount: duplicateCount,
+            canVerify: plan.canVerify,
+            incomingCount: plan.incoming.length,
+            message:
+                '保存済みの取引を読めなかったため、書き込みを見送りました（既存データは変更していません）',
+          );
+        } catch (_) {
+          // 保存失敗は例外を投げず、結果のメッセージとして返す
+          return _blocked(
+            errorMessages: errorMessages,
+            duplicateCount: duplicateCount,
+            canVerify: plan.canVerify,
+            incomingCount: plan.incoming.length,
+            message: '取引の保存に失敗しました',
+          );
+        }
       }
     }
 
@@ -173,6 +223,28 @@ class CsvImportService {
       duplicateCount: duplicateCount,
       canVerify: plan.canVerify,
       unverifiedCount: plan.canVerify ? null : plan.incoming.length,
+    );
+  }
+
+  /// 書き込み0件の結果を組み立てる（見送り・保存失敗の共通形）。
+  ///
+  /// 早期returnと同じ形（transactions空・duplicateCount・canVerify・
+  /// unverifiedCount）に揃え、呼出側が理由だけを見て判断できるようにする。
+  CsvImportResult _blocked({
+    required List<String> errorMessages,
+    required int duplicateCount,
+    required bool canVerify,
+    required int incomingCount,
+    required String message,
+  }) {
+    return CsvImportResult(
+      importedCount: 0,
+      skippedCount: errorMessages.length + 1,
+      errorMessages: <String>[...errorMessages, message],
+      transactions: const <TransactionModel>[],
+      duplicateCount: duplicateCount,
+      canVerify: canVerify,
+      unverifiedCount: canVerify ? null : incomingCount,
     );
   }
 

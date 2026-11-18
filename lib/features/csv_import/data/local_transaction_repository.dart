@@ -21,6 +21,22 @@ class TransactionLoadOutcome {
   });
 }
 
+/// 取引の保存データが破損していたため、追記を中止したことを示す例外。
+///
+/// 内部の生 JSON やキー名などの詳細はメッセージに含めない
+/// （呼出側が壊れた文字列を画面表示することを防ぐため）。
+class TransactionStorageCorruptException implements Exception {
+  /// 人向けの説明文
+  final String message;
+
+  const TransactionStorageCorruptException([String? message])
+      : message =
+            message ?? '保存済みの取引データを照合できなかったため、保存を中止しました';
+
+  @override
+  String toString() => message;
+}
+
 /// ローカル取引の永続化リポジトリ
 ///
 /// CSVインポートした取引や定期取引から自動生成された取引を
@@ -30,6 +46,10 @@ class TransactionLoadOutcome {
 /// キーは `kozuchi_local_transactions`。
 class LocalTransactionRepository {
   static const String _key = 'kozuchi_local_transactions';
+
+  /// 破損データの退避キーの接頭辞
+  static const String backupKeyPrefix =
+      'kozuchi_local_transactions_corrupt_backup_';
 
   const LocalTransactionRepository();
 
@@ -93,13 +113,58 @@ class LocalTransactionRepository {
   }
 
   /// 既存の取引一覧に追記し、更新後の一覧を返す
+  ///
+  /// 「照合できた時だけ書く」ガード付き。既存データが破損していた場合は
+  /// 全件上書きによる履歴消失を避けるため、原本を一切変更せず
+  /// [TransactionStorageCorruptException] を投げる（退避のみ行う）。
   Future<List<TransactionModel>> addTransactions(
     List<TransactionModel> transactions,
   ) async {
-    final current = await loadAll();
-    final updated = [...current, ...transactions];
+    final outcome = await loadAllForVerification();
+    if (!outcome.verified) {
+      // 退避は書込より前。退避に失敗しても原本は変更しないまま中止する。
+      await _archiveCorruptRaw();
+      throw const TransactionStorageCorruptException();
+    }
+    final updated = [...outcome.transactions, ...transactions];
     await saveAll(updated);
     return updated;
+  }
+
+  /// 破損した保存データを退避キーへ複製する。
+  ///
+  /// 原本キーは削除・変更しない（復旧の余地を残す）。同一の生文字列が
+  /// 既に退避済みなら二重に作らない（冪等）。破損が無ければ何もせず
+  /// `false` を返す。例外は握って `false` にする。
+  Future<bool> archiveCorruptData() async {
+    try {
+      final outcome = await loadAllForVerification();
+      if (outcome.verified) return false;
+      return await _archiveCorruptRaw();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 原本の生文字列を退避キーへ複製する（内部用・原本不変）
+  Future<bool> _archiveCorruptRaw() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_key);
+      if (raw == null) return false;
+
+      // 同一 raw が退避済みなら何もしない（冪等）
+      for (final key in prefs.getKeys()) {
+        if (!key.startsWith(backupKeyPrefix)) continue;
+        if (prefs.getString(key) == raw) return false;
+      }
+
+      final stamp = DateTime.now().microsecondsSinceEpoch;
+      await prefs.setString('$backupKeyPrefix$stamp', raw);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// 全取引を削除する

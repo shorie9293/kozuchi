@@ -33,7 +33,8 @@ class RecurringAutoRecordNotice {
     if (result.storageUnverified) {
       return RecurringAutoRecordNotice(
         generatedCount: count,
-        message: '⚠️ 定期取引の保存データが壊れているため、自動記帳を見送りました',
+        // 定期取引定義・生成進捗・取引履歴のいずれの破損でも通用する文言にする
+        message: '⚠️ 保存データが壊れているため、自動記帳を見送りました',
         isFailure: true,
       );
     }
