@@ -186,6 +186,8 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
 
     if (result == null) return;
 
+    if (!mounted) return;
+
     setState(() {
       _receiptImagePath = result.imagePath;
 

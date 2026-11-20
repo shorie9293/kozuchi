@@ -110,6 +110,7 @@ class TransactionEditDialogState extends State<TransactionEditDialog> {
       lastDate: widget.lastDate ?? DateTime(2100),
     );
     if (picked != null) {
+      if (!mounted) return;
       setState(() {
         _date = DateTime(
           picked.year,

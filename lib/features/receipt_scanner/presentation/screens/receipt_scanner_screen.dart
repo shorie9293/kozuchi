@@ -41,6 +41,8 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
 
       if (photo == null) return; // ユーザーがキャンセル
 
+      if (!mounted) return;
+
       setState(() {
         _hasCaptured = true;
         _isProcessing = true;

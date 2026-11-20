@@ -67,6 +67,7 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
     );
 
     if (picked != null) {
+      if (!mounted) return;
       setState(() => _deadline = picked);
     }
   }
