@@ -55,6 +55,7 @@ import 'package:kozuchi/features/lifecycle/domain/day_rollover_detector.dart';
 import 'package:kozuchi/features/lifecycle/presentation/app_lifecycle_refresher.dart';
 import 'package:kozuchi/features/weekly_report/presentation/screens/weekly_report_screen.dart';
 import 'package:kozuchi/screens/main_screen.dart';
+import 'package:kozuchi/core/text_scale_composition.dart';
 
 /// ディープリンクナビゲーションのためのグローバルナビゲーターキー
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -406,7 +407,7 @@ class _MyAppState extends State<MyApp> {
       builder: (context, child) => MediaQuery(
         data: applyReduceMotion(
           MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(_textScale),
+            textScaler: composeWithSystemTextScaler(context, _textScale),
           ),
           _reduceMotion,
         ),
