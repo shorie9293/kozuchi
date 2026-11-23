@@ -6,6 +6,7 @@ import 'package:kozuchi/features/quick_template/data/quick_template_repository.d
 import 'package:kozuchi/features/quick_template/domain/models/expense_template.dart';
 import 'package:kozuchi/features/quick_template/domain/quick_template_service.dart';
 import 'package:kozuchi/features/quick_template/presentation/quick_template_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// クイックテンプレート管理画面
 ///
@@ -190,6 +191,7 @@ class _TemplateAddDialogState extends State<_TemplateAddDialog> {
             TextFormField(
               key: QuickTemplateAppKeys.amountField,
               controller: _amountController,
+              inputFormatters: InputLimits.amountTolerant,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: '金額（円）',
@@ -211,6 +213,7 @@ class _TemplateAddDialogState extends State<_TemplateAddDialog> {
             TextFormField(
               key: QuickTemplateAppKeys.purposeField,
               controller: _purposeController,
+              inputFormatters: InputLimits.label,
               decoration: const InputDecoration(
                 labelText: '用途',
                 border: OutlineInputBorder(),

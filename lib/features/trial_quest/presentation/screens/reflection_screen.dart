@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/domain/models/trial_quest.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 振り返り入力画面
 ///
@@ -119,6 +120,7 @@ class _ReflectionScreenState extends State<ReflectionScreen> {
               // 振り返り入力
               TextFormField(
                 controller: _reflectionController,
+                inputFormatters: InputLimits.reflection,
                 maxLines: 6,
                 decoration: InputDecoration(
                   labelText: '振り返りを綴れ',

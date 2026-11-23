@@ -14,6 +14,7 @@ import 'package:kozuchi/features/budget/presentation/screens/category_budget_scr
 import 'package:kozuchi/features/category_ledger/presentation/category_ledger_app_keys.dart';
 import 'package:kozuchi/features/category_ledger/presentation/screens/category_ledger_screen.dart';
 import 'package:kozuchi/features/shared/data/budget_repository.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 月間予算設定画面
 ///
@@ -269,6 +270,7 @@ class _BudgetSettingsScreenState extends State<BudgetSettingsScreen> {
                       label: '予算額',
                       child: TextFormField(
                         controller: _amountController,
+                        inputFormatters: InputLimits.amount,
                         keyboardType: TextInputType.number,
                         onChanged: (_) => _refreshRollover(),
                         decoration: InputDecoration(

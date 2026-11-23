@@ -6,6 +6,7 @@ import '../../domain/models/income_entry.dart';
 import '../../domain/models/income_source_summary.dart';
 import '../../domain/services/income_analysis_service.dart';
 import '../widgets/income_analysis_keys.dart';
+import '../../../../core/input/input_limits.dart';
 
 /// 収入源別の内訳分析画面。
 ///
@@ -234,6 +235,7 @@ class _IncomeAnalysisScreenState extends State<IncomeAnalysisScreen> {
         TextField(
           key: IncomeAnalysisAppKeys.searchField,
           controller: _searchController,
+          inputFormatters: InputLimits.search,
           decoration: InputDecoration(
             labelText: '収入源で検索',
             hintText: '例: 給与',

@@ -8,6 +8,7 @@ import 'package:kozuchi/core/search/search_history_store.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
 import 'package:kozuchi/features/transaction_filter/domain/models/transaction_filter.dart';
 import 'package:kozuchi/features/transaction_filter/presentation/transaction_query_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 取引一覧のフィルタバーWidget。
 ///
@@ -301,6 +302,7 @@ class _TransactionFilterBarState extends State<TransactionFilterBar> {
       child: TextField(
         key: TransactionQueryAppKeys.keywordField,
         controller: _keywordController,
+        inputFormatters: InputLimits.search,
         textInputAction: TextInputAction.search,
         onChanged: (_) => _emitFilter(),
         onSubmitted: (_) => _rememberKeyword(),

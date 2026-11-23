@@ -6,6 +6,7 @@ import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/installment_plan.dart';
 import 'package:kozuchi/features/installment/presentation/installment_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 分割払いプランの管理画面。
 ///
@@ -290,18 +291,21 @@ class _AddInstallmentDialogState extends State<_AddInstallmentDialog> {
             TextField(
               key: InstallmentAppKeys.purposeField,
               controller: _purposeController,
+              inputFormatters: InputLimits.name,
               autofocus: true,
               decoration: const InputDecoration(labelText: '名称'),
             ),
             TextField(
               key: InstallmentAppKeys.amountField,
               controller: _amountController,
+              inputFormatters: InputLimits.amount,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: '総額（円）'),
             ),
             TextField(
               key: InstallmentAppKeys.countField,
               controller: _countController,
+              inputFormatters: InputLimits.count,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: '分割回数'),
             ),

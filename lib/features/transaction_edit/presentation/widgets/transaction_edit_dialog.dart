@@ -5,6 +5,7 @@ import 'package:kozuchi/core/input/unsaved_changes.dart';
 import 'package:kozuchi/domain/models/transaction_model.dart';
 import 'package:kozuchi/features/transaction_edit/domain/services/transaction_edit_service.dart';
 import 'package:kozuchi/features/transaction_edit/presentation/transaction_edit_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 取引の編集ダイアログ（金額・カテゴリ・日付・メモ）。
 ///
@@ -151,6 +152,7 @@ class TransactionEditDialogState extends State<TransactionEditDialog> {
             TextField(
               key: TransactionEditAppKeys.amountField,
               controller: _amountController,
+              inputFormatters: InputLimits.amount,
               decoration: InputDecoration(
                 labelText: '金額（円）',
                 errorText: _errorText,
@@ -160,11 +162,13 @@ class TransactionEditDialogState extends State<TransactionEditDialog> {
             TextField(
               key: TransactionEditAppKeys.categoryField,
               controller: _categoryController,
+              inputFormatters: InputLimits.name,
               decoration: const InputDecoration(labelText: 'カテゴリ'),
             ),
             TextField(
               key: TransactionEditAppKeys.noteField,
               controller: _noteController,
+              inputFormatters: InputLimits.note,
               decoration: const InputDecoration(labelText: 'メモ'),
             ),
             const SizedBox(height: 8),

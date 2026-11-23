@@ -12,6 +12,7 @@ import 'package:kozuchi/features/budget/domain/category_budget_status.dart';
 import 'package:kozuchi/features/budget/presentation/category_budget_app_keys.dart';
 import 'package:kozuchi/features/budget/presentation/category_budget_suggestion_app_keys.dart';
 import 'package:kozuchi/features/budget/presentation/screens/category_budget_suggestion_screen.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// カテゴリ別予算の設定・超過警告画面
 ///
@@ -489,6 +490,7 @@ class _CategoryBudgetEditDialogState extends State<_CategoryBudgetEditDialog> {
       content: TextField(
         key: CategoryBudgetAppKeys.categoryBudget_amountField,
         controller: _amountController,
+        inputFormatters: InputLimits.amountTolerant,
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
           labelText: '予算額（円）',

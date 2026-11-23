@@ -6,6 +6,7 @@ import 'package:kozuchi/features/installment/data/installment_repository.dart';
 import 'package:kozuchi/features/installment/domain/installment_service.dart';
 import 'package:kozuchi/features/installment/domain/models/subscription.dart';
 import 'package:kozuchi/features/installment/presentation/installment_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// サブスクリプション（定額課金）の管理画面。
 ///
@@ -256,18 +257,21 @@ class _AddSubscriptionDialogState extends State<_AddSubscriptionDialog> {
             TextField(
               key: InstallmentAppKeys.purposeField,
               controller: _purposeController,
+              inputFormatters: InputLimits.name,
               autofocus: true,
               decoration: const InputDecoration(labelText: '名称'),
             ),
             TextField(
               key: InstallmentAppKeys.amountField,
               controller: _amountController,
+              inputFormatters: InputLimits.amount,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: '月額（円）'),
             ),
             TextField(
               key: InstallmentAppKeys.countField,
               controller: _dayController,
+              inputFormatters: InputLimits.day,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: '毎月の請求日（1〜31）'),
             ),

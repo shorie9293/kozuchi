@@ -10,6 +10,7 @@ import 'package:kozuchi/features/category_ledger/domain/category_ledger_service.
 import 'package:kozuchi/features/category_ledger/domain/category_usage.dart';
 import 'package:kozuchi/features/category_ledger/presentation/category_ledger_app_keys.dart';
 import 'package:takamagahara_ui/takamagahara_ui.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// カテゴリ管理画面
 ///
@@ -470,6 +471,7 @@ class _CategoryNameDialogState extends State<_CategoryNameDialog> {
       content: TextField(
         key: CategoryLedgerAppKeys.categoryLedger_nameField,
         controller: _controller,
+        inputFormatters: InputLimits.name,
         autofocus: true,
         decoration: InputDecoration(
           labelText: 'カテゴリ名',

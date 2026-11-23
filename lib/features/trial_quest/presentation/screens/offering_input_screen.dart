@@ -18,6 +18,7 @@ import 'package:kozuchi/features/quick_template/presentation/widgets/quick_templ
 import 'package:kozuchi/features/receipt_scanner/data/receipt_ocr_service.dart';
 import 'package:kozuchi/features/receipt_scanner/data/mlkit_receipt_ocr_service.dart';
 import 'package:kozuchi/features/receipt_scanner/presentation/screens/receipt_scanner_screen.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 支出入力結果
 class OfferingResult {
@@ -364,6 +365,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                 label: '支出金額',
                 child: TextFormField(
                   controller: _amountController,
+                  inputFormatters: InputLimits.amountTolerant,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: '支出金額（円）',
@@ -390,6 +392,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                 label: '用途',
                 child: TextFormField(
                   controller: _purposeController,
+                  inputFormatters: InputLimits.label,
                   decoration: const InputDecoration(
                     labelText: '用途',
                     border: OutlineInputBorder(),
@@ -432,6 +435,7 @@ class _OfferingInputScreenState extends State<OfferingInputScreen> {
                 label: '一言メモ',
                 child: TextFormField(
                   controller: _noteController,
+                  inputFormatters: InputLimits.memo,
                   maxLines: 2,
                   decoration: const InputDecoration(
                     labelText: '一言メモ（任意）',

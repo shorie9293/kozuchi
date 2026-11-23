@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/domain/models/player_model.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 収入記録結果
 class IncomeResult {
@@ -116,6 +117,7 @@ class _IncomeInputScreenState extends State<IncomeInputScreen> {
               // 金額入力
               TextFormField(
                 controller: _amountController,
+                inputFormatters: InputLimits.amountTolerant,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: '収入金額（円）',
@@ -134,6 +136,7 @@ class _IncomeInputScreenState extends State<IncomeInputScreen> {
               // 収入源入力
               TextFormField(
                 controller: _sourceController,
+                inputFormatters: InputLimits.name,
                 decoration: const InputDecoration(
                   labelText: '収入源',
                   border: OutlineInputBorder(),
@@ -149,6 +152,7 @@ class _IncomeInputScreenState extends State<IncomeInputScreen> {
               // 一言メモ
               TextFormField(
                 controller: _noteController,
+                inputFormatters: InputLimits.memo,
                 maxLines: 2,
                 decoration: const InputDecoration(
                   labelText: '一言メモ（任意）',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kozuchi/core/text/amount_parser.dart';
 import 'package:kozuchi/features/goals/data/goal.dart';
 import 'package:kozuchi/features/goals/data/goal_api_service.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 目標作成・編集画面
 ///
@@ -189,6 +190,7 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
               // 目標金額
               TextFormField(
                 controller: _targetAmountController,
+                inputFormatters: InputLimits.amountTolerant,
                 decoration: const InputDecoration(
                   labelText: '目標金額',
                   hintText: '例: 50000',
@@ -211,6 +213,7 @@ class _GoalFormScreenState extends State<GoalFormScreen> {
               // 現在の積立額
               TextFormField(
                 controller: _currentAmountController,
+                inputFormatters: InputLimits.amountTolerant,
                 decoration: InputDecoration(
                   labelText: '現在の積立額',
                   hintText: '例: 15000',

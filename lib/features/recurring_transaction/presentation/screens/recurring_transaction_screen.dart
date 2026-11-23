@@ -7,6 +7,7 @@ import 'package:kozuchi/features/recurring_transaction/data/recurring_transactio
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_storage_result.dart';
 import 'package:kozuchi/features/recurring_transaction/domain/recurring_transaction.dart';
 import 'package:kozuchi/features/shared/presentation/kozuchi_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 定期取引管理画面
 ///
@@ -303,6 +304,7 @@ class _RecurringFormDialogState extends State<_RecurringFormDialog> {
               TextFormField(
                 key: KozuchiAppKeys.recurringTx_purposeField,
                 controller: _purposeController,
+                inputFormatters: InputLimits.label,
                 decoration: const InputDecoration(
                   labelText: '用途（例: 家賃, 給与）',
                   border: OutlineInputBorder(),
@@ -314,6 +316,7 @@ class _RecurringFormDialogState extends State<_RecurringFormDialog> {
               TextFormField(
                 key: KozuchiAppKeys.recurringTx_amountField,
                 controller: _amountController,
+                inputFormatters: InputLimits.amountTolerant,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: '金額（円）',
@@ -369,6 +372,7 @@ class _RecurringFormDialogState extends State<_RecurringFormDialog> {
                 TextFormField(
                   key: KozuchiAppKeys.recurringTx_dayOfMonthField,
                   controller: _dayOfMonthController,
+                  inputFormatters: InputLimits.day,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: '日（1〜31）',

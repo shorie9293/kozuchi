@@ -7,6 +7,7 @@ import 'package:kozuchi/features/wallet/domain/models/wallet_movement.dart';
 import 'package:kozuchi/features/wallet/domain/wallet_service.dart';
 import 'package:kozuchi/features/wallet/presentation/screens/wallet_movements_screen.dart';
 import 'package:kozuchi/features/wallet/presentation/wallet_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 複数の財布（現金・銀行口座・電子マネー等）を管理し、財布別の残高を俯瞰する画面。
 ///
@@ -308,12 +309,14 @@ class _WalletDialogState extends State<WalletDialog> {
           TextField(
             key: WalletAppKeys.nameField,
             controller: _nameController,
+            inputFormatters: InputLimits.name,
             autofocus: true,
             decoration: const InputDecoration(labelText: '財布名'),
           ),
           TextField(
             key: WalletAppKeys.initialField,
             controller: _initialController,
+            inputFormatters: InputLimits.amount,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(labelText: '初期残高（円）'),
           ),

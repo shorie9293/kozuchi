@@ -5,6 +5,7 @@ import 'package:kozuchi/features/wallet/data/wallet_repository.dart';
 import 'package:kozuchi/features/wallet/domain/models/wallet.dart';
 import 'package:kozuchi/features/wallet/domain/models/wallet_movement.dart';
 import 'package:kozuchi/features/wallet/presentation/wallet_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 1つの財布の入出金履歴を表示し、記録・削除する画面。
 class WalletMovementsScreen extends StatefulWidget {
@@ -273,6 +274,7 @@ class _MovementDialogState extends State<MovementDialog> {
           TextField(
             key: WalletAppKeys.amountField,
             controller: _amountController,
+            inputFormatters: InputLimits.amount,
             autofocus: true,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(labelText: '金額（円）'),
@@ -280,6 +282,7 @@ class _MovementDialogState extends State<MovementDialog> {
           TextField(
             key: WalletAppKeys.noteField,
             controller: _noteController,
+            inputFormatters: InputLimits.note,
             decoration: const InputDecoration(labelText: 'メモ（任意）'),
           ),
           if (_error != null)

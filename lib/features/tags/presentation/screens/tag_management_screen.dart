@@ -4,6 +4,7 @@ import 'package:kozuchi/core/widgets/empty_state.dart';
 import 'package:kozuchi/features/tags/data/tag_repository.dart';
 import 'package:kozuchi/features/tags/domain/models/expense_tag.dart';
 import 'package:kozuchi/features/tags/presentation/tag_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// タグの作成・改名・削除を行う管理画面。
 ///
@@ -255,6 +256,7 @@ class _TagNameDialogState extends State<_TagNameDialog> {
       content: TextField(
         key: TagAppKeys.nameField,
         controller: _controller,
+        inputFormatters: InputLimits.name,
         autofocus: true,
         decoration: const InputDecoration(labelText: 'タグ名'),
       ),

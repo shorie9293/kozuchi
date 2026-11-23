@@ -4,6 +4,7 @@ import 'package:takamagahara_ui/takamagahara_ui.dart';
 import 'package:kozuchi/features/help/domain/help_catalog.dart';
 import 'package:kozuchi/features/help/domain/help_topic.dart';
 import 'package:kozuchi/features/help/presentation/help_app_keys.dart';
+import 'package:kozuchi/core/input/input_limits.dart';
 
 /// 「遊び方・ヘルプ」画面。
 ///
@@ -41,6 +42,7 @@ class _HelpScreenState extends State<HelpScreen> {
       child: TextField(
         key: HelpAppKeys.searchField,
         controller: _controller,
+        inputFormatters: InputLimits.search,
         textInputAction: TextInputAction.search,
         onChanged: (value) => setState(() => _query = value),
         decoration: const InputDecoration(
