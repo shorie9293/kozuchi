@@ -50,6 +50,12 @@ class NotificationService {
   /// null の場合は [pendingRoute] に保持し、[consumePendingRoute] で取り出す。
   final void Function(ResolvedNotificationRoute)? onRouteSelected;
 
+  /// 正確なアラーム（exactAllowWhileIdle）可否の問い合わせシーム。
+  ///
+  /// null（既定）の場合はプラグイン（`canScheduleExactNotifications`）へ
+  /// 従来どおり問い合わせる。本番経路の意味は不変で、試練からのみ注入する。
+  final Future<bool> Function()? exactAlarmAllowed;
+
   /// 遷移先の解決に失敗した（＝遷移しない）通知を保持しない。
   ResolvedNotificationRoute? _pendingRoute;
 
@@ -57,6 +63,7 @@ class NotificationService {
     FlutterLocalNotificationsPlugin? plugin,
     NotificationSettingsRepository? settingsRepository,
     this.onRouteSelected,
+    this.exactAlarmAllowed,
   })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
         _settingsRepository = settingsRepository ??
             const SharedPreferencesNotificationSettingsRepository();
@@ -294,8 +301,11 @@ class NotificationService {
 
   /// 使用するスケジュールモードを決定する。
   /// exact 権限があれば exactAllowWhileIdle、なければ inexactAllowWhileIdle。
+  ///
+  /// [exactAlarmAllowed] が注入されていればそちらを優先する（試練用シーム）。
   Future<AndroidScheduleMode> _getScheduleMode() async {
-    if (await canScheduleExactAlarms()) {
+    final allowed = await (exactAlarmAllowed ?? canScheduleExactAlarms)();
+    if (allowed) {
       return AndroidScheduleMode.exactAllowWhileIdle;
     }
     return AndroidScheduleMode.inexactAllowWhileIdle;
